@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 593 316 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 882 399 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 751 925 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 755 220 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 738 311 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 748 422 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 10 075 286 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 593 377 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 882 460 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 751 986 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 755 281 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 738 372 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 748 483 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 10 075 347 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -918,7 +918,7 @@ in flight (`内核异步闸门进行中：已跑 581 门，还剩 1 组，失败
 the last group has landed — the sampled timeline behind that rule is §9.3, the defect it closes is §11.26.
 
 Measured: 623 gates / 0 failures / 1.54 s on the loopback origin (§9.3; the hosted URL measures the same
-623 in 2.96 s, §9.4), of which 71 asynchronous (the duration varies with the machine and with where the
+623 in 2.9 s, §9.4), of which 71 asynchronous (the duration varies with the machine and with where the
 bytes come from, the gate count and the failure count do not); 1374 land
 blocks attached; 0 missing UI ids; 0 pieces of markup visible in rendered text; environment row
 `加密落盘可用（localStorage · 写前 AES-256-GCM）`. The same 623 is what Node reports on the same files,
@@ -1869,7 +1869,7 @@ Network Access both have to pass, and both were tested rather than assumed:
 
 | Test | Result |
 | --- | --- |
-| ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 2.96 s (71 of them asynchronous), 1 374 land blocks attached — counted by `GEOUI_MAP.layerStats().land_blocks`, **not** by `#map path`, because the land layer is drawn on a canvas and the DOM therefore holds no `path` elements to count (§11.28); missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:`. Measured 2026-11-03 against the build Pages is serving. Sampled every 200 ms the hosted page tells the same three-state story as the local one: `已跑 552 门，还剩 2 组` → `已跑 581 门（其中异步 29），还剩 1 组` → `自检通过：623 门 0 失败`, and the state where the status line already said `自检通过` while the verdict row still said `还剩` occurred **0** times (§11.26). The seconds differ from §9.3's 1.54 s because the files cross a network; the gate count and the failure count do not. That is the point: the hosted page differs from the offline paths only in where the bytes came from (§9.5) |
+| ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 2.9 s — 2.96 s and 2.93 s on two runs of the deployed build (71 of those gates asynchronous), 1 374 land blocks attached — counted by `GEOUI_MAP.layerStats().land_blocks`, **not** by `#map path`, because the land layer is drawn on a canvas and the DOM therefore holds no `path` elements to count (§11.28); missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:`. Measured 2026-11-03 against the build Pages is serving. Sampled every 200 ms the hosted page tells the same three-state story as the local one: `已跑 552 门，还剩 2 组` → `已跑 581 门（其中异步 29），还剩 1 组` → `自检通过：623 门 0 失败`, and the state where the status line already said `自检通过` while the verdict row still said `还剩` occurred **0** times (§11.26). The seconds differ from §9.3's 1.54 s because the files cross a network; the gate count and the failure count do not. That is the point: the hosted page differs from the offline paths only in where the bytes came from (§9.5) |
 | the whole hosted session's console and its resource ledger | before this build: **one** error line, `Failed to load resource: 404`, and Resource-Timing named the URL as `https://iammezsh.github.io/favicon.ico` — the browser's own fallback for a document that declares no icon, aimed at the site root and asked for by nobody in the repository (§11.27). The entry page now declares `favicon.svg`, and the run against the deployed build is clean: **0** console errors for the whole session, and every one of the **17** local references the page declares answers 200 when fetched from inside that page — `favicon.svg` included (`200`, `image/svg+xml`, 1 114 B). Pages itself serves `/geo-position-workstation/favicon.svg` the same way, while `/favicon.ico` at the site root is still 404 — correctly, because nothing asks for it any more. Both bridges answer the same path with the same type, which is the extension §8.6's widened scan now covers |
 | ⑧ `traceroute 192.168.1.1` from the hosted URL, **browser defaults** | channel `browser-fallback`, `bridge_unavailable：Failed to fetch` — and the bridge's own access log proves why: the request never arrived. This is Chromium's client-side local-network policy (Edge/Chromium 156 here), not the bridge refusing: the same bridge answers ⑧'s health call from that very machine in 7 ms when the page is opened from `http://127.0.0.1:8765/` (§9.3's ⑧ row) |
 | the same click with that policy switched off (`--disable-features=LocalNetworkAccessChecks,LocalNetworkAccess,BlockInsecurePrivateNetworkRequests`) | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, **3 hops, all honestly `*`**, not reached within 20 hops, 8 010 ms, `伪造跳数：否` — this is the row that proves the https→loopback path itself works once the browser lets the request leave |
