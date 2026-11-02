@@ -20,6 +20,18 @@ import os
 import re
 import sys
 
+# 输出编码兜底：stdout 被重定向或接到管道里时（CI、`| tee`、被别的程序调用），
+# Windows 上的 Python 会退回 locale 编码（常见 cp1252），中文一打印就 UnicodeEncodeError，
+# 整个闸门直接崩在第一条 print 上。真控制台不受影响，所以只在「当前编码打不出中文」时才换。
+try:
+    "中文".encode(sys.stdout.encoding or "ascii")
+except (LookupError, UnicodeEncodeError):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL = sys.platform == "win32"
 
