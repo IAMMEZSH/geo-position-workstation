@@ -67,8 +67,22 @@ push('单次反算耗时（预热后 30 次均值 < 40 ms）', inv_ms < 40, inv_
 
 现在改成只忽略根目录那一个（`/桥接服务.log`），并由 `check-package.py` 反向检查：
 把 `.gitignore` 的规则套到 `示例数据/ app/ vendor/ docs/ images/ tests/` 的真实文件上，
-任何命中都算失败（`app/_build/` 是开发期产物，白名单放行）。同理，README 与 docs 里每条
+任何命中都算失败（开发期目录如 `app/_build/`、`_build/` 走白名单，不参与交付文件检查）。同理，README 与 docs 里每条
 本地图片/文件链接都对着磁盘核一遍——GitHub 首页的裂图不会触发任何运行时错误。
+
+## 第五个看不见故障的地方：一条 `rm -rf` 删到了父目录
+
+整理仓库时想删掉临时 clone（`_build/clone-test`），命令写成了 `rm -rf _build`——把同一棵树里
+**唯一的**两份离线数据原始输入（`_build/dl/cities15000.txt`、`_build/dl/ne_land.geojson`）一起删了。
+这些路径是 gitignore 的开发期目录，仓库里没有、`git status` 里也看不见，所以任何自检和 CI 都不会报错；
+直到要重跑 `工具/build-data.mjs` 才发现输入没了。
+
+已经补齐并当场验证：重新从官方地址下载（zip 过 CRC、字节数与 SHA-256 记进 `docs/data.md`），
+用这份输入重建，`data-land.js` / `data-countries.js` 与随包数据**逐字节相同**，
+`data-cities.js` 差 68 字节 = GeoNames 日更带来的 4 个城市字段变化，不是构建器不确定。
+
+教训写下来：**删目录前先 `ls` 那个目录**，别凭记忆写路径；临时产物和不可替代的输入不放同一棵树，
+或者至少——本项目的原始输入现在有了固定 URL + 校验和，删了也能重建。
 
 ## 第四个看不见故障的地方：同一个端口上跑了两个桥接
 

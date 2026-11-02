@@ -20,16 +20,34 @@
 
 ## 幂等与脏数据处理
 
-- 输出**只由输入决定**（不含时间戳），重跑产生逐字节相同的文件；输入缺失时保留旧文件并以非 0 退出。
+- 输出**只由输入决定**（不含时间戳），同一份输入重跑产生逐字节相同的文件；输入缺失时保留旧文件并以非 0 退出。
 - 原始文件路径可用环境变量覆盖：`GEO_RAW_CITIES` / `GEO_RAW_LAND` / `GEO_OUT_DIR`。
 - 落盘前递归扫描：`NaN` / `Infinity` / `undefined` / `null` 一律视为脏数据，**宁可构建失败也不落盘**。
 - 生成后立刻在 Node 里按浏览器方式执行一遍（靠全局副作用），验证真的能加载。
 
+## 原始输入的确切出处（2026-11-02 实测）
+
+| 输入 | URL | 字节数 | SHA-256 |
+|---|---|---|---|
+| GeoNames zip | `https://download.geonames.org/export/dump/cities15000.zip` | 3,365,609 | `c7b7482b115463874798824f76381f84103233c0a9db9d43efe8501719200dc9` |
+| 解出的成员 | `cities15000.txt`（zip 内唯一成员） | 8,546,918 | `15c40acb067f02528249715f42c21feb3769192debd79b73d6479a1f980b69ae` |
+| Natural Earth | `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_land.geojson` | 1,636,166 | `e874b27a51d146452be360cafb3cc50c86001074a67d534113e6534682f9826b` |
+
+`naturalearthdata.com` 的 `ne_50m_land.zip` 当时返回 HTTP 500，所以上面用的是 Natural Earth 官方
+vector 仓库里的 GeoJSON 派生件（同一份数据、同一许可），别改成前者否则构建会卡住。
+
+重建校验结果（用上面这份输入跑 `工具/build-data.mjs` 与随包数据对比）：
+
+- `data-land.js`、`data-countries.js`：**逐字节相同**（763,002 B / 9,395 B，1374 块、195 国不变）。
+- `data-cities.js`：差 68 字节 —— GeoNames 的 dump **每天重发布**，这次拉到的是 4 个城市变了
+  （Luján de Cuyo 多了 `PPLA2` 类别、Bad Friedrichshall / Umluj / Göködepe 的人口或类别更新），
+  不是构建器的不确定性。所以「逐字节可重建」的准确说法是**同一份输入下逐字节相同**。
+
 重建：
 
 ```bash
-# 1. 自己下载两份原始数据（官方站点：geonames.org 的 export/dump 目录、Natural Earth 的 1:50m land）
-# 2. 指到本地路径
+# 1. 拉上面表格里两份官方原始数据（zip 要解出 cities15000.txt）
+# 2. 指到本地路径；GEO_OUT_DIR 省略就直接写进 app/data/
 GEO_RAW_CITIES=/path/cities15000.txt GEO_RAW_LAND=/path/ne_land.geojson \
   node 工具/build-data.mjs
 ```
