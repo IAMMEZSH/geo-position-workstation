@@ -68,10 +68,12 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 
 ## 1. What is in the package
 
-The complete package is **68 files, 10.07 MB (9.60 MiB)** — including 15 real
+The complete package is **68 files, a little over 10 MB (9.6 MiB)** — including 15 real
 run screenshots (5.04 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
-directories. That is exactly what `git ls-files -co --exclude-standard` counts, and
-`tests/check-package.py` verifies in reverse that no deliverable file is swallowed by `.gitignore`.
+directories. That is exactly what `git ls-files -co --exclude-standard` counts (the byte-for-byte sum of
+those 68 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
+so the exact figure is kept where it can go stale and the prose here is kept where it cannot); the same
+gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 
 | Path | Purpose |
 |---|---|
@@ -125,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 592 622 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 881 705 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 751 231 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 754 526 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 737 617 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 747 728 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 10 074 592 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 593 316 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 882 399 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 751 925 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 755 220 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 738 311 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 748 422 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 10 075 286 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -1797,7 +1799,11 @@ fallback and the exit-code-3 contract in the files themselves, so CI's shape —
 `::notice::` skip line instead of a fake pass, and one genuinely skipped item locally versus 111
 executed there — is the part that stays in this section.
 
----
+The two runs that close this build (`f78603e`, the icon fix, and `0248849`, the measurements above) came
+back green on both runners with exactly the table's numbers: `623 门 / 0 失败` and `自检通过 111 项` and
+`合计 71 项 / 0 失败` on each, plus `桥接（PowerShell）自检：202 项 / 0 失败` and `用例 41 / 失败 0` on the
+Windows job and its documented skip on the Ubuntu one. Those lines are read out of the job logs, not
+inferred from the check mark.
 
 ---
 
