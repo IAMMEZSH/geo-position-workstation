@@ -35,12 +35,14 @@ jobs:
 
       # 两份桥同时拉起、逐条打同一个请求：键集合、状态码、Content-Type、字节数都要对得上。
       # 只打 127.0.0.1，GeoIP 走「构造阶段就被拒」的输入，所以断网/代理环境也一样绿。
-      # 退出码 3 = 本机没有 PowerShell（ubuntu 无 pwsh 时），如实跳过而不是假装通过。
+      # 退出码 3 = 当前平台不是 Windows（那份桥依赖 PowerShell 5.1 + http.sys），如实跳过而不是假装通过。
+      # 写成 `|| rc=$?` 是必须的：这个 shell 带 -e，裸写一行 `python ...` 再 `rc=$?`
+      # 会在非零退出的那一刻整个中止，跳过分支根本轮不到执行（第一版就在 ubuntu 上这样假红过）。
       - name: python tests/bridge-parity.py（两份桥实机对账）
         run: |
-          python tests/bridge-parity.py
-          rc=$?
-          if [ $rc -eq 3 ]; then echo '::notice::跳过实机对账：本机没有 PowerShell，这一步只在 Windows 上有意义'; exit 0; fi
+          rc=0
+          python tests/bridge-parity.py || rc=$?
+          if [ $rc -eq 3 ]; then echo '::notice::跳过实机对账：这一步只在 Windows 上有意义（当前平台没有 PowerShell 5.1 + http.sys）'; exit 0; fi
           exit $rc
         shell: bash
 

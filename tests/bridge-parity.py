@@ -16,6 +16,7 @@
     python tests/bridge-parity.py 8765 8799  # 用已经在跑的两个端口（不自己起进程）
 
 退出码：0 一致 / 1 有差异 / 3 环境不满足（如实跳过，绝不当成通过）
+环境：只对 Windows 有意义——ps1 那份依赖 PowerShell 5.1 + http.sys，非 Windows 直接给 3。
 """
 import json
 import os
@@ -27,6 +28,18 @@ import time
 import urllib.error
 import urllib.request
 from shutil import which
+
+# 输出编码兜底（与 tests/check-package.py 同一处理）：stdout 被接进管道时（CI 就是管道），
+# Windows 上的 Python 退回 locale 编码（常见 cp1252），中文一 print 就 UnicodeEncodeError，
+# 整条闸门崩在第一行输出上——CI 上真的发生过，留下的只有一个跟两份桥毫无关系的 traceback。
+try:
+    "中文".encode(sys.stdout.encoding or "ascii")
+except (LookupError, UnicodeEncodeError):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUDGET_S = 8.0          # 一份桥从启动到能答 health 的上限
@@ -54,6 +67,10 @@ def http_get(url, timeout=20.0):
             return resp.status, resp.read(), {str(k).lower(): v for k, v in resp.headers.items()}
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read(), {str(k).lower(): v for k, v in (exc.headers or {}).items()}
+    except (urllib.error.URLError, OSError) as exc:
+        # 连不上不许抛出去：抛了就变 traceback，对账表反而少一行证据。记成状态码 0，
+        # 让下面每一处比较都把它当成「这一份桥没答」如实写进 FAIL 明细。
+        return 0, ("连接失败：%s" % exc).encode("utf-8"), {}
 
 
 def wait_ready(base, label, procs):
@@ -274,9 +291,9 @@ def start_bridges():
             [sys.executable, os.path.join(ROOT, "server.py"), "--port", str(py_port), "--quiet"],
             cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             encoding="utf-8", errors="replace"))
-        ps_exe = "powershell.exe" if os.name == "nt" else "pwsh"
+        # main() 已经把非 Windows 挡在退出码 3 了，这里只需要 Windows 自带的那一个。
         procs.append(subprocess.Popen(
-            [ps_exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
              os.path.join(ROOT, "bridge-powershell.ps1"), "-Port", str(ps_port), "-Quiet"],
             cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             encoding="utf-8", errors="replace"))
@@ -312,7 +329,14 @@ def stop(procs):
 
 
 def main(argv):
-    if os.name != "nt" and which("pwsh") is None:
+    # 只在 Windows 上做实机对账：这份桥依赖 PowerShell 5.1 + .NET + http.sys，
+    # Linux 上虽然可能装着 pwsh 7，但那不是它要服务的环境，硬跑只会对出环境差异
+    # （没有 tracert、HttpListener 不走 http.sys、前缀注册语义不同）。
+    # CI 的 ubuntu job 因此拿到退出码 3，由工作流打印 ::notice:: 跳过——跳过是明说的，不是装成通过。
+    if os.name != "nt":
+        print("跳过：实机对账只在 Windows 上做（当前平台 %s）。" % sys.platform)
+        return 3
+    if which("powershell.exe") is None and which("powershell") is None:
         print("跳过：本机没有 PowerShell（这份桥的实机对账只在它能跑的平台上做）。")
         return 3
     procs = []
