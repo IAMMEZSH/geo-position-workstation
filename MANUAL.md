@@ -124,13 +124,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 35 | 4 578 089 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 38 | 4 867 172 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 38 | 4 736 698 B | 1.67 MB |
-| Linux (any distro) | `geo-linux.zip` | 38 | 4 739 993 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 37 | 4 723 084 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 733 195 B | 1.67 MB |
-| Everything (developers) | `geo-full.zip` | 67 | 10 067 216 B | 6.74 MB |
+| Any browser, no bridge | `geo-browser.zip` | 35 | 4 578 133 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 38 | 4 867 216 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 38 | 4 736 742 B | 1.67 MB |
+| Linux (any distro) | `geo-linux.zip` | 38 | 4 740 037 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 37 | 4 723 128 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 733 239 B | 1.67 MB |
+| Everything (developers) | `geo-full.zip` | 67 | 10 067 260 B | 6.74 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -2170,9 +2170,9 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     look tidy — the archive itself, its file list and its byte counts were fine. Locally invisible because
     this machine has one drive. The fix is `show_path()`, which falls back to the absolute path when
     `relpath` raises. Verified by recreating the runner's layout here: with the module's `ROOT` pointed at
-    `D:` while the files still read from `C:`, bare `relpath` raised exactly that message, `build()` then
-    returned normally, and the packed content was unchanged at **10 064 425 B raw / 67 files** — the same
-    figures the same-drive run produced. §8.6's 69th item pins the shape ("both paths, both must come back
+    `D:` while the files still read from `C:`, bare `relpath` raised exactly that message and `build()`
+    then returned normally with the **same 67 files and the same raw byte count as the same-drive run** —
+    the claim is that equality, not a figure that moves whenever the manual is edited. §8.6's 69th item pins the shape ("both paths, both must come back
     as strings"), so the next person who reaches for a display path cannot take the gate down again. The
     general form: **a cosmetic code path that can raise is still a code path that can raise** — the crash
     was three characters of `print` formatting away from the real work, and it was the run that failed, not
