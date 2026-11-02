@@ -4,6 +4,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/IAMMEZSH/geo-position-workstation/actions/workflows/ci.yml"><img alt="gates CI" src="https://github.com/IAMMEZSH/geo-position-workstation/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
   <img alt="no dependencies" src="https://img.shields.io/badge/%E7%AC%AC%E4%B8%89%E6%96%B9%E8%BF%90%E8%A1%8C%E6%97%B6%E4%BE%9D%E8%B5%96-0-blue.svg">
   <img alt="offline first" src="https://img.shields.io/badge/%E9%BB%98%E8%AE%A4-offline%20first-orange.svg">
