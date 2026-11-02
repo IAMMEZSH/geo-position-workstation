@@ -3123,22 +3123,32 @@
     });
     var env = envReport();
     var asyncAdd = { gates: 0, bad: 0 };
+    // 异步门是一组一组回来的。在全部回来之前，这一屏不许说「自检通过」：
+    // 托管页实测 2.3 s 时 GEONET 的 29 门已落地、GEOVAULT 的 42 门还在 WebCrypto 里跑，
+    // 而状态条已经写成「自检通过：581 门 0 失败」——一个看起来是终态、其实是半程的数字。
+    var pendingAsync = 0;
     function summaryHtml() {
       var g = total + asyncAdd.gates, f = failed + asyncAdd.bad;
       var ok = f === 0 && env.bad === 0;
       var skipped = ENGINES.filter(function (e) { return quick && !e.quick; }).map(function (e) { return e.ns; });
       return h4('总览') + kv([
         ['本次范围', quick ? '快速：' + picked.map(function (e) { return e.ns; }).join('、') : '全量 ' + ENGINES.length + ' 个内核'],
-        ['闸门总数', String(g) + (asyncAdd.gates ? '（其中异步 ' + asyncAdd.gates + ' 门）' : '')],
+        ['闸门总数', String(g) + (asyncAdd.gates ? '（其中异步 ' + asyncAdd.gates + ' 门）' : '')
+          + (pendingAsync ? warn('（异步还剩 ' + pendingAsync + ' 组在跑，这个数还会涨）') : '')],
         ['失败', f ? bad(String(f)) : good('0')],
         ['耗时', fmt((Date.now() - t0) / 1000, 2) + ' s'],
         ['界面元素缺失', env.miss ? warn(env.miss + ' 个 id 找不到') : good('0')],
-        ['结论', ok ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细')]
+        ['结论', pendingAsync ? warn('异步闸门还剩 ' + pendingAsync + ' 组在跑，现在还不是终局——跑完这一行会自己改口')
+          : (ok ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细'))]
       ]) + env.html + (skipped.length ? note(warn('快速模式跳过了 ' + skipped.join('、') + '；出具验收结论请跑全量。')) : '');
     }
     function finalStatus() {
       var f = failed + asyncAdd.bad;
       var ok = f === 0 && env.bad === 0;
+      if (pendingAsync) {
+        status('内核异步闸门进行中：已跑 ' + (total + asyncAdd.gates) + ' 门，还剩 ' + pendingAsync + ' 组，失败 ' + f, 'busy');
+        return;
+      }
       status(ok ? '自检通过：' + (total + asyncAdd.gates) + ' 门 0 失败' : '自检失败 ' + f + ' 门', ok ? 'ok' : 'bad');
     }
     put('stSummary', summaryHtml());
@@ -3158,7 +3168,9 @@
         jobs.push({ ns: 'GEOVAULT', title: 'GEOVAULT 加密门（浏览器自己的 WebCrypto：PBKDF2-SHA256 ' + vIter + ' 万次 → AES-256-GCM 认证往返）' });
       }
       if (jobs.length) {
-        status('内核异步闸门进行中（' + jobs.map(function (j) { return j.ns; }).join('、') + '）…', 'busy');
+        pendingAsync = jobs.length;
+        put('stSummary', summaryHtml());
+        finalStatus();
         var chain = Promise.resolve();
         jobs.forEach(function (j) {
           chain = chain.then(function () {
@@ -3170,6 +3182,7 @@
               var arr = list || [];
               var b = arr.filter(function (x) { return !x.pass; });
               asyncAdd.gates += arr.length; asyncAdd.bad += b.length;
+              pendingAsync--;
               var el = $('stDetail');
               if (el) el.innerHTML += '<h4>' + esc(j.title + '：' + arr.length + ' 门，') +
                 (b.length ? bad(b.length + ' 失败') : good('0 失败')) + '</h4>' +

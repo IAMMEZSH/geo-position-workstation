@@ -13,7 +13,7 @@ tracing) needs an extra local bridge, and on **Windows that bridge needs nothing
   (71 of them asynchronous); Node `tests/run-all.mjs` **623 gates** — the same files reaching the same
   number in both environments, which is itself part of the check (§8.1); `server.py --selftest` **110 items**
   (1 skipped because this machine forbids the symlink); `bridge-powershell.ps1 -SelfTest` **202 items**;
-  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **69 items**;
+  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **70 items**;
   `工具/pack-platform.py --check` **0 problems**. Composition and commands: §8. Screenshots and
   per-panel numbers: §3 and §9.
 - **This file is the only usage document.** Platform boundaries, architecture conventions,
@@ -69,7 +69,7 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 ## 1. What is in the package
 
 The complete package is **67 files, 10.06 MB (9.60 MiB)** — including 15 real
-run screenshots (5.05 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
+run screenshots (5.04 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts, and
 `tests/check-package.py` verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 
@@ -99,7 +99,7 @@ directories. That is exactly what `git ls-files -co --exclude-standard` counts, 
 | `docs/img/` | Five English diagrams: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
 | `images/` | Fifteen real screenshots (referenced by README and this manual — not decoration) |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
-| `tests/check-package.py` | 69 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table |
+| `tests/check-package.py` | 70 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, and the order of the self-test panel's own verdict |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
 | `工具/pack-platform.py` | Builds the per-platform archives listed below (`--list`, `--check`, `--all`) |
 | `.github/workflows/ci.yml` | Runs the three groups above on Ubuntu and Windows on every push |
@@ -115,7 +115,7 @@ exist and nothing is missing — the tree you see in the repository *is* the del
 
 ### 1.1 You do not have to download everything: per-platform packs
 
-The repository carries every platform's launcher, both bridges, 5.05 MB of screenshots and the test
+The repository carries every platform's launcher, both bridges, 5.04 MB of screenshots and the test
 gates. A given device needs none of that except its own. `工具/pack-platform.py` therefore
 declares an **explicit manifest per platform** — no wildcards, so a stray file dropped into `app/`
 cannot silently ride along into a release — and the manifests are a gate, not prose:
@@ -124,13 +124,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 35 | 4 578 133 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 38 | 4 867 216 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 38 | 4 736 742 B | 1.67 MB |
-| Linux (any distro) | `geo-linux.zip` | 38 | 4 740 037 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 37 | 4 723 128 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 733 239 B | 1.67 MB |
-| Everything (developers) | `geo-full.zip` | 67 | 10 067 260 B | 6.74 MB |
+| Any browser, no bridge | `geo-browser.zip` | 35 | 4 584 555 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 38 | 4 873 638 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 38 | 4 743 164 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 38 | 4 746 459 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 37 | 4 729 550 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 739 661 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 67 | 10 065 015 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -910,8 +910,12 @@ Leaflet / vendor / offline data / land blocks actually attached to the map / **�
 — whether this browser can encrypt before writing, or refuses to) / protocol / missing UI ids / markup
 leaked into rendered text. Composition, pass criteria and how to re-verify: §8.
 
-Measured: 623 gates / 0 failures / 1.49 s, of which 71 asynchronous (a second run in the same session took
-1.54 s — the duration varies with the machine, the gate count and the failure count do not); 1374 land
+The asynchronous groups are what spend the seconds, so the panel reports its own progress while they are
+in flight (`内核异步闸门进行中：已跑 581 门，还剩 1 组，失败 0`) and is not allowed to print a verdict until
+the last group has landed — the sampled timeline behind that rule is §9.3, the defect it closes is §11.26.
+
+Measured: 623 gates / 0 failures / 1.54 s, of which 71 asynchronous (the duration varies with the machine,
+the gate count and the failure count do not); 1374 land
 blocks attached; 0 missing UI ids; 0 pieces of markup visible in rendered text; environment row
 `加密落盘可用（localStorage · 写前 AES-256-GCM）`. The same 623 is what Node reports on the same files,
 which is the point: the verdict must not depend on which container ran it (§8.1).
@@ -1501,14 +1505,14 @@ substitutes for another; if any one is red, do not use the build.
 | Python bridge gates | `python server.py --selftest` | **110 items / 0 failures + 1 skipped locally, 111 on CI** (§8.8) | whitelist, origin allowlist, loopback bind, port pre-probe, path traversal, upstream URL rules, contract keys, parsers that cannot invent hops |
 | PowerShell bridge gates | `powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -SelfTest` | **202 items / 0 failures** | the same list, plus PS-specific evaluation, redirection, `-eq` casing, source guard, cross-origin allowlist, concurrency |
 | Live cross-check | `python tests/bridge-parity.py` | **41 cases / 0 failures** (exit code 3 = honestly skipped on non-Windows) | both bridges started at once and fed identical requests: status, key set, byte count, Content-Type, and the origin allowlist's verdict for five allowed and four hostile origins (§8.5) |
-| Package inspection | `python tests/check-package.py` | **69 items / 0 failures** | the 16 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, and §1.1's pack sizes rebuilt in a temporary directory |
+| Package inspection | `python tests/check-package.py` | **70 items / 0 failures** | the 16 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, §1.1's pack sizes rebuilt in a temporary directory, and the branch order that keeps ⑪ from announcing a verdict while its async gates are still running (§11.26) |
 
 All of it in four commands:
 
 ```bash
 node tests/run-all.mjs --with-server --with-bridge   # 623 kernel + 110 Python + 202 PowerShell
 python tests/bridge-parity.py                        # 41 live cases against both bridges
-python tests/check-package.py                        # 69 package checks (Python only)
+python tests/check-package.py                        # 70 package checks (Python only)
 npm run test:all                                     # kernels + Python bridge only
 ```
 
@@ -1646,10 +1650,10 @@ case still passes on key-set equality and prints the differing `ok` flag as refe
 of hiding it — a parity test that reports "identical" about things that are not identical is worse than no
 test.
 
-### 8.6 Package inspection: 69 items, and how a scanner proves it is not blind
+### 8.6 Package inspection: 70 items, and how a scanner proves it is not blind
 
 `tests/check-package.py` is the layer that looks at the **files**, not at the running code. Pure Python,
-no browser, no network, no subprocess: 69 items over the entry page's 16 local resources (§1), the
+no browser, no network, no subprocess: 70 items over the entry page's 16 local resources (§1), the
 launchers' encoding, line endings and skin invariants (`.bat` pure ASCII + CRLF + zero ESC bytes + a
 widest-line bound + no `timeout`, `.sh`/`.command` LF, `.ps1` BOM + CRLF, and each face's own colour
 discipline — the rules are in §2.10, the assertions that they did not drift are here), both bridges' red
@@ -1666,7 +1670,7 @@ lines, and the docs themselves.
   (preflight and real request). Each bridge's contract literals must be parseable by the other's regex,
   which is what catches "the pattern silently matched nothing" (§11.14).
 - **The front-end exfiltration scan** (§7.2 item 13) bans nine constructs across ten files and asserts
-  `localStorage` is named by exactly two keepers. Two of the 69 items exist to keep that scan honest:
+  `localStorage` is named by exactly two keepers. Two of the 70 items exist to keep that scan honest:
   a four-line `_probe` in which it must find **exactly one** `sendBeacon(` — the two mentions inside
   comments must not count, and `http://127.0.0.1:8765` must survive comment-stripping — and a *witness*
   string per scanned file that exists only in real code (`allow_ambient_storage`, `AES-GCM`,
@@ -1724,6 +1728,15 @@ lines, and the docs themselves.
   letters raises `ValueError` instead of returning a path, so the packing helper's *display* string took
   the whole gate down (§11.25). The 69th item exists so it cannot come back: it calls the helper with a
   same-drive and a different-drive path and requires plain strings out of both.
+- **⑪ cannot announce its verdict before the async gates have landed.** The UI layer is normally out of
+  this file's reach — it needs a browser, and CI has none — but §11.26's defect has a shape a text scan
+  can hold: in `app/ui-app.js`, the branch that prints `自检通过：…` must sit **behind** the guard on
+  `pendingAsync`, that guard must be fed by an assignment that precedes its decrement, and the `结论` row
+  must consult the same counter. The 70th item slices `finalStatus()` out of the file between two anchors,
+  compares those offsets, and prints each one so a vanished anchor reads as `-1` instead of as a pass.
+  What it deliberately cannot do is prove behaviour: that is §9.3's sampled timeline, and it is why the
+  item asserts an **order** rather than the presence of a word — a gate that only greps for `pendingAsync`
+  would still be green after someone moved the verdict back above the guard, which is the bug itself.
 
 ### 8.7 UI-level verification — the class kernels cannot see
 
@@ -1747,7 +1760,7 @@ deliberately **not** a gate: only a real browser can prove it works, so its evid
 | `server.py --selftest` | **111 items / 0 failed** (the symlink gate executes there) | **111 items / 0 failed** |
 | `bridge-powershell.ps1 -SelfTest` | skipped, with one explanatory line from the workflow (this bridge needs PowerShell 5.1 + `http.sys`) | **202 items / 0 failed** |
 | `bridge-parity.py` | exit code **3**, which the workflow turns into a `::notice::` skip — **not a fake pass** | 41 cases / 0 failed |
-| `check-package.py` | 69 items / 0 failed | 69 items / 0 failed |
+| `check-package.py` | 70 items / 0 failed | 70 items / 0 failed |
 
 The counts in that table are what **this** tree produces locally, and CI is what promotes them from
 "my machine" to "verified" — and the promotion has teeth. The first run of this build (`00895aa`, run
@@ -1814,7 +1827,7 @@ build's measurements, kept because they were actually observed; the 2026-11-03 r
 
 | Scenario | Result |
 | --- | --- |
-| `http://127.0.0.1:8765/index.html` with a bridge behind it | all seven namespaces loaded, Leaflet ready, 1 374 land polygons attached, ⑪ **623 gates / 0 failures** in 1.49 s (71 of them asynchronous; a second run in the same session: 1.54 s), missing ids 0, leaked markup 0, and the storage row reads `加密落盘可用（localStorage · 写前 AES-256-GCM）` — the loopback `http:` origin counts as a secure context (§6.8), so this is the path where ⑩ is fully functional. Measured 2026-11-03 with `server.py`; the same page against the PowerShell bridge on the previous build measured 515 gates in 0.69 s |
+| `http://127.0.0.1:8765/index.html` with a bridge behind it | all seven namespaces loaded, Leaflet ready, 1 374 land polygons attached, ⑪ **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), missing ids 0, leaked markup 0, protocol row `http:`, and the storage row reads `加密落盘可用（localStorage · 写前 AES-256-GCM）` — the loopback `http:` origin counts as a secure context (§6.8), so this is the path where ⑩ is fully functional. The same run sampled every 200 ms is what §11.26 was written from: `552 门，还剩 2 组` at 0.67 s, `581 门（其中异步 29），还剩 1 组` at 0.88 s, and only at 1.70 s does the panel dare to say `自检通过：623 门 0 失败`. Measured 2026-11-03 with `server.py`; the same page against the PowerShell bridge on the previous build measured 515 gates in 0.69 s |
 | `file://…/index.html` (double-click, no bridge started) | `isSecureContext = true`, seven namespaces, map ready, 1 374 polygons; the bridge health check from `Origin: null` returns "online" in 11 ms when the PowerShell bridge happens to be running |
 | ⑧ bridge health | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, `geonet-bridge 1.0.0 (PowerShell 5.1.28000.2113, win32)`, 7 ms |
 | ⑧ trace `github.com` | 5 hops (2 honestly marked "no response (`*`)"), did not arrive within 20 hops, 8 017 ms, target scope `public`, "fabricated hops: no" |
@@ -1837,28 +1850,33 @@ Network Access both have to pass, and both were tested rather than assumed:
 
 | Test | Result |
 | --- | --- |
-| ⑪ full self-test run on the hosted URL | **515 gates / 0 failures** (1.96 s), 1 374 polygons, missing ids 0, environment row protocol `https:` — measured against the build Pages is **currently serving**, which predates the vault layer, so it is still 515 rather than 623. After the next push this row is re-measured; the same run on `file://` and on the loopback origin already reports 623 (§9.3, §9.5) |
-| ⑧ `traceroute 192.168.1.1` from the hosted URL | channel `bridge`, `bridge_base=http://127.0.0.1:8765` — **no** `bridge_unavailable`, which is the evidence the PNA preflight was allowed. That range is not on this machine's path, so all 3 hops honestly show "no response (`*`)" after 25 011 ms and the UI adds no invented hop |
+| ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), 1 374 land polygons attached, missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:` — measured 2026-11-03 against the build Pages is serving. That is the same 623 the offline paths report (§9.3, §9.5): the hosted page differs only in where the files came from |
+| ⑧ `traceroute 192.168.1.1` from the hosted URL, **browser defaults** | channel `browser-fallback`, `bridge_unavailable：Failed to fetch` — and the bridge's own access log proves why: the request never arrived. This is Chromium's client-side local-network policy (Edge/Chromium 156 here), not the bridge refusing: the same bridge answers ⑧'s health call from that very machine in 7 ms when the page is opened from `http://127.0.0.1:8765/` (§9.3's ⑧ row) |
+| the same click with that policy switched off (`--disable-features=LocalNetworkAccessChecks,LocalNetworkAccess,BlockInsecurePrivateNetworkRequests`) | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, **3 hops, all honestly `*`**, not reached within 20 hops, 8 010 ms, `伪造跳数：否` — this is the row that proves the https→loopback path itself works once the browser lets the request leave |
 | same-origin control: `traceroute 192.168.2.1` on `http://127.0.0.1:8765/` | channel `bridge`, 1 hop, target reached, 24 ms, scope "private/LAN (192.168.2.1)" |
 | `OPTIONS` preflight with `Access-Control-Request-Private-Network: true` and `Origin: https://iammezsh.github.io` | `204 No Content` + **`Access-Control-Allow-Origin: https://iammezsh.github.io`** (the caller's own origin, echoed because it is listed — not `*`, §7.3) + `Vary: Origin` + `Access-Control-Allow-Private-Network: true` + `Access-Control-Max-Age: 600`. Re-measured on this machine with both bridges running: it is one of the 41 parity cases (§8.5), and the same case sends `Origin: https://evil.example` and expects `403 origin_not_allowed` with **no** `Access-Control-Allow-Origin` header at all |
 | the same `OPTIONS` **without** the PNA header | `Access-Control-Allow-Private-Network` appears **0 times** — echoed on demand, never broadcast |
 | static file (`GET /index.html` with an external `Origin`) | **0** `access-control-*` headers in the response, even when that origin is on the allowlist for `/api/*` — a cross-site page cannot read project files (§8.5's static case) |
 
-Two of those rows are worded for the tree you are reading, not for the deployment: the hosted page will
-keep answering with the wildcard-emitting build until this version is pushed, and §9.4's first row is the
-number that comes back from the live URL afterwards. Everything else above was observed against a bridge
-started from this directory.
+Read the middle two rows together, because they are the whole story of this section: the bridge does
+everything the protocol asks (the preflight answers, the origin is echoed, the private-network grant is
+granted), and the browser still decides for itself whether a public page may open a socket into your own
+machine. Which side of that line a build lands on is a browser setting, not something this repository can
+sign you up for — so the hosted page is documented as *best effort*, and `http://127.0.0.1:8765/` is the
+row that is guaranteed: same files, same kernels, same bridge, and no cross-site decision left for the
+browser to make.
 
-One caveat kept on purpose: **PNA depends on the browser version and its flags**, which this repository
-cannot promise. When it is blocked, the UI falls back to `bridge_unavailable` and prints the bridge's own
-reason; open the same-origin page at `http://127.0.0.1:8765/` instead and everything works identically.
+What the UI guarantees in both cases is the failure shape. When the browser blocks the request, ⑧ prints
+the bridge's own reason and falls back; it does not invent hops, does not substitute a city, and does not
+report a position it did not obtain. That is why the `browser-fallback` row is printed as a measurement
+instead of being fixed by weakening the bridge: a red row here is the privacy boundary working.
 
 ### 9.5 After you get it from GitHub
 
 | How you get it | Result |
 | --- | --- |
-| `git clone --depth 1` | **67 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 69, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
-| **double-click `index.html`** (`file://`, no bridge) | `isSecureContext=true`, all 11 tabs present, the map canvas has real pixels, ⑪ **623 gates / 0 failures** (1.59 s), 1 374 polygons, missing ids 0, leaked markup 0, console silent, and ⑩'s capability row reads `WebCrypto ✓ · 安全上下文 ✓（file:）· 可写存储 ✓` — measured 2026-11-03 on this machine; the previous build measured 515 gates / 0.80 s here. If a PowerShell bridge is running, the page gets `ok=true`, `python=null` in 8 ms — full function without Python. The same page is also where the migration from the older build was verified end to end (§3 ⑩) |
+| `git clone --depth 1` | **67 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 70, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
+| **double-click `index.html`** (`file://`, no bridge) | `isSecureContext=true`, all 11 tabs present, the map canvas has real pixels, ⑪ **623 gates / 0 failures** (1.53 s), 1 374 polygons, missing ids 0, leaked markup 0, console silent, and ⑩'s capability row reads `WebCrypto ✓ · 安全上下文 ✓（file:）· 可写存储 ✓` — measured 2026-11-03 on this machine, after §11.26's guard landed; sampled every 200 ms this page shows the same three states the loopback origin does (§9.3): two progress lines, then one verdict. The previous build measured 515 gates / 0.80 s here. If a PowerShell bridge is running, the page gets `ok=true`, `python=null` in 8 ms — full function without Python. The same page is also where the migration from the older build was verified end to end (§3 ⑩) |
 | bridge started from the clone (`--port 8799` / `-Port 8799`) | `/api/health` `ok=true` with `bind.loopback_only=true`; the bytes served at `/index.html` have the **same SHA-256** (`1df29aaa…`) as the file on disk |
 | GitHub "Download ZIP" | byte-identical to the repository; inside the zip `.bat`/`.ps1` carry CRLF and `.command`/`.sh`/`.js` carry LF |
 | per-platform pack (§1.1) | `geo-windows.zip`, `geo-macos.zip`, … each opens the same way as the full repository, with only that platform's launcher and the files it needs |
@@ -2177,6 +2195,35 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     general form: **a cosmetic code path that can raise is still a code path that can raise** — the crash
     was three characters of `print` formatting away from the real work, and it was the run that failed, not
     the assertion.
+
+26. **⑪ said "passed" while 42 of its gates were still running.** Confirming §9.4 meant driving the hosted
+    page in a controlled browser and sampling `#stSummary` every 200 ms, which produced two different
+    totals from one click on one build: **581 gates (29 of them asynchronous) at 2.31 s and 623 (71) at
+    5.13 s**. The first was not a misreading — it is what the panel itself claimed at that moment, in
+    green, with a count: `自检通过：581 门 0 失败`. ⑪'s async half is a promise chain that appends each
+    group as it lands (GEONET's 29 first, then GEOVAULT's 42, which really do spend seconds inside
+    PBKDF2-SHA256), and every append re-rendered the summary and the status line through the same
+    `finalStatus()`. That function knew only `failed == 0`; nothing told it that more gates existed and
+    had not come back yet. On `file://` and on the loopback origin the whole run normally finishes inside
+    one sample interval, so this machine had never seen the intermediate state — it took an https page and
+    an 8-second traceroute in the same session to stretch the gap.
+    The fix is a counter, not a longer wait. `pendingAsync` is set to the number of job groups assembled
+    and decremented as each lands; while it is non-zero `finalStatus()` prints progress instead of a verdict
+    (`内核异步闸门进行中：已跑 581 门，还剩 1 组，失败 0`), the `结论` row refuses to conclude, and the
+    `闸门总数` row marks itself provisional (`（异步还剩 1 组在跑，这个数还会涨）`). Re-measured on the
+    loopback origin: `552 门，还剩 2 组` at 0.67 s, `581 门，还剩 1 组` at 0.88 s,
+    `自检通过：623 门 0 失败` at 1.70 s — and **zero** samples in which a pass was claimed at a partial count.
+    §8.6's 70th item pins the shape of that guard, which is a source-order assertion, and the reason it is
+    one is stated plainly below.
+    Two probe bugs of my own surfaced on the way to this and are worth naming, because each is the kind
+    that produces a permanently empty assertion instead of an error: ⑧'s health output is written to
+    `#netMisc`, and the sampler was reading `#netResult` — which is why "the ⑧ health box is empty"
+    appeared in two consecutive hosted runs and looked like a product defect; and there has never been an
+    element with id `envTable` (the environment rows are part of `#stSummary`), so the line printed
+    `(no envTable)` — a literal from the probe script — as if it were a measurement.
+    General form: **a progress indicator that prints a conclusion is worse than no indicator** — a partial
+    number wearing the formatting of a final one is exactly the shape of a false green — and an empty
+    result from a probe is a question about the probe before it is a finding about the product.
 
 ---
 

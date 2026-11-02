@@ -81,7 +81,7 @@ metadata.
 ```bash
 node tests/run-all.mjs --with-server --with-bridge   # kernels 623 + Python bridge 110 (+1) + PowerShell bridge 202
 python tests/bridge-parity.py                        # two bridges at once, 41 live cases
-python tests/check-package.py                        # package inspection, 69 items
+python tests/check-package.py                        # package inspection, 70 items
 ```
 
 The sixth layer is panel ⑪ itself, in a real DOM with Leaflet mounted: **623 gates / 0 failures**.

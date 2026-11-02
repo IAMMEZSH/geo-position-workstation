@@ -716,6 +716,25 @@ check("打包工具的展示路径同盘与跨盘都只出字符串（CI windows
       and _same.endswith("geo-full.zip") and "\\" not in _same,
       "仓库内 → %s；异盘符 → %s" % (_same, _cross))
 
+# ⑪ 的「闸门总数 / 结论 / 状态条」在异步门还在跑的时候，曾经先说过一句
+# 「自检通过：581 门 0 失败」——托管页实测时间线：2.31 s 时 GEONET 的 29 门已落地、
+# GEOVAULT 的 42 门还在 WebCrypto 的 PBKDF2 里，5.13 s 才凑满 623。那半程的绿看起来就是终局，
+# 谁都会在 581 上签验收。这条钉的是分支顺序：宣布通过的字面量必须排在 pendingAsync 守卫之后，
+# 守卫自己还得先被 jobs 计数、并在每组异步门落地时递减，否则守卫会永远为真、变成另一种假。
+_ui = read_bytes("app/ui-app.js").decode("utf-8", "replace")
+_fs_at = _ui.find("function finalStatus")
+_fs = _ui[_fs_at:_ui.find("put('stSummary', summaryHtml());", _fs_at)] if _fs_at >= 0 else ""
+_guard_at = _fs.find("if (pendingAsync)")
+_pass_at = _fs.find("自检通过")
+_set_at = _ui.find("pendingAsync = jobs.length")
+_dec_at = _ui.find("pendingAsync--")
+_conc_at = _ui.find("['结论', pendingAsync")
+check("⑪ 异步门未落地前不宣布「自检通过」，且守卫自己会被置位与递减",
+      _fs and 0 <= _guard_at < _pass_at and 0 <= _set_at < _dec_at and _conc_at >= 0,
+      "finalStatus 取到 %d 字符；守卫在第 %d 字符、「自检通过」在第 %d 字符（要前者更小）；"
+      "置位在第 %d 递减在第 %d（要前者更小）；结论行守卫 %s"
+      % (len(_fs), _guard_at, _pass_at, _set_at, _dec_at, "有" if _conc_at >= 0 else "无"))
+
 _pp_rows = {}
 for _line in manual.split("\n"):
     _c = [x.strip() for x in _line.split("|")]
