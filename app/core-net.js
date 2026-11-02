@@ -1621,7 +1621,15 @@
         status: pickStr(h, ['status'], 32)
       });
     }
-    return { hops: out, elapsed_ms: isNum(payload.elapsed_ms) ? rnd(payload.elapsed_ms, 1) : null, reached: payload.reached === true, raw_note: pickStr(payload, ['note'], 200) };
+    return {
+      hops: out,
+      elapsed_ms: isNum(payload.elapsed_ms) ? rnd(payload.elapsed_ms, 1) : null,
+      reached: payload.reached === true,
+      // 目标归属由桥接标注（lan/public），这里只认这两个字面值，其它一律 null（不猜）
+      target_scope: payload.target_scope === 'lan' || payload.target_scope === 'public' ? payload.target_scope : null,
+      target_scope_note: pickStr(payload, ['target_scope_note'], 120),
+      raw_note: pickStr(payload, ['note'], 200)
+    };
   }
 
   async function dohResolve(host, opt) {
@@ -1659,6 +1667,27 @@
     }
   }
 
+  /**
+   * 桥接在 4xx/5xx 上也带 JSON 正文（里面是「为什么不给你跑」的中文原因）。
+   * 早期版本把它丢掉、只报「HTTP 403」，于是界面看不出该加哪个参数——这里优先转述正文。
+   */
+  function bridgeErrorFromHttp(got) {
+    var body = null;
+    var raw = got && got.text;
+    if (typeof raw === 'string' && raw) {
+      try { body = JSON.parse(raw); } catch (e) { body = null; }
+    } else if (raw && typeof raw === 'object') {
+      body = raw;
+    }
+    if (body && typeof body === 'object' && typeof body.error === 'string' && body.error) {
+      return { bridge_error: body.error,
+        bridge_error_kind: (typeof body.error_kind === 'string' && body.error_kind) ? body.error_kind : 'bridge_unavailable',
+        from_body: true };
+    }
+    return { bridge_error: (got && got.detail) || (got && ERROR_KINDS[got.error_kind]) || '桥接请求失败',
+      bridge_error_kind: 'bridge_unavailable', from_body: false };
+  }
+
   async function tracerouteViaBridge(host, opt) {
     var o = opt || {};
     try {
@@ -1686,6 +1715,7 @@
               ok: parsed.hops.length > 0, via: 'bridge', url: built.url, host: vh.host, host_kind: vh.kind,
               hops: parsed.hops, hop_count: parsed.hops.length, fabricated_hops: false,
               reached: parsed.reached, elapsed_ms: parsed.elapsed_ms,
+              target_scope: parsed.target_scope, target_scope_note: parsed.target_scope_note,
               error: parsed.hops.length ? null : '桥接返回 0 跳（目标不可达或命令降级），未伪造跳数',
               error_kind: parsed.hops.length ? null : 'bridge_unavailable',
               note: '跳数完全来自 server.py 的系统 traceroute/tracert 输出解析'
@@ -1693,18 +1723,21 @@
           }
           fallback = { bridge_error: parsed.error, bridge_error_kind: parsed.error_kind };
         } else {
-          fallback = { bridge_error: got.detail || ERROR_KINDS[got.error_kind] || '桥接请求失败', bridge_error_kind: got.error_kind };
+          fallback = bridgeErrorFromHttp(got);
         }
       } else {
         fallback = { bridge_error: '调用方指定 skip_bridge', bridge_error_kind: 'bridge_unavailable' };
       }
       // 纯浏览器降级：没有原始套接字权限，逐跳 ICMP 不可能——只做 DoH 解析，并明确说「跳数不可得」
       var doh = await dohResolve(vh.host, o);
+      // 桥接「明确拒绝」（正文带 error_kind，如内网目标被策略挡下）要保留它的分类，
+      // 而连不上/超时这类才归入 bridge_unavailable。
+      var fbKind = (fallback && fallback.from_body) ? fallback.bridge_error_kind : 'bridge_unavailable';
       return sanitize({
         ok: false, via: 'browser-fallback', url: built.url, host: vh.host, host_kind: vh.kind,
         hops: null, hop_count: null, fabricated_hops: false,
-        error: 'bridge_unavailable：' + (fallback ? fallback.bridge_error : '本地桥接服务不可达'),
-        error_kind: 'bridge_unavailable',
+        error: fbKind + '：' + (fallback ? fallback.bridge_error : '本地桥接服务不可达'),
+        error_kind: fbKind,
         fallback: doh,
         limitation: '浏览器无法发送原始 ICMP/UDP，也不受 ping 速率限制接口约束，因此跳数必须由 server.py 提供；' +
           '此处只补一份 DoH 解析结果，绝不编造 hop 列表',
@@ -2545,6 +2578,28 @@
         tDead.fallback.ok === true && tDead.fallback.answers[0].data === '93.184.216.34' &&
         tDead.limitation.indexOf('原始 ICMP') >= 0;
     })(), '降级结果：DoH 解析到 ' + (tDead.fallback.answers.length || 0) + ' 条，跳数仍为空');
+    var mfLan = makeMockFetch([{ match: '/api/traceroute', body: { ok: true, host: '192.168.1.1',
+      target_scope: 'lan', target_scope_note: '私有网段 192.168.1.1', elapsed_ms: 700, reached: false,
+      hops: [{ hop: 1, ip: '192.168.2.1', hostname: null, rtts_ms: [1, 1, 1] }] } }], { calls: [] });
+    var tLan = await tracerouteViaBridge('192.168.1.1', { fetchImpl: mfLan });
+    push('内网目标照常追踪，桥接的 target_scope 标注原样送到界面（不拦截、也不改写）', (function () {
+      return tLan.ok === true && tLan.via === 'bridge' && tLan.hop_count === 1
+        && tLan.target_scope === 'lan' && String(tLan.target_scope_note).indexOf('192.168.1.1') >= 0;
+    })(), 'scope=' + tLan.target_scope + '，' + String(tLan.target_scope_note));
+    var mfScopeJunk = makeMockFetch([{ match: '/api/traceroute', body: { ok: true, host: 'example.com',
+      target_scope: 'maybe', hops: [{ hop: 1, ip: '1.1.1.1', rtts_ms: [4] }] } }], { calls: [] });
+    var tScopeJunk = await tracerouteViaBridge('example.com', { fetchImpl: mfScopeJunk });
+    push('target_scope 只认 lan/public，其它值判 null（旧版桥接没有这个字段也不能瞎猜）', (function () {
+      return tScopeJunk.ok === true && tScopeJunk.target_scope === null;
+    })(), 'scope=' + String(tScopeJunk.target_scope));
+    var mfRefuse = makeMockFetch([{ match: '/api/traceroute', status: 429,
+      body: JSON.stringify({ ok: false, error: '本机已有 4 个追踪在跑，请等一会儿再试', error_kind: 'rate_limited' }) }].concat([bridgeRoutes[2]]), { calls: [] });
+    var tRefused = await tracerouteViaBridge('example.com', { fetchImpl: mfRefuse });
+    push('桥接返回 4xx 且正文里有中文原因：原因与 error_kind 原样送到界面（不塌成「HTTP 429」）', (function () {
+      return tRefused.ok === false && tRefused.error_kind === 'rate_limited'
+        && String(tRefused.error).indexOf('4 个追踪在跑') >= 0
+        && tRefused.hops === null && tRefused.fabricated_hops === false;
+    })(), String(tRefused.error));
     var callsBefore = 0;
     var mfCount = makeMockFetch([{ match: 'http', behavior: 'reject' }], { calls: [] });
     var tBad = await tracerouteViaBridge('bad host;rm -rf /', { fetchImpl: mfCount });

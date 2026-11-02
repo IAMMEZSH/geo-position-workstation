@@ -81,7 +81,7 @@ check("启动-Windows.bat 不用 timeout 做延时",
       "Git Bash 等工具链会把 coreutils 的 timeout 排到 PATH 前面，批处理里的 timeout 不一定是 Windows 那个；"
       "延时用 ping -n")
 
-for sh in ["启动-macOS-Linux.sh", "启动-Android.sh", "启动-macOS.command"]:
+for sh in ["启动-macOS-Linux.sh", "启动-Android.sh", "启动-macOS.command", "启动-iSH.sh"]:
     data = read_bytes(sh)
     check(sh + " 用 LF（不含 CR）", b"\r" not in data, "CR 出现 %d 次" % data.count(b"\r"))
     check(sh + " 有 shebang", data.startswith(b"#!"), data.split(b"\n", 1)[0].decode("utf-8", "replace"))

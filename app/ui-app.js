@@ -2209,6 +2209,8 @@
       var hops = r.hops || [];
       html += kv([
         ['通道', good(String(r.via)) + '（系统 traceroute 由桥接服务以 argv + shell=False 执行）'],
+        ['目标归属', r.target_scope === 'lan' ? warn('内网/本机') + '（' + esc(r.target_scope_note || '') + '）'
+          : r.target_scope === 'public' ? good('公网') : '桥接未标注（这份 server.py 还没有 target_scope 字段）'],
         ['跳数', hops.length + '（' + (r.reached ? good('到达目标') : warn('未在 ' + opt.max_hops + ' 跳内到达')) + '）'],
         ['伪造跳数', yesno(r.fabricated_hops === true)],
         ['耗时', fmt(r.elapsed_ms, 0) + ' ms']

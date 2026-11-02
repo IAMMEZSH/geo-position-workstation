@@ -90,5 +90,5 @@ Python 标准库，无第三方依赖。要点都写在代码里并由 `--selfte
 1. 内核文件末尾导出 `selfTest`，闸门至少覆盖：已知答案、恒等式往返、边界值、垃圾输入不抛异常。
 2. `index.html` 里按顺序加 `<script>`，并在 `app/ui-app.js` 的依赖清单里登记（⑪ 的「界面缺失 id」
    与 `tests/check-package.py` 的资源齐备检查会替你把关）。
-3. 跑 `node tests/run-all.mjs`（537 门）+ `python tests/check-package.py`（19 项）+
-   `python server.py --selftest`（80 项），再在浏览器 ⑪ 点一次全量。
+3. 跑 `node tests/run-all.mjs`（540 门）+ `python tests/check-package.py`（21 项）+
+   `python server.py --selftest`（87 项），再在浏览器 ⑪ 点一次全量。

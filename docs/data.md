@@ -1,7 +1,7 @@
 # 离线数据：从哪来、怎么裁、怎么重建
 
 三个数据文件都是**纯浏览器脚本**（IIFE 挂到 `globalThis.GEODATA`，不含 `import`/`export`/`require`），
-所以 `<script>` 与 Node 的 `vm`/`require` 都能加载——这也是 537 门能在 Node 里跑同一份数据的原因。
+所以 `<script>` 与 Node 的 `vm`/`require` 都能加载——这也是 540 门能在 Node 里跑同一份数据的原因。
 
 | 文件 | 大小 | 内容 | 来源 | 许可 |
 |---|---|---|---|---|

@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 537 道闸门：六个内核同步项 + GEONET 异步项。任何一道不过即非零退出。
+      # 540 道闸门：六个内核同步项 + GEONET 异步项。任何一道不过即非零退出。
       - name: node tests/run-all.mjs --with-server
         run: node tests/run-all.mjs --with-server
 

@@ -1,7 +1,7 @@
 {
   "name": "geo-position-workstation",
   "version": "1.0.0",
-  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用，六个内核 515 道自检闸门，Node 侧含异步门 537 道）",
+  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用，六个内核 515 道自检闸门，Node 侧含异步门 540 道）",
   "license": "MIT",
   "private": false,
   "type": "module",

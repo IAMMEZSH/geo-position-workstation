@@ -41,6 +41,7 @@
 
 import argparse
 import ast
+import ipaddress
 import json
 import mimetypes
 import os
@@ -650,6 +651,12 @@ PRIVATE_NETS = ("127.", "10.", "192.168.", "169.254.", "172.16.", "172.17.", "17
                 "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
                 "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.", "::1", "fe80:")
 
+# ipaddress 的 is_private 在不同 Python 版本覆盖范围不一样（3.13 起 100.64.0.0/10 不算私有）。
+# 内网测绘用得上的段在这里钉死，不依赖标准库版本的口径。
+EXTRA_PRIVATE_NETS = (ipaddress.ip_network("100.64.0.0/10"),     # 运营商级 NAT（RFC 6598）
+                      ipaddress.ip_network("0.0.0.0/8"),         # 「本网络」，Windows 上等于本机
+                      ipaddress.ip_network("198.18.0.0/15"))     # 基准测试段，内网设备偶尔占用
+
 
 def is_safe_upstream_url(url, require_placeholder=True):
     """上游 URL 白名单检查。返回 (ok, reason)。
@@ -681,6 +688,56 @@ def is_safe_upstream_url(url, require_placeholder=True):
     if any(host.startswith(p) for p in PRIVATE_NETS):
         return False, "上游主机名在私有/链路本地网段（%s），拒绝" % host
     return True, None
+
+
+def is_private_target(host):
+    """判断目标是不是「本机 / 内网 / 链路本地 / 云元数据」地址。返回 (是否内网, 原因)。
+
+    这个函数**只用于标注**，不用于拦截：⑧ 的 traceroute/ping 允许打内网，
+    因为这台桥接跑在你自己的机器上、只监听回环，追踪自家路由器 192.168.1.1
+    正是它的主要用途之一。响应里带上 `target_scope`，是为了让页面上「这跳是内网」
+    这件事看得见，也方便你自己判断某次追踪有没有跑出局域网。
+    """
+    s = (host if isinstance(host, str) else "").strip().lower()
+    if not s:
+        return False, None          # 空值由 validate_host 负责拒绝，这里不重复判
+    if s in ("localhost", "localhost.") or s.endswith((".local", ".internal", ".lan", ".home.arpa")):
+        return True, "本机/内网名（%s）" % s
+    literal = s[1:-1] if s.startswith("[") and s.endswith("]") else s
+    try:
+        ip = ipaddress.ip_address(literal)
+    except ValueError:
+        return False, None          # 是域名：由解析结果再判一次（见 target_scope）
+    if ip.is_loopback:
+        return True, "回环地址 %s" % ip
+    if ip.is_link_local:
+        return True, "链路本地 %s（云厂商元数据 169.254.169.254 属于这一类）" % ip
+    if ip.is_private:
+        return True, "私有网段 %s" % ip
+    if ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+        return True, "组播/保留/未指定地址 %s" % ip
+    # 运营商级 NAT（RFC 6598）与「本网络」（0.0.0.0/8）：Python 3.13 起 is_private 不再覆盖，
+    # 但它们照样是内网测绘常用的段，宁可多拒一层。
+    for net in EXTRA_PRIVATE_NETS:
+        if ip in net:
+            return True, "在 %s 段（内网测绘常用）" % net
+    return False, None
+
+
+def target_scope(host, resolved=None):
+    """标注目标归属。返回 ("lan", 原因) 或 ("public", None)——**只标注，不拦截**。
+
+    字面量是内网 → lan；字面量是域名但**解析到**内网 → 也标 lan（内网 DNS、rebinding 走这条）。
+    域名解析失败、或解析到公网，都算 public：宁可标错一次归属，也不给你的正常追踪添堵。
+    """
+    bad, why = is_private_target(host)
+    if bad:
+        return "lan", why
+    for addr in (resolved or []):
+        bad2, why2 = is_private_target(addr)
+        if bad2:
+            return "lan", "域名 %s 解析到内网地址：%s" % (host, why2)
+    return "public", None
 
 
 def geoip_source_ids():
@@ -984,7 +1041,10 @@ def health_payload(bind_host, port):
                    "wall_clock_cap_s": WALL_CLOCK_CAP_S, "shell": False,
                    "max_concurrent_children": _ACTIVE["max_children"]},
         "privacy": {"position_params_accepted": False, "banned_params": sorted(POSITION_PARAMS),
-                    "note": "所有坐标类参数一律 400；GeoIP 代理只接受 IP 字面量或留空（查出口 IP）"},
+                    "lan_targets_allowed": True,
+                    "note": "所有坐标类参数一律 400；GeoIP 代理只接受 IP 字面量或留空（查出口 IP）。"
+                             "traceroute/ping 可以打内网（追踪自家路由器是它的本职），"
+                             "响应里的 target_scope 会标明目标是内网还是公网"},
         "geoip_sources": geoip_source_ids(),
         "active_children": _ACTIVE["children"],
         "note": "所有系统命令均以 argv 列表 + shell=False 执行；只监听回环地址",
@@ -1072,6 +1132,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "content-type")
+        # 托管页（https）访问本机回环属于「私有网络访问」，Chrome 等会先发带
+        # Access-Control-Request-Private-Network 的预检并要求该回显。按调用方是否提出来决定回显，
+        # 不给静态资源回：桥接本来就只监听回环，且 /api/* 全是只读。
+        if (self.headers.get("Access-Control-Request-Private-Network") or "").lower() == "true":
+            self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Access-Control-Max-Age", "600")
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -1180,6 +1245,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
                                  "note": "命令缺失属于降级，不是失败：前端会改用浏览器 DoH 兜底解析"})
             return 200
         dns = resolve_dns(vh["host"], min(5.0, wall_s))
+        # 内网/公网只做标注，不做拦截：追踪自家路由器 192.168.1.1 是 ⑧ 的本职，
+        # 但页面应当知道这次包有没有跑出局域网（所以域名还要看解析结果）。
+        scope, scope_why = target_scope(vh["host"], dns.get("addresses") or [])
         run = run_command(argv, wall_s)
         if not run["ok"] and not run.get("stdout"):
             self.send_json(200, {"ok": False, "error": run["error"] or "命令执行失败",
@@ -1197,6 +1265,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_json(200, {
             "ok": bool(hops),
             "host": vh["host"], "host_kind": vh["kind"], "target_ip": target,
+            "target_scope": scope, "target_scope_note": scope_why,
             "max_hops": max_hops, "per_hop_timeout_s": per_hop_s, "wall_clock_s": wall_s,
             "hops": hops, "hop_count": len(hops), "reached": reached,
             "fabricated_hops": False,
@@ -1222,6 +1291,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if argv is None:
             self.send_json(200, {"ok": False, "error": exe, "error_kind": "command_missing", "host": vh["host"]})
             return 200
+        dns = resolve_dns(vh["host"], min(2.0, wall_s))
+        scope, scope_why = target_scope(vh["host"], dns.get("addresses") or [])
         run = run_command(argv, wall_s)
         stats = parse_ping_text(run["stdout"])
         # 注意：ping 的退出码在非零丢包时也是非零（Windows 全丢包返回 1），
@@ -1231,6 +1302,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_json(200, {
             "ok": bool(run["ok"] or got_stats),
             "host": vh["host"], "command": exe, "argv": argv, "shell": False,
+            "target_ip": (dns.get("addresses") or [None])[0],
+            "target_scope": scope, "target_scope_note": scope_why,
             "count": count, "stats": stats,
             "exit_code": run.get("code"), "timed_out": run.get("timed_out", False),
             "elapsed_ms": run.get("elapsed_ms"),
@@ -1852,6 +1925,35 @@ def run_selftest(root_dir=None):
     check("health 载荷里没有任何坐标字段",
           re.search(r'"(lat|lon|latitude|longitude)"\s*:\s*[-0-9]', hp_text) is None, hp_text[:160])
 
+    # ---------- G2. 内网目标：允许，但如实标注归属（⑧ 的本职包含追踪自家路由器） ----------
+    lan_hits = ["192.168.1.1", "10.0.0.138", "172.16.5.4", "127.0.0.1", "::1", "0.0.0.0",
+                "169.254.169.254", "100.64.0.1", "224.0.0.5", "localhost", "router.local",
+                "nas.internal", "[::1]"]
+    missed = [h for h in lan_hits if target_scope(h)[0] != "lan"]
+    check("内网/回环/链路本地/元数据/CGNAT/组播 与本机名全部标为 lan（%d 个样本）" % len(lan_hits),
+          not missed, "漏标：" + (", ".join(missed) or "无"))
+    public_ok = ["8.8.8.8", "1.1.1.1", "github.com", "example.com", "2606:4700:4700::1111", ""]
+    mis_public = [(h, target_scope(h)[0]) for h in public_ok if target_scope(h)[0] != "public"]
+    check("公网目标与空值标为 public（把内网说成公网才是真事故）",
+          not mis_public, repr(mis_public))
+    scope_dom, why_dom = target_scope("box.example", ["8.8.8.8", "192.168.1.1"])
+    check("域名解析到内网时也标注出来（内网 DNS / rebinding 看得见）",
+          scope_dom == "lan" and "解析到内网" in (why_dom or ""), repr(why_dom))
+    # 拼接 needle：把字面量拆开，被检的文本和检它的代码就不重合（同 D 段 shell=True 的处理）。
+    scope_needle = '"target_' + 'scope": scope'
+    check("traceroute 与 ping 的成功响应里都带 target_scope（前端才有东西可显示）",
+          src_text.count(scope_needle) >= 2, "命中 %d 处" % src_text.count(scope_needle))
+    check("拦截路径已彻底移除：没有拒绝用的闸函数，也没有它的提示函数",
+          "target_guard" not in globals() and "lan_refusal_message" not in globals()
+          and ("lan_target" + "_refused") not in src_text,
+          repr([n for n in ("target_guard", "lan_refusal_message") if n in globals()]))
+    check("启动参数里没有内网开关（没有开关=默认允许，不给「忘了加参数」留坑）",
+          ("--allow-lan" + "-targets") not in src_text, "源码里还残留该开关")
+    hp_policy = health_payload("127.0.0.1", DEFAULT_PORT)
+    check("health 如实声明：内网目标允许，且说明 target_scope 是标注字段",
+          hp_policy["privacy"]["lan_targets_allowed"] is True
+          and "target_scope" in hp_policy["privacy"]["note"], repr(hp_policy["privacy"])[:120])
+
     # ---------- H. 绑定地址（绝不监听 0.0.0.0） ----------
     non_loopback = ["0.0.0.0", "::", "192.168.1.5", "10.0.0.1", "172.16.0.1", "", None, "0.0.0.1"]
     wrongly_ok = [h for h in non_loopback if is_bind_address_loopback(h)[0] is True]
@@ -2028,6 +2130,9 @@ USAGE = """
 安全说明：所有外部输入先过白名单（字符集 [A-Za-z0-9._:-] + 结构校验），
   再以 argv 列表 + shell=False 交给 subprocess；非法输入直接 400 并给中文原因。
   本服务不接收任何坐标类参数（lat/lon/accuracy 等一律拒绝）。
+  traceroute/ping **允许内网目标**：追踪自家路由器/局域网设备本来就是它的用途之一。
+  响应里的 target_scope 会标明这次的目标算内网（回环/私有/链路本地/云元数据/CGNAT）还是公网，
+  域名还会按解析结果判定，所以你看得见包到底有没有跑出局域网。
 --------------------------------------------------------------------------
 """
 

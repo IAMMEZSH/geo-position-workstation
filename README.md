@@ -1,6 +1,6 @@
 <p align="center">
   <b>经纬度定位工作站</b> · Geo Position Workstation<br>
-  <sub>离线优先的多源定位与测量工作站：双击 <code>index.html</code> 就能用，六个自研内核、537 道自检闸门、零依赖、零遥测。</sub>
+  <sub>离线优先的多源定位与测量工作站：双击 <code>index.html</code> 就能用，六个自研内核、540 道自检闸门、零依赖、零遥测。</sub>
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
   <img alt="no dependencies" src="https://img.shields.io/badge/%E7%AC%AC%E4%B8%89%E6%96%B9%E8%BF%90%E8%A1%8C%E6%97%B6%E4%BE%9D%E8%B5%96-0-blue.svg">
   <img alt="offline first" src="https://img.shields.io/badge/%E9%BB%98%E8%AE%A4-offline%20first-orange.svg">
-  <img alt="gates" src="https://img.shields.io/badge/%E8%87%AA%E6%A3%80%E9%97%B8%E9%97%A8-537%20%E9%97%A8%20%2F%200%20%E5%A4%B1%E8%B4%A5-brightgreen.svg">
+  <img alt="gates" src="https://img.shields.io/badge/%E8%87%AA%E6%A3%80%E9%97%B8%E9%97%A8-540%20%E9%97%A8%20%2F%200%20%E5%A4%B1%E8%B4%A5-brightgreen.svg">
   <img alt="platforms" src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Android%20%C2%B7%20iOS-lightgrey.svg">
 </p>
 
@@ -28,22 +28,28 @@
 - **只有 ⑧ 面板会出网**，而且要你在面板里显式授权；其余 10 个面板拔网线功能不变。
 - **不替你猜**：内核算不出就返回 `null`，界面就显示「算不出」和缺什么观测。
   路由追踪解析不出跳就返回 0 跳 + 原因，绝不编造；IP 定位的报告精度取保守值。
-- **可复核**：每个内核带一套能重跑的 `selfTest()`，浏览器 515 门 / Node 537 门 /
-  桥接 80 项 / 包完整性 19 项，全部 0 失败。CI 在 Linux 与 Windows 上各跑一遍。
+- **可复核**：每个内核带一套能重跑的 `selfTest()`，浏览器 515 门 / Node 540 门 /
+  桥接 87 项 / 包完整性 21 项，全部 0 失败。CI 在 Linux 与 Windows 上各跑一遍。
 
 ## 30 秒上手
 
+**不想下载、不想装任何东西**：直接打开在线地址 <https://iammezsh.github.io/geo-position-workstation/>
+（GitHub Pages 直接把仓库根目录当静态站发布，和你在下面表格里的下载版是同一份文件，逐字节相同）。
+
 | 平台 | 怎么做 |
 |---|---|
+| **任何设备（含 iPhone / iPad）** | 浏览器打开 <https://iammezsh.github.io/geo-position-workstation/> —— 六个内核、地图、离线数据、⑪ 自检全跑；只有 ⑧ 的逐跳路由追踪需要你本机另起 `python server.py` |
 | **Windows** | 双击 `启动-Windows.bat` —— 拉起本地桥接（只绑 127.0.0.1）并打开浏览器；没有 Python 也会退回直接开页面 |
 | **macOS** | 双击 `启动-macOS.command`（首次 `chmod +x 启动-macOS.command`） |
 | **Linux** | `sh 启动-macOS-Linux.sh` |
 | **Android** | Termux 里 `pkg install python`，然后 `sh 启动-Android.sh`，Chrome 开 `http://127.0.0.1:8765/` |
-| **iPhone / iPad** | 本目录丢到任意 HTTPS 静态托管（GitHub Pages 即可），Safari 打开；或本机跑个 Web Server App 后用 Safari 开回环地址 |
+| **iPhone / iPad 要 ⑧ 全功能** | 装 iSH（Alpine 虚拟机）→ `apk add python3` → `sh 启动-iSH.sh`，Safari 开它打印的地址（这一步作者未在 iOS 实机验证，脚本会把成没成打印出来） |
 | **什么都不装** | 直接双击 `index.html` —— 只有 ⑧ 面板会提示「桥接不在线」 |
 
 > 完整矩阵、以及「为什么 iPhone 不能像 Android 那样跑桥接」写在
-> [docs/platforms.md](docs/platforms.md)。
+> [docs/platforms.md](docs/platforms.md)。托管 https 页面能连你本机的回环桥接，靠的是
+> `/api/*` 的 `Access-Control-Allow-Origin: *` 加上对 **Private Network Access 预检**的回显，
+> 两条都在 2026-11-02 用真实浏览器实测过（见 `说明书.md` 第 2 节）。
 
 ## 界面长这样
 
@@ -85,7 +91,7 @@
 | **⑤ 信号测距** | RSSI↔距离双向、指纹、BLE、TDOA | 逐条给出模型假设与量级，不给「精确到米」的错觉 |
 | **⑥ GNSS 卫星** | NMEA 逐句解码（含校验和）、开普勒轨道、加权最小二乘 PVT、DOP、RAIM/FDE、大气延迟、ENU 基线、L6/PPP-B2b 电文、天空图 | 解 `31.3099935, 121.3900514, 12.18 m`，与真值差 **4.94 m**（独立检核），RAIM 剔除 PRN 16，HDOP 1.753，χ²=0.37/4/p=0.985 |
 | **⑦ 天象定位** | 太阳/月亮/恒星视位置、上/下边缘与折射、子太阳点与晨昏线、北极星罗经、由高度反推纬度 | 2026-11-02 06:30 UT：几何高度 28.1518°、视高度 28.1832°、方位 228.5054°；日下点 `-14.76726, 78.39762`；并明写「未建模 UT1−UTC / ΔT」 |
-| **⑧ 联网与路由** | IP 定位（6 源并行 + 融合）、桥接自检、路由追踪、DoH/DNS、接口回环检查 | 融合 `30.008663, 121.256478`，报告精度 **100 km**（BLUE σ 42.86 km 与保守分位取大者），χ²=0.193/dof=4/p=0.996，3/6 源可用；`github.com` 追踪 6 跳（2 跳如实标 timeout），8016 ms |
+| **⑧ 联网与路由** | IP 定位（6 源并行 + 融合）、桥接自检、路由追踪、DoH/DNS、接口回环检查 | 融合 `30.008663, 121.256478`，报告精度 **100 km**（BLUE σ 42.86 km 与保守分位取大者），χ²=0.193/dof=4/p=0.996，3/6 源可用；`github.com` 追踪 6 跳（2 跳如实标 timeout），8016 ms；追踪本机网关 `192.168.2.1` 得 1 跳、24 ms，并标注「目标归属：内网/本机」 |
 | **⑨ 批处理导出** | 批量坐标解析与量测，导出 CSV/GeoJSON/GPX/KML/WKT，深链与二维码 | 5 行全部成功、0 行失败；深链只带经纬度与缩放，二维码本机生成 |
 | **⑩ 历史与收藏** | `localStorage`，不上传，可一键清空 | — |
 | **⑪ 内核自检** | 六个内核全量闸门 + 环境表（内核/Leaflet/vendor/离线数据/矢量陆域/localStorage/协议/界面缺失 id） | **515 门 / 0 失败 / 0.70 s**，陆域 1374 块已挂图，界面缺失 id 0 个 |
@@ -119,12 +125,12 @@
 | `GEOCELL` | 35 | GSM/WCDMA/LTE/NR 信道↔频率、TA/RSRP 估距、多边交会、指纹、BLE |
 | `GEOGNSS` | 181 | NMEA、开普勒轨道、加权 LSQ PVT、DOP、RAIM/FDE、对流层/电离层、ENU 基线、L6 PPP-B2b |
 | `GEOASTRO` | 46 | GMST、太阳/月亮/恒星视位置、折射、子太阳点与晨昏线、天文定位 |
-| `GEONET` | 100 + 22 | 联网策略、URL 构造审计、多源融合（BLUE/χ²/MAD）、traceroute 解析、异步与垃圾输入 |
+| `GEONET` | 100 + 25 | 联网策略、URL 构造审计、多源融合（BLUE/χ²/MAD）、traceroute 解析、异步与垃圾输入（25 道异步门只在 Node 侧跑，所以浏览器 ⑪ 是 515） |
 
 ```bash
-node tests/run-all.mjs                 # 537 门 / 0 失败
-python tests/check-package.py          # 19 项 / 0 失败
-python server.py --selftest            # 80 项 / 0 失败（1 项跳过）
+node tests/run-all.mjs                 # 540 门 / 0 失败
+python tests/check-package.py          # 21 项 / 0 失败
+python server.py --selftest            # 87 项 / 0 失败（1 项跳过）
 ```
 
 闸门怎么设计、以及今天被抓出来的一条计时抖动，见 [docs/selftest.md](docs/selftest.md)。
@@ -141,14 +147,18 @@ python server.py --selftest            # 80 项 / 0 失败（1 项跳过）
 两个服务并存时请求被随机分走，你会以为「改了代码没生效」）；
 桥接**不接收任何坐标类参数**（`lat/lon/accuracy/heading/…` 一律 400）；
 没有 `os.system`/`shell=True`/`eval`（AST 检查）；上游 URL 只来自内置源表，不能当 SSRF 中继；
-没有统计、没有更新检查、没有 CDN。详见 [docs/privacy.md](docs/privacy.md)。
+没有统计、没有更新检查、没有 CDN。
+⑧ 的 `traceroute`/`ping` **允许**打内网地址（追踪自家路由器就是它的本职，没有开关可忘），
+但每次响应都带 `target_scope`（`lan` / `public`，域名还按解析结果判），界面上单独一行「目标归属」——
+包到底打在局域网里还是公网上，是写在结果里的，不用你猜。这一条的取舍与边界写在
+[docs/privacy.md](docs/privacy.md)。
 
 ## 目录结构
 
 ```
 经纬度定位工作站/
 ├── index.html                 唯一入口（15 个本地资源，无打包器）
-├── server.py                  可选本机桥接（Python 标准库，只绑回环，--selftest 80 项）
+├── server.py                  可选本机桥接（Python 标准库，只绑回环，--selftest 87 项）
 ├── app/
 │   ├── core-{geodetic,datums,cell,gnss,astro,net}.js   六个内核
 │   ├── ui-app.js  ui-map.js   界面外壳与地图封装（含准星）
@@ -157,10 +167,10 @@ python server.py --selftest            # 80 项 / 0 失败（1 项跳过）
 ├── vendor/                    Leaflet 1.9.4 (BSD-2) · qrcode.js (MIT)
 ├── 示例数据/                  10 份能互相闭合的样例（NMEA/基站/三角/TDOA/GPX/CSV/电文…）
 ├── 工具/build-data.mjs        离线数据生成器（幂等）
-├── tests/                     run-all.mjs（537 门）· check-package.py（19 项）
+├── tests/                     run-all.mjs（540 门）· check-package.py（21 项）
 ├── docs/                      platforms · architecture · privacy · selftest · data · img/
 ├── images/                    14 张真实界面截图
-├── 启动-{Windows.bat,macOS.command,macOS-Linux.sh,Android.sh}
+├── 启动-{Windows.bat,macOS.command,macOS-Linux.sh,Android.sh,iSH.sh}
 ├── 说明书.md                  中文完整说明书（9 节，含面板逐个说明与 FAQ）
 ├── LICENSE · package.json · .gitignore · .gitattributes · .github/workflows/ci.yml
 ```
@@ -204,8 +214,9 @@ python server.py --port 9000           # 换端口；页面用 9000 打开时 �
   ⑧ 面板的「桥接服务地址」留空即自动同源。
 - **能不能拿它做工程测量？** 能算，但别把它当仪器。它没有 RTK 数据链、没有权威大地水准面模型、
   没有认证过的坐标系参数；报告精度是「内核能自证的下限」，不是测绘资质。
-- **iOS 上能用吗？** 六个内核 + 浏览器定位可以（HTTPS 打开即可）；路由追踪不行——iOS 没有 Python，
-  而桥接按设计不监听局域网。
+- **iOS 上能用吗？** Safari 打开在线地址即可，六个内核 + 地图 + ⑪ 自检全跑；⑧ 的逐跳路由追踪需要本机
+  `python3 server.py`——iOS 上没有启动器可跑，可行路径是 iSH（见 `说明书.md` 第 2 节，这一步作者未在实机验证），
+  或换 A-Shell / Pyto 这类能起本机 HTTP 的 App。没有桥接时 ⑧ 只做 IP 定位与 DoH，并如实说明拿不到跳数。
 
 ## 数据来源与许可
 
