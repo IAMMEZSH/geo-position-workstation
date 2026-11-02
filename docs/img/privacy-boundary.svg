@@ -30,8 +30,8 @@
     <text x="60" y="436">⑨ 生成的深链/二维码只含经纬度与缩放，</text>
     <text x="60" y="452">不含设备标识、历史或任何输入内容</text>
     <text x="60" y="478" font-weight="bold" fill="#1f5c33">桥接服务</text>
-    <text x="60" y="498">只绑 127.0.0.1；非回环绑定在启动阶段</text>
-    <text x="60" y="514">就被拒绝，运行期不可能改成 0.0.0.0</text>
+    <text x="60" y="498">只绑 127.0.0.1：非回环绑定启动即拒</text>
+    <text x="60" y="514">每个请求还再校验来源地址（不只靠前缀）</text>
     <text x="60" y="540" font-weight="bold" fill="#1f5c33">/api/iface</text>
     <text x="60" y="560">只回答「是否只在回环上」和接口数量，</text>
     <text x="60" y="576">不返回主机名、MAC、内网地址清单</text>
@@ -101,6 +101,6 @@
   <path d="M780,300 L800,300" stroke="#c1663f" stroke-width="2" fill="none" marker-end="url(#p)"/>
 
   <text x="40" y="692" font-size="13" font-weight="bold" fill="#1b2430">复核方式</text>
-  <text x="40" y="714" font-size="12" fill="#5a6675">浏览器 ⑪：GEONET 100 门里包含「6 个联网入口的 URL 构造审计，未发现任何坐标类参数」；server.py --selftest：80 项覆盖白名单、argv、</text>
-  <text x="40" y="732" font-size="12" fill="#5a6675">回环绑定、路径穿越、上游 URL 约束与解析器不编造跳数；python tests/check-package.py：14 项守住启动器编码、换行符与 AST 红线。</text>
+  <text x="40" y="714" font-size="12" fill="#5a6675">浏览器 ⑪ 的 GEONET 100 门含「6 个联网入口的 URL 构造审计，未发现任何坐标类参数」；两份桥各自 --selftest（Python 101 项 / PowerShell 187 项）覆盖白名单、argv、</text>
+  <text x="40" y="732" font-size="12" fill="#5a6675">回环绑定与逐请求来源守卫、路径穿越、上游 URL 约束、解析器不编造跳数；tests/bridge-parity.py 逐条对账两份桥的实机响应（33 用例），tests/check-package.py 40 项守住启动器与 AST 红线。</text>
 </svg>

@@ -1,15 +1,20 @@
 {
   "name": "geo-position-workstation",
   "version": "1.0.0",
-  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用，六个内核 515 道自检闸门，Node 侧含异步门 540 道）",
+  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用；六个内核浏览器侧 515 道自检闸门，Node 侧含 GEONET 异步门共 541 道；桥接有 Python 与 PowerShell 两份实现，不装 Python 也能全功能）",
   "license": "MIT",
   "private": false,
   "type": "module",
   "scripts": {
     "test": "node tests/run-all.mjs",
-    "test:all": "node tests/run-all.mjs --with-server",
+    "test:all": "node tests/run-all.mjs --with-server --with-bridge",
+    "test:package": "python tests/check-package.py",
+    "test:parity": "python tests/bridge-parity.py",
     "bridge": "python server.py",
-    "bridge:selftest": "python server.py --selftest"
+    "bridge:selftest": "python server.py --selftest",
+    "bridge:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1",
+    "bridge:ps:selftest": "powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -SelfTest",
+    "data": "node 工具/build-data.mjs"
   },
   "engines": {
     "node": ">=18"
@@ -22,15 +27,20 @@
     "index.html",
     "README.md",
     "LICENSE",
+    "说明书.md",
     "app",
     "vendor",
-    "server.py",
-    "docs",
+    "docs/img",
+    "images",
     "示例数据",
-    "说明书.md",
+    "工具",
+    "tests",
+    "server.py",
+    "bridge-powershell.ps1",
     "启动-Windows.bat",
     "启动-macOS.command",
     "启动-macOS-Linux.sh",
-    "启动-Android.sh"
+    "启动-Android.sh",
+    "启动-iSH.sh"
   ]
 }

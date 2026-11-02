@@ -294,7 +294,10 @@
     offline_disallowed: '默认离线策略拦截：未授权出网（自检与命令行运行时走此分支）',
     source_disabled: '该源被配置禁用',
     key_required: '该源需要 API key，未提供则跳过',
-    bridge_unavailable: '本地桥接服务（server.py）不可达',
+    bridge_unavailable: '本地桥接服务（server.py 或 bridge-powershell.ps1）不可达',
+    // 这两类是桥接「主动按红线拒绝」，不是链路坏了：揉进 network 会让人去查网线。
+    privacy_rejected: '桥接按隐私红线拒收（请求带了坐标类参数；桥接不接收、不转发任何坐标）',
+    not_loopback: '桥接只服务回环来源（这条请求的来源地址不是 127.0.0.1/::1）',
     bad_input: '输入非法'
   };
   function errorResult(source, kind, detail) {
@@ -1718,7 +1721,7 @@
               target_scope: parsed.target_scope, target_scope_note: parsed.target_scope_note,
               error: parsed.hops.length ? null : '桥接返回 0 跳（目标不可达或命令降级），未伪造跳数',
               error_kind: parsed.hops.length ? null : 'bridge_unavailable',
-              note: '跳数完全来自 server.py 的系统 traceroute/tracert 输出解析'
+              note: '跳数完全来自本机桥接（server.py 或 bridge-powershell.ps1）调用系统 traceroute/tracert 的输出解析'
             });
           }
           fallback = { bridge_error: parsed.error, bridge_error_kind: parsed.error_kind };
@@ -1739,9 +1742,9 @@
         error: fbKind + '：' + (fallback ? fallback.bridge_error : '本地桥接服务不可达'),
         error_kind: fbKind,
         fallback: doh,
-        limitation: '浏览器无法发送原始 ICMP/UDP，也不受 ping 速率限制接口约束，因此跳数必须由 server.py 提供；' +
+        limitation: '浏览器无法发送原始 ICMP/UDP，也不受 ping 速率限制接口约束，因此跳数必须由本机桥接（server.py 或 bridge-powershell.ps1）提供；' +
           '此处只补一份 DoH 解析结果，绝不编造 hop 列表',
-        note: '若需在 file:// 页面用此功能，请先启动 python server.py，并确保未被「混合内容」策略拦截'
+        note: '若需在 file:// 页面用此功能，请先启动本机桥接（Windows 可双击启动器或跑 bridge-powershell.ps1，其余平台跑 python server.py），并确保未被「混合内容」策略拦截'
       });
     } catch (e) {
       return { ok: false, hops: null, fabricated_hops: false, error: '路由追踪流程异常（已捕获）：' + String((e && e.message) || e), error_kind: 'network' };
@@ -1759,6 +1762,9 @@
       return sanitize({
         ok: j.ok === true || j.status === 'ok', url: built.url, server: pickStr(j, ['server', 'name'], 64),
         version: pickStr(j, ['version'], 32), python: pickStr(j, ['python'], 32), platform: pickStr(j, ['platform'], 32),
+        // runtime 只有 PowerShell 那份桥会填（它 python=null，界面靠这个字段说清自己跑在什么上）。
+        // 少带这一个字段，health 里明明写了「PowerShell 5.1」，界面却显示「运行环境未上报」。
+        runtime: pickStr(j, ['runtime'], 48),
         capabilities: Array.isArray(j.capabilities) ? j.capabilities.filter(function (x) { return typeof x === 'string'; }) : [],
         latency_ms: isNum(got.latency_ms) ? rnd(got.latency_ms, 1) : null,
         error: null, error_kind: null
@@ -2609,6 +2615,17 @@
     })(), String(tBad.error));
     var bs = await bridgeStatus({ fetchImpl: makeMockFetch([bridgeRoutes[1]], { calls: [] }) });
     push('bridgeStatus 解析能力清单', bs.ok === true && bs.capabilities.length === 5 && bs.server === 'geonet-bridge', bs.capabilities.join(','));
+    // PowerShell 那份桥 python 恒为 null、改用 runtime 报运行环境。这一门钉住「runtime 必须透出」：
+    // 少带这个字段，界面就显示「运行环境未上报」，而服务自己明明在 health 里写了 PowerShell 版本。
+    var bsPs = await bridgeStatus({
+      fetchImpl: makeMockFetch([{
+        match: '/api/health',
+        body: { ok: true, server: 'geonet-bridge', version: '1.0.0', python: null, runtime: 'PowerShell 5.1.28000.2113', platform: 'win32', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip', 'static'] }
+      }], { calls: [] })
+    });
+    push('bridgeStatus 透出 PowerShell 桥的 runtime（python 为 null 时不冒充 Python）', (function () {
+      return bsPs.ok === true && !bsPs.python && String(bsPs.runtime).indexOf('PowerShell') === 0 && bsPs.capabilities.length === 6;
+    })(), 'runtime=' + bsPs.runtime + '，python=' + String(bsPs.python));
     var bsOff = await bridgeStatus({});
     push('bridgeStatus 在未授权出网时报 offline_disallowed（不是「服务挂了」）', bsOff.ok === false && bsOff.error_kind === 'offline_disallowed', String(bsOff.error));
     var dh = await dohResolve('1.1.1.1; rm -rf /', { fetchImpl: makeMockFetch([bridgeRoutes[2]], { calls: [] }) });

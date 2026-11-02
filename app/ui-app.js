@@ -287,9 +287,9 @@
             ['一致性 χ²', isNum(c.chi2) ? fmt(c.chi2, 2) + '（自由度 ' + c.dof + '，p=' + (isNum(c.p_value) ? c.p_value.toExponential(2) : '—') + '）' : '—'],
             ['是否一致', c.inconsistent === false ? good('一致，可取融合点') : (c.inconsistent === true ? warn('不一致') : '—')]
           ]) + note(esc(fus.recommendation || ''));
-          (fus.warnings || []).forEach(function (w) { html += note(warn(esc(w))); });
+          (fus.warnings || []).forEach(function (w) { html += note(warn(w)); });
         } else if (fus && fus.error) {
-          html += note(bad(esc(fus.error)));
+          html += note(bad(fus.error));
         }
       } else {
         html += note('有 ' + (state.solutions.length - list.length) + ' 个解缺少不确定度，未参与融合（不做「当作 0 m」的假设）。');
@@ -349,7 +349,7 @@
         var why = err && err.code === 1 ? '你拒绝了定位授权' :
           err && err.code === 2 ? '位置不可用（无 GPS/网络定位源）' :
             err && err.code === 3 ? '请求超时' : '未知错误';
-        put('whereAmIResult', note(bad('浏览器定位失败：' + esc(why) + '（code=' + (err ? err.code : '?') + '）。') +
+        put('whereAmIResult', note(bad('浏览器定位失败：' + why + '（code=' + (err ? err.code : '?') + '）。') +
           ' 数值面板全部可用：直接在对应标签页输入观测数据即可，不依赖这一次定位。'));
         status('浏览器定位失败：' + why, 'bad');
       }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
@@ -365,7 +365,7 @@
         if (el) { el.value = txt; }
         quickGo();
       }, function (e) {
-        put('whereAmIResult', note(bad('剪贴板读取被拒绝：' + esc(String(e && e.message || e)) + '。请手动粘贴。')));
+        put('whereAmIResult', note(bad('剪贴板读取被拒绝：' + String(e && e.message || e) + '。请手动粘贴。')));
       });
     });
 
@@ -432,7 +432,7 @@
       ]);
     });
     html += kv(rows);
-    (r.warnings || []).forEach(function (w) { html += note(warn(esc(w))); });
+    (r.warnings || []).forEach(function (w) { html += note(warn(w)); });
     if (r.candidates.length > 1) html += note('同一串文本有多种读法时，本工具不替你选：把它们全部列出，由你按上下文点选。');
     put('whereAmIResult', html);
     pickButtons('whereAmIResult', function (i) {
@@ -561,7 +561,7 @@
       ]);
     });
     var html = h4('候选读法（本工具不替你决定歧义）') + kv(rows);
-    (r.warnings || []).forEach(function (w) { html += note(warn(esc(w))); });
+    (r.warnings || []).forEach(function (w) { html += note(warn(w)); });
     if (g) {
       var best = r.candidates[0];
       var extra = [];
@@ -716,7 +716,7 @@
       ['中心', fmt(r.lat, 7) + ', ' + fmt(r.lon, 7)],
       ['角点', fmt(r.corner.lat, 7) + ', ' + fmt(r.corner.lon, 7) + '（西南角）'],
       ['格尺寸', m(r.resolution_m, 2) + '（' + r.length + ' 位）'],
-      ['校验位', r.checksum_valid === true ? good('自洽（本工具方案）') : r.checksum_valid === false ? warn('不符：' + esc(r.checksum_note || '')) : '未附校验位'],
+      ['校验位', r.checksum_valid === true ? good('自洽（本工具方案）') : r.checksum_valid === false ? warn('不符：' + (r.checksum_note || '')) : '未附校验位'],
       ['范围', fmt(r.bbox.lat_min, 6) + '~' + fmt(r.bbox.lat_max, 6) + ' / ' + fmt(r.bbox.lon_min, 6) + '~' + fmt(r.bbox.lon_max, 6)]
     ]) + note('校验位方案是本工具自定义的，与 Google 官方不同：换工具时不要指望这一段字符互通。'));
     addSolution({ source: 'Plus Code 反算', lat: r.lat, lon: r.lon, accuracy_m: r.resolution_m, basis: 'OLC ' + raw });
@@ -826,7 +826,7 @@
       ]);
     });
     put('cellStations', h4('基站清单（' + towers.length + ' 个）') + kv(rows) +
-      (parsed.warnings || []).map(function (w) { return note(warn(esc(w))); }).join(''));
+      (parsed.warnings || []).map(function (w) { return note(warn(w)); }).join(''));
 
     // 地图：距离圈 + 扇区
     var circles = [], sectors = [];
@@ -857,13 +857,13 @@
       centerOn(sol.lat, sol.lon, 12);
     } else {
       html += h4('无法给出位置') + kv([
-        ['原因', (sol.warnings || []).map(function (w) { return warn(esc(w)); }).join('<br>') || '未知'],
+        ['原因', (sol.warnings || []).map(function (w) { return warn(w); }).join('<br>') || '未知'],
         ['已算出的量', circles.length ? '每个基站的估距与覆盖圆（已画在图上）' : '只有基站识别，没有距离'],
         ['还缺什么', warn('基站经纬度：请补充「手工坐标」或在 JSON 里给 lat/lon（基站坐标来自运营商城管数据，本机无法凭空生成）')]
       ]);
       setDraw('cell', { circles: circles, sectors: sectors });
     }
-    (sol.warnings || []).forEach(function (w) { html += note(warn(esc(w))); });
+    (sol.warnings || []).forEach(function (w) { html += note(warn(w)); });
     html += note('RSSI→距离是链路预算估计，不是测量：模型给出的 σ 就是它自己的不确定度，不要把 ' + m(sol.confidence_radius_m || 0, 0) + ' 当成精度承诺。');
     put('cellResult', html);
     state.lastCell = sol;
@@ -918,7 +918,7 @@
       applied.push(m1[1] + ' → ' + fmt(hit.lat, 6) + ', ' + fmt(hit.lon, 6));
     });
     put('cellKnownResult', h4('补充了 ' + applied.length + ' 个基站坐标') +
-      kv(applied.map(function (x) { return ['已应用', esc(x)]; }).concat(errors.map(function (e) { return ['未匹配', bad(esc(e))]; }))) +
+      kv(applied.map(function (x) { return ['已应用', esc(x)]; }).concat(errors.map(function (e) { return ['未匹配', bad(e)]; }))) +
       note('补充后请再点一次「解算基站位置」。'));
     if (applied.length) runCell();
   }
@@ -959,7 +959,7 @@
         var iv = g.inverse(o.lat, o.lon, r.lat, r.lon, 'WGS84');
         return esc(o.label) + '：观测 ' + fmt(o.azimuth_deg, 2) + '°，反算 ' + fmt(iv.initial_bearing_deg, 2) + '°，差 ' + fmt(wrap180v(iv.initial_bearing_deg - o.azimuth_deg), 2) + '° = ' + fmt(wrap180v(iv.initial_bearing_deg - o.azimuth_deg) * iv.distance_m * Math.PI / 180, 0) + ' m 横向（边长 ' + m(iv.distance_m, 0) + '）';
       }).join('<br>')]
-    ]) + (r.warnings || []).map(function (w) { return note(warn(esc(w))); }).join('') +
+    ]) + (r.warnings || []).map(function (w) { return note(warn(w)); }).join('') +
       note('两条方位线交点的误差由「测角精度 × 边长」决定：σ=1° 时 10 km 外就是约 175 m 的横向误差。方位必须统一成「站→目标」，否则残差会落在反向延长线上。'));
     setDraw('tri', { lines: lines, circles: [{ lat: r.lat, lon: r.lon, r_m: r.confidence_radius_m || 0, label: '方位交会不确定圆' }], focus: null });
     addSolution({ source: '方位交会', lat: r.lat, lon: r.lon, accuracy_m: r.confidence_radius_m, basis: r.n_used + ' 条方位角交会' });
@@ -1002,9 +1002,9 @@
       html += h4('几何因子（将参考点当作观测站）') + kv([
         ['GDOP / PDOP / HDOP', fmt(gd.gdop, 2) + ' / ' + fmt(gd.pdop, 2) + ' / ' + fmt(gd.hdop, 2)],
         ['条件数', isNum(gd.condition_number) ? fmt(gd.condition_number, 1) : '—']
-      ]) + (gd.warnings || []).map(function (w) { return note(warn(esc(w))); }).join('');
+      ]) + (gd.warnings || []).map(function (w) { return note(warn(w)); }).join('');
     }
-    html += (r.warnings || []).map(function (w) { return note(warn(esc(w))); }).join('');
+    html += (r.warnings || []).map(function (w) { return note(warn(w)); }).join('');
     html += note('圆相交有两个解时，内核用其余圆选出物理上更合理的一支；只有两个圆时必须由你判断取舍。');
     put('triRangeResult', html);
     setDraw('tri', {
@@ -1069,9 +1069,9 @@
       [ref.dist_m === 1 ? '1 m 参考损耗' : '参考损耗（' + fmt(ref.dist_m, 0) + ' m，模型下限）',
         fmt(ref.path_loss_db, 2) + ' dB' + (N('sigFspl') ? '（已由你输入 ' + fmt(N('sigFspl'), 2) + ' dB 覆盖）' : '') +
         (isNum(ref.path_loss_db) && isNum(r.path_loss_db) && ref.dist_m > 0 ? ' → 该点路损比参考点大 ' + fmt(r.path_loss_db - ref.path_loss_db, 2) + ' dB' : '') +
-        (ref.clamped ? ' ' + warn(esc(ref.reason)) : '')],
+        (ref.clamped ? ' ' + warn(ref.reason) : '')],
       ['路损', fmt(r.path_loss_db, 2) + ' dB'],
-      ['距离', m(r.dist_m, 1) + (r.clamped ? ' ' + warn('已截断：' + esc(r.clamped_reason)) : '')],
+      ['距离', m(r.dist_m, 1) + (r.clamped ? ' ' + warn('已截断：' + r.clamped_reason) : '')],
       ['σ（模型自报）', m(r.sigma_m, 1) + '（阴影衰减的标准差折算，不是「测量精度」）'],
       ['波长', isNum(lambda) ? fmt(lambda * 1000, 2) + ' mm（λ=' + fmt(lambda, 5) + ' m）' : '—']
     ]) + h4('往返自检') + kv([
@@ -1091,7 +1091,7 @@
     var back = c.rssiToDistance(r.rssi_dbm, o);
     var n = isNum(r.exponent) ? r.exponent : (o.exponent || 2.7);
     put('sigRssiResult', h4('距离 → 期望 RSSI') + kv([
-      ['距离', m(dist, 1) + (r.clamped ? ' ' + warn(esc(r.clamped_reason)) : '')],
+      ['距离', m(dist, 1) + (r.clamped ? ' ' + warn(r.clamped_reason) : '')],
       ['模型', esc(r.model || '') + '（' + esc(modelName(c, r.model)) + '）· 期望 n ' + fmt(n, 2)],
       ['模型路损', fmt(r.path_loss_db, 2) + ' dB（EIRP ' + fmt(r.eirp_dbm, 1) + ' dBm）'],
       ['期望 RSSI', fmt(r.rssi_dbm, 2) + ' dBm'],
@@ -1123,7 +1123,7 @@
       ['相似度 / 融合', esc(sim) + ' → ' + esc(r.method || 'knn')],
       ['置信', m(r.confidence_m, 1) + '（= 参与点围绕加权中心的加权 RMS 距离）'],
       ['现场 AP', (scan || []).length + ' 个，其中 ' + (r.matched || []).filter(function (x) { return x.common_ap > 0; }).length + ' 个在库中有重叠']
-    ].concat(rows)) + (r.warning ? note(warn(esc(r.warning))) : '') +
+    ].concat(rows)) + (r.warning ? note(warn(r.warning)) : '') +
       note('指纹库覆盖不到的区域不会有可靠结果：置信量级来自匹配点之间的实际间距，与 RSSI 精确度无关。'));
     setDraw('signal', { circles: [{ lat: r.lat, lon: r.lon, r_m: r.confidence_m || 0, label: '指纹置信圈' }], focus: null });
     addSolution({ source: 'Wi-Fi 指纹', lat: r.lat, lon: r.lon, accuracy_m: r.confidence_m, basis: (r.matched || []).length + ' 个参考点加权' });
@@ -1170,7 +1170,7 @@
       ['不确定半径', m(r.confidence_radius_m, 1)],
       ['另一支解', (r.candidates || []).length > 1 ? r.candidates.slice(1).map(function (p) { return fmt(p.lat, 6) + ', ' + fmt(p.lon, 6); }).join('　') : '双曲线组只给出一个可行支']
     ]);
-    html += (r.warnings || []).map(function (w) { return note(warn(esc(w))); }).join('');
+    html += (r.warnings || []).map(function (w) { return note(warn(w)); }).join('');
     html += note('TDOA 需要站间时钟同步（GPS 共视或 802.11 帧间计时）；ns 级同步误差直接换算成约 0.3 m/ns 的距离误差。' +
       '内核用切平面线性化，基线越长（>50 km）地球曲率的系统差越明显：本站演示用 ~10 km 基线。');
     put('tdoaResult', html);
@@ -1271,7 +1271,7 @@
     var tz = N('nmeaTz');
     var rows = dec.map(function (x) {
       var d = x.d;
-      if (d.error) return [esc(x.line.slice(0, 46)), bad(esc(d.error))];
+      if (d.error) return [esc(x.line.slice(0, 46)), bad(d.error)];
       var extra = '';
       if (d.type === 'GGA') extra = fmt(d.lat, 5) + ', ' + fmt(d.lon, 5) + ' · 星 ' + d.sats + ' · HDOP ' + fmt(d.hdop, 2) + ' · 椭球高 ' + fmt(d.alt, 1) + ' m' + (isNum(d.geoid_sep) ? ' · N ' + fmt(d.geoid_sep, 1) : '');
       else if (d.type === 'RMC') extra = (d.status_text || d.status || '') + ' · 速度 ' + fmt(d.sog_knots, 1) + ' kn / ' + fmt(d.sog_mps, 2) + ' m/s · 航向 ' + fmt(d.cog_deg, 1) + '° · 日期 ' + esc(d.date && d.date.iso ? d.date.iso : (d.date ? d.date.raw || '—' : '—'));
@@ -1298,7 +1298,7 @@
       ['视野 / 参与', (m.sats_in_view || []).length + ' 颗在视野（GSV），' + (m.used || []).length + ' 颗列入 GSA：' + esc((m.used || []).join(','))],
       ['跳过', m.skipped + ' 句' + (strict ? '（严格模式）' : '')]
     ]);
-    (m.warnings || []).forEach(function (w) { html += note(warn(esc(w))); });
+    (m.warnings || []).forEach(function (w) { html += note(warn(w)); });
     html += note('NMEA 的时间字段一律 UTC，日期只在 RMC/ZDA 里；内核不做闰秒改正。' +
       'Talker ID（GP/GL/GA/BD/GN）决定星座归属，同 PRN 号在不同星座不合并。');
     put('nmeaResult', html);
@@ -1556,12 +1556,12 @@
       e == null ? 11 : e, Tk);
     var mp = g.troposphereMapping(isNum(el) ? el : 15);
     var html = '';
-    if (zh.error) html += note(bad(esc(zh.error)));
+    if (zh.error) html += note(bad(zh.error));
     else html += h4('对流层天顶延迟（Saastamoinen 闭式）') + kv([
       ['输入', 'P ' + fmt(P, 2) + ' hPa，φ ' + deg(lat, 2) + '，h ' + fmt(hkm, 3) + ' km，T ' + fmt(Tk, 2) + ' K（' + fmt(Tc, 2) + ' °C）' + (isNum(RH) ? '，RH ' + fmt(RH, 0) + '% → e ' + fmt(e, 3) + ' hPa（Magnus 用摄氏：a=17.625，b=243.04，单位 hPa）' : '，未给湿度 → e 按典型 11 hPa')],
       ['ZHD / ZWD / 合计', m(zh.zhd_m, 4) + ' / ' + m(zh.zwd_m, 4) + ' / ' + m(zh.zenith_total_m, 4)],
       ['局部重力 / 归一因子', fmt(zh.gravity_mps2, 5) + ' m/s² / ' + fmt(zh.gravity_factor, 6) + '（按 g(45°,0) 归一）'],
-      ['高度角 ' + deg(el, 1) + ' 的斜延迟', (isNum(mp.mapping) ? m(zh.zenith_total_m * mp.mapping, 3) + '（映射用内核返回的 ' + fmt(mp.mapping, 3) + '）' : bad(esc(mp.error || '')))],
+      ['高度角 ' + deg(el, 1) + ' 的斜延迟', (isNum(mp.mapping) ? m(zh.zenith_total_m * mp.mapping, 3) + '（映射用内核返回的 ' + fmt(mp.mapping, 3) + '）' : bad(mp.error || ''))],
       ['低高度角截断', isNum(mp.clipped_below_deg) ? (isNum(el) && el < mp.clipped_below_deg
         ? warn('E=' + fmt(el, 1) + '° 低于 ' + mp.clipped_below_deg + '°，内核按 ' + mp.clipped_below_deg + '° 取映射 ' + fmt(mp.mapping, 3) + '；不截断时 1/sinE=' + fmt(mp.at_true_elevation, 3) + '，这个量级闭式已不可信，应换 Niell/Hopfield')
         : 'E≥' + mp.clipped_below_deg + '°，未触发截断：映射 = 1/sinE = ' + fmt(mp.mapping, 3)) : '—']
@@ -1569,7 +1569,7 @@
 
     var ionoEl = N('ionoElev'), vtec = N('ionoVtec'), f1 = N('ionoF1'), hs = N('ionoShell');
     var io = g.ionoShell(isNum(ionoEl) ? ionoEl : 15, isNum(hs) ? hs : 350, isNum(f1) ? f1 : 1575.42, isNum(vtec) ? vtec : 12);
-    if (io.error) html += note(bad('电离层：' + esc(io.error)));
+    if (io.error) html += note(bad('电离层：' + io.error));
     else html += h4('单层壳电离层') + kv([
       ['壳高 / 映射因子', fmt(io.shell_km, 0) + ' km / ' + fmt(io.mapping_factor, 4)],
       [' IPP（穿透点）', '地心角 ' + deg(io.ipp_central_angle_deg, 3) + '，距接收机地影点 ' + km(io.ipp_distance_km * 1000, 1)],
@@ -1579,7 +1579,7 @@
 
     var r1 = N('ifP1'), r2 = N('ifP2'), f2 = N('ionoF2');
     var fr = g.ionoFreeRange(isNum(r1) ? r1 : 20000000, isNum(f1) ? f1 : 1575.42, isNum(r2) ? r2 : 20000003.9, isNum(f2) ? f2 : 1227.6);
-    html += fr.error ? h4('双频无电离层组合') + note(bad(esc(fr.error))) :
+    html += fr.error ? h4('双频无电离层组合') + note(bad(fr.error)) :
       h4('双频无电离层组合') + kv([
         ['组合式', '(' + fmt(fr.coeff1, 4) + ')·P1 + (' + fmt(fr.coeff2, 4) + ')·P2 = ' + m(fr.range_m, 3)],
         ['噪声放大', fmt(fr.noise_amplification, 3) + ' ×（单频伪距噪声）'],
@@ -1595,7 +1595,7 @@
     var html = '';
     var bits = String(V('l6Bits')).replace(/[^01]/g, '');
     var l6 = g.decodeL6Frame(bits);
-    html += h4('QZSS L6 / CLAS 帧头') + (l6.error ? note(bad(esc(l6.error))) : kv([
+    html += h4('QZSS L6 / CLAS 帧头') + (l6.error ? note(bad(l6.error)) : kv([
       ['PRN 提示 / 消息类型', l6.prn_hint + ' / MT ' + l6.message_type + (l6.is_clas ? ' ' + good('CLAS') : ''),
       ],
       ['NCF / SID / 批次', l6.ncf + ' / ' + l6.satellite_information_id + ' / ' + l6.batch_id + '（比特数 ' + l6.raw_bits + '）'],
@@ -1605,10 +1605,10 @@
     var b2b = String(V('b2bBits')).replace(/[^01]/g, '');
     var scale = N('b2bScale');
     var d3 = g.decodePppB2b(b2b, isNum(scale) ? { radial_scale: scale } : {});
-    html += h4('BDS PPP-B2b（IADS）') + (d3.error ? note(bad(esc(d3.error)) + note('有效消息类型 1~4（前 6 比特）。')) : kv([
+    html += h4('BDS PPP-B2b（IADS）') + (d3.error ? note(bad(d3.error) + note('有效消息类型 1~4（前 6 比特）。')) : kv([
       ['类型 / 名称', d3.message_type + ' · ' + esc(d3.message_name || '')],
       ['卫星 / IOD', (d3.satellite_id != null ? d3.satellite_id : '—') + ' / ' + (d3.iod != null ? d3.iod : '—')],
-      ['径向改正', isNum(d3.radial_m) ? m(d3.radial_m, 3) : warn('未解出：' + esc(d3.note || ''))],
+      ['径向改正', isNum(d3.radial_m) ? m(d3.radial_m, 3) : warn('未解出：' + (d3.note || ''))],
       ['切向 / 法向 / 钟差', '— / — / —（本实现不猜测比例因子）'],
       ['字段表版本', esc(d3.field_map_version || '')]
     ]));
@@ -1624,8 +1624,8 @@
       var noVel = g.applyOrbitCorrection(s0, null, dr);
       html += h4('把域改正作用到卫星 PRN ' + s0.prn + '（' + esc(s0.sys) + '）') + kv([
         ['改正量 R/T/N', m(dr.radial_m, 3) + ' / ' + m(dr.tangential_m, 3) + ' / ' + m(dr.normal_m, 3)],
-        ['含速度（完整 RTN）', withVel.error ? bad(esc(withVel.error)) : '位移 ' + m(withVel.shift_m, 4) + '，degraded=' + (withVel.degraded ? warn('是') : good('否'))],
-        ['不含速度', noVel.error ? bad(esc(noVel.error)) : '只加径向 ' + m(Math.hypot(noVel.position.x - s0.x, noVel.position.y - s0.y, noVel.position.z - s0.z), 4) + '，degraded=' + (noVel.degraded ? warn('是（切向/法向无法定义）') : '否')],
+        ['含速度（完整 RTN）', withVel.error ? bad(withVel.error) : '位移 ' + m(withVel.shift_m, 4) + '，degraded=' + (withVel.degraded ? warn('是') : good('否'))],
+        ['不含速度', noVel.error ? bad(noVel.error) : '只加径向 ' + m(Math.hypot(noVel.position.x - s0.x, noVel.position.y - s0.y, noVel.position.z - s0.z), 4) + '，degraded=' + (noVel.degraded ? warn('是（切向/法向无法定义）') : '否')],
         ['说明', esc((withVel.service_note || '') + ' / ' + (noVel.note || ''))]
       ]);
       if (!withVel.error && (dr.radial_m || dr.tangential_m || dr.normal_m)) {
@@ -1657,7 +1657,7 @@
     if (isNum(ionoM)) corr.iono_m = ionoM;
     if (isNum(tropoM)) corr.tropo_m = tropoM;
     var cp = g.correctPseudorange(isNum(raw) ? raw : 20183546.712, corr);
-    html += h4('伪距改正的符号表（ρ = ρ_raw + Σ）') + (cp.error ? note(bad(esc(cp.error))) :
+    html += h4('伪距改正的符号表（ρ = ρ_raw + Σ）') + (cp.error ? note(bad(cp.error)) :
       kv(Object.keys(cp.terms).map(function (k) { return [esc(k), m(cp.terms[k], 4)]; }).concat([
         ['合计 applied_m', m(cp.applied_m, 4)],
         ['改正后伪距', m(cp.range_m, 4)]
@@ -1702,20 +1702,29 @@
     return (l.error ? '—' : esc(l.iso.slice(0, 19).replace('T', ' '))) + ' 本地 / ' + esc(u.iso.slice(0, 19).replace('T', ' ')) + ' UT';
   }
   /* 独立检核：天体高度 = 90° − 到天体下点的大圆角距。这条只借用内核给出的下点经纬度，
-     距离与方位改由 GEOGEO 的椭球大地线反算得到，与内核的地平三角解算是两条不同的路。 */
-  function astHorizonCheck(lat, lon, subLat, subLon, altDeg, azDeg) {
+     距离与方位改用 GEOGEO 的球面大圆重算，与内核的地平三角解算是两条不同的路。
+     判一致性必须也用球面那一路：椭球大地线的中心角和球面角距本来就差在扁率上
+     （中纬度一对点差到 0.2° 量级），拿椭球的那个数去比会天天报「不符」——那是模型固有差，不是错。
+     所以这一行同时把两个数都打出来，并把椭球−球面的差单独写明。 */
+  function astHorizonCheck(lat, lon, subLat, subLon, altDeg, azDeg, bandDeg, bandWhy) {
     var geo = eng('GEOGEO');
-    if (!geo || !isNum(subLat)) return '—（缺 GEOGEO 或下点）';
+    if (!geo || !isNum(subLat) || typeof geo.centralAngle !== 'function') return '—（缺 GEOGEO 或下点）';
+    var zSph = geo.centralAngle(lat, lon, subLat, subLon) * 180 / Math.PI;
+    var altSph = 90 - zSph;
+    var dAlt = altSph - altDeg;
+    var band = isNum(bandDeg) ? Math.abs(bandDeg) : 0.02;
+    var bSph = typeof geo.initialBearing === 'function' ? geo.initialBearing(lat, lon, subLat, subLon) : null;
+    var dAz = (isNum(azDeg) && isNum(bSph)) ? Math.abs(((bSph - azDeg + 540) % 360) - 180) : null;
     var iv = geo.inverse(lat, lon, subLat, subLon, 'WGS84');
-    if (!iv || !isNum(iv.distance_m)) return '—（大地线反算失败）';
-    var z = isNum(iv.central_angle_deg) ? iv.central_angle_deg : iv.distance_m / 6371008.7714 * 180 / Math.PI;
-    var altCheck = 90 - z;
-    var dAlt = altCheck - altDeg;
-    var dAz = isNum(azDeg) ? Math.abs(((iv.initial_bearing_deg - azDeg + 540) % 360) - 180) : null;
-    return '大圆反算高度 ' + deg(altCheck, 4) + ' vs 内核地平解 ' + deg(altDeg, 4) + '，差 ' +
+    var zEll = iv && isNum(iv.central_angle_deg) ? iv.central_angle_deg : null;
+    return '球面大圆高度 ' + deg(altSph, 4) + ' vs 内核地平解 ' + deg(altDeg, 4) + '，差 ' +
       fmt(dAlt, 4) + '°（' + fmt(Math.abs(dAlt) * 60, 1) + '′）' +
-      (isNum(dAz) ? '；方位差 ' + fmt(dAz, 4) + '°' : '') +
-      (Math.abs(dAlt) < 0.05 ? ' ' + good('两条路一致') : ' ' + warn('差异超出球面/椭球差，应检查是否混入折射或视差项'));
+      (isNum(dAz) ? '；方位差（球面大圆首方位） ' + fmt(dAz, 4) + '°' : '') +
+      (isNum(zEll) ? '；同一对角点走椭球大地线得中心角 ' + deg(zEll, 4) + '，与球面差 ' +
+        fmt(zEll - zSph, 4) + '°（扁率固有，不参与判定）' : '') +
+      (Math.abs(dAlt) <= band && (!isNum(dAz) || dAz <= band)
+        ? ' ' + good('两条路在 ' + fmt(band, 4) + '° 内一致' + (bandWhy || ''))
+        : ' ' + bad('两条路差到 ' + fmt(Math.abs(dAlt), 4) + '°，超出 ' + fmt(band, 4) + '° 的允许带' + (bandWhy || '') + '——应检查是否混入折射或视差项'));
   }
 
   function runAstSun() {
@@ -1730,14 +1739,14 @@
       ['上/下边缘视高度', deg(s.upper_limb_apparent_alt, 4) + ' / ' + deg(s.lower_limb_apparent_alt, 4) + '（视半径 ' + fmt(s.semidiameter_deg * 60, 2) + '′，折射 ' + fmt(s.refraction_arcmin, 2) + '′）'],
       ['赤经/赤纬/时角', deg(s.sun_ra_deg, 5) + ' / ' + deg(s.sun_dec_deg, 5) + ' / ' + deg(s.ha_deg, 5) + '（' + fmt(s.ha_hours, 4) + ' h）'],
       ['GMST', isNum(g.deg) ? deg(g.deg, 6) + '（' + esc(g.hms && g.hms.text || '') + '）' : '—'],
-      ['日下点', isNum(sub.lat) ? fmt(sub.lat, 5) + ', ' + fmt(sub.lon, 5) + '（' + (sub.within_tropics ? good('在回归线内') : warn('在回归线外')) + '，赤纬上界 ' + deg(sub.declination_bound_deg, 4) + '）' : bad(esc(sub.message || sub.error || ''))],
-      ['高度独立检核', astHorizonCheck(c.lat, c.lon, sub.lat, sub.lon, s.alt_deg, s.az_deg)]
+      ['日下点', isNum(sub.lat) ? fmt(sub.lat, 5) + ', ' + fmt(sub.lon, 5) + '（' + (sub.within_tropics ? good('在回归线内') : warn('在回归线外')) + '，赤纬上界 ' + deg(sub.declination_bound_deg, 4) + '）' : bad(sub.message || sub.error || '')],
+      ['高度独立检核', astHorizonCheck(c.lat, c.lon, sub.lat, sub.lon, s.alt_deg, s.az_deg, 0.02, '（比的是几何高度，不含折射；两路同为球面假设）')]
     ]);
 
     var ds = astDayStart(c.jd, c.tz);
     var ev = a.sunEvents(ds, c.lat, c.lon, {});
     if (ev.error) {
-      html += h4('日出日落') + note(bad('sunEvents：' + esc(ev.message || ev.error)));
+      html += h4('日出日落') + note(bad('sunEvents：' + (ev.message || ev.error)));
     } else {
       var decNow = s.sun_dec_deg;
       var an = a.analyticDayLength(c.lat, decNow, ev.geometric_center_alt_at_event_deg);
@@ -1757,7 +1766,7 @@
       var twRows = [['civil', '民用（−6°）'], ['nautical', '航海（−12°）'], ['astronomical', '天文（−18°）']].map(function (p) {
         var t = ev.twilight[p[0]];
         if (!t) return [p[1], '—'];
-        if (t.error) return [p[1], bad(esc(t.message || t.error))];
+        if (t.error) return [p[1], bad(t.message || t.error)];
         var st = { no_darkness: warn('该夜不降到阈值（无真正天黑）'), always_below: '整夜低于阈值', no_twilight: '窗口内无交叉' };
         return [p[1], '入夜 ' + astTimeText(a, t.evening_jd, c.tz) + '<br>结束 ' + astTimeText(a, t.morning_jd, c.tz) +
           (st[t.status] ? '<br>' + st[t.status] : '')];
@@ -1780,13 +1789,14 @@
       ['地心高度 / 视差改正', deg(tp.alt_deg_geocentric, 4) + ' → 站心 ' + deg(tp.alt_deg, 4) + '，差 ' + fmt(tp.parallax_in_altitude_deg, 4) + '°（地平视差 ' + fmt(tp.parallax_arcsec, 1) + '″）'],
       ['赤经/赤纬（站心）', deg(tp.ra_deg, 5) + ' / ' + deg(tp.dec_deg, 5)],
       ['视半径', fmt(tp.semidiameter_deg * 60, 2) + '′'],
-      ['月下点', isNum(sub.lat) ? fmt(sub.lat, 5) + ', ' + fmt(sub.lon, 5) + '（地心，距 ' + fmt(sub.dist_km, 1) + ' km）' : bad(esc(sub.message || sub.error || ''))],
-      ['高度独立检核', astHorizonCheck(c.lat, c.lon, sub.lat, sub.lon, tp.alt_deg_geocentric, null) +
+      ['月下点', isNum(sub.lat) ? fmt(sub.lat, 5) + ', ' + fmt(sub.lon, 5) + '（地心，距 ' + fmt(sub.dist_km, 1) + ' km）' : bad(sub.message || sub.error || '')],
+      ['高度独立检核', astHorizonCheck(c.lat, c.lon, sub.lat, sub.lon, tp.alt_deg_geocentric, null, 0.02,
+        '（这里比的是地心高度，地心视差单独列在上面那行，不混进这一路）') +
         '<br><span class="note">对地心高度做检核；站心高度另有上面那一行量级的地心视差，两者不该直接相等。</span>']
     ]);
     if (!ph.error) {
       html += h4('月相') + kv([
-        ['位相', good(esc(ph.phase_name)) + ' · ' + (ph.waxing ? '盈（月龄增）' : '亏（月龄减）')],
+        ['位相', good(ph.phase_name) + ' · ' + (ph.waxing ? '盈（月龄增）' : '亏（月龄减）')],
         ['照明分数', fmt(ph.illumination_fraction * 100, 2) + '%（严格式 f=(1+cos i)/2，相位角 i=' + deg(ph.phase_angle_deg, 4) + '）'],
         ['平行光近似', fmt(ph.illumination_parallel_approx * 100, 2) + '%，与严格式差 ' + fmt(ph.approx_minus_exact * 100, 4) + ' 个百分点'],
         ['距角 / 黄经差', deg(ph.elongation_deg, 4) + ' / ' + deg(ph.ecliptic_elongation_deg, 4)],
@@ -1794,11 +1804,11 @@
       ]);
       html += note(esc(ph.illum_formula));
     } else {
-      html += h4('月相') + note(bad(esc(ph.message || ph.error)));
+      html += h4('月相') + note(bad(ph.message || ph.error));
     }
     var me = a.moonEvents(astDayStart(c.jd, c.tz), c.lat, c.lon, {});
     if (me.error) {
-      html += h4('月升/月落') + note(bad('moonEvents：' + esc(me.message || me.error)));
+      html += h4('月升/月落') + note(bad('moonEvents：' + (me.message || me.error)));
     } else {
       html += h4('月升/月落（本地日）') + kv([
         ['月出', astTimeText(a, me.rise_jd, c.tz)],
@@ -1820,7 +1830,7 @@
     var b = a.bearingFromStar({ star: key, utc: c.jd, tzOffsetHours: c.tz, lat: c.lat, lon: c.lon, alt_min_deg: 0 });
     var html = astHead(c);
     if (b.error) {
-      html += h4('恒星方位') + note(bad('bearingFromStar：' + esc(b.message || b.error) + '（星表 46 颗，可输中文名/英文名/bayer/HIP/序号）'));
+      html += h4('恒星方位') + note(bad('bearingFromStar：' + (b.message || b.error) + '（星表 46 颗，可输中文名/英文名/bayer/HIP/序号）'));
       put('astResult', html); return;
     }
     // 独立检核：用内核自己给出的 δ、H、观测者纬度重算 sin h，与解算高度对照（球面恒等式）
@@ -1850,7 +1860,7 @@
       html += '</tbody></table></div>';
       html += note('星表坐标是自写入的常识值，离线无法逐条与外部星表核对（自估 ±0.01°…±0.1°）；HIP 编号只给出有把握的 20 余颗，其余留空而不是猜一个。够用于「哪颗星可见、大致方位、罗盘级定向」，不够用于角秒级天文定位。');
     } else {
-      html += h4('可见星表') + note(bad(esc(st.message || st.error)));
+      html += h4('可见星表') + note(bad(st.message || st.error));
     }
     put('astResult', html);
   }
@@ -1888,7 +1898,7 @@
       ['天体赤纬', deg(r.dec_deg, 5) + '（含岁差+自行，按本时刻）'],
       ['天顶距', deg(r.zenith_dist_deg, 5)],
       ['解出纬度', good(deg(r.lat_deg, 5)) + '（' + esc(String(r.resolved_by)) + ' 分支）' + (r.clamped ? ' ' + warn('|φ|>90 被截断') : '')],
-      ['两支', '南 ' + deg((r.two_solutions || {}).south, 5) + ' / 北 ' + deg((r.two_solutions || {}).north, 5) + (r.ambiguity === 'direction' ? '（由方位区分）' : ' ' + warn(esc(String(r.ambiguity))))],
+      ['两支', '南 ' + deg((r.two_solutions || {}).south, 5) + ' / 北 ' + deg((r.two_solutions || {}).north, 5) + (r.ambiguity === 'direction' ? '（由方位区分）' : ' ' + warn(String(r.ambiguity)))],
       ['正算回去', 'φ=' + fmt(r.lat_deg, 5) + '、δ=' + fmt(r.dec_deg, 5) + ' ⇒ 过中天高度 ' + deg(fwd, 5) + '，与输入差 ' +
         fmt(Math.abs(fwd - alt) * 60, 3) + '′' + (Math.abs(fwd - alt) < 1 / 60 ? ' ' + good('互逆') : ' ' + warn('不互逆，输入或赤纬有问题'))]
     ]);
@@ -1919,7 +1929,7 @@
     var html = astHead(c) + h4('日下点 / 月下点') + kv([
       ['日下点', fmt(sun.lat, 5) + ', ' + fmt(sun.lon, 5) + '（赤纬 ' + deg(sun.dec_deg, 5) + '，赤经 ' + deg(sun.ra_deg, 5) + '，GMST ' + deg(sun.gmst_deg, 5) + '）'],
       ['日下点不确定度', '视差 ≤' + fmt(sun.parallax_shift_arcsec, 2) + '″ ≈ 0.27 km 未做方向分解；' + esc(String(sun.ut1_lon_error_m)) + ' m 级（UT1−UTC 未知）'],
-      ['月下点', moon.error ? bad(esc(moon.message || moon.error)) : fmt(moon.lat, 5) + ', ' + fmt(moon.lon, 5) + '（距 ' + fmt(moon.dist_km, 1) + ' km，视差 ' + fmt(moon.parallax_arcsec, 1) + '″ ≈ ' + fmt(moon.parallax_shift_km_max, 1) + ' km）'],
+      ['月下点', moon.error ? bad(moon.message || moon.error) : fmt(moon.lat, 5) + ', ' + fmt(moon.lon, 5) + '（距 ' + fmt(moon.dist_km, 1) + ' km，视差 ' + fmt(moon.parallax_arcsec, 1) + '″ ≈ ' + fmt(moon.parallax_shift_km_max, 1) + ' km）'],
       ['本地点太阳高度', isNum(sh.alt_deg) ? deg(sh.alt_deg, 4) + '（视高度 ' + deg(sh.refracted_alt_deg, 4) + '）' : '—'],
       ['晨昏线', nightLineHtml(MAP)]
     ]);
@@ -1935,8 +1945,8 @@
     if (!MAP || !MAP.isReady || !MAP.isReady()) return warn('已算出但地图未就绪（Leaflet 没加载或视野没建立）');
     var r = state.lastNight;
     if (!r) return bad('内核没有返回晨昏线');
-    if (r.error) return bad(esc(r.error));
-    if (!r.n) return warn(esc(r.message || '晨昏线退化（极区全天白/夜）'));
+    if (r.error) return bad(r.error);
+    if (!r.n) return warn(r.message || '晨昏线退化（极区全天白/夜）');
     var txt = good('已绘出（' + r.n + ' 点，纬度 ' + fmt(r.lat_min, 1) + '°～' + fmt(r.lat_max, 1) + '°）');
     if (!isNum(r.in_view)) return txt + warn('（内核没报视野命中数，无法判断在不在屏幕上）');
     if (r.in_view > 0) return txt + '，本次视野里有它的 ' + r.in_view + ' 个采样点';
@@ -2033,7 +2043,7 @@
     var au = n.privacyAudit(ip ? { ip: ip } : {});
     var badList = (au.details || []).filter(function (x) { return !x.ok; });
     return kv([
-      ['URL 构造审计', (au.violations || []).length ? bad('发现 ' + au.violations.length + ' 处坐标痕迹：' + esc(au.violations.join('；'))) : good('扫描 ' + au.checked + ' 个源，未发现任何坐标类参数')],
+      ['URL 构造审计', (au.violations || []).length ? bad('发现 ' + au.violations.length + ' 处坐标痕迹：' + au.violations.join('；')) : good('扫描 ' + au.checked + ' 个源，未发现任何坐标类参数')],
       ['无法构造的源', badList.length ? badList.map(function (x) { return esc(x.source) + '：' + esc(x.reason); }).join('<br>') : '无'],
       ['内核声明', esc(au.policy)]
     ]) + note(esc(au.caveat));
@@ -2050,13 +2060,13 @@
         '<td class="num">' + (r.ok ? fmt(r.accuracy_km, 1) + (r.accuracy_fallback ? ' *' : '') : '—') + '</td>' +
         '<td>' + esc(r.city || '—') + ' / ' + esc(r.country || '—') + (r.from_cache ? '<br><span class="note">缓存命中</span>' : '') + '</td>' +
         '<td class="num">' + (isNum(r.latency_ms) ? fmt(r.latency_ms, 0) + ' ms' : '—') + '</td>' +
-        '<td>' + (r.ok ? good('ok') : bad(esc(errKindText(n, r.error_kind)) + '：' + esc(r.error || ''))) + '</td></tr>';
+        '<td>' + (r.ok ? good('ok') : bad(errKindText(n, r.error_kind) + '：' + (r.error || ''))) + '</td></tr>';
     });
     return h + '</tbody></table></div>' + note('* 该源未返回精度字段，用的是内核 DEFAULTS.unknown_accuracy_km 的保守兜底量级（刻意偏「不知道」，不是该源的实测精度）。');
   }
   function fusedBlock(n, f) {
     if (!f) return note('没有融合结果');
-    if (f.error || f.ok !== true) return note(bad('融合不可用：' + esc(f.error || (f.error_kind ? errKindText(n, f.error_kind) + '：' : '') + (f.error || ''))));
+    if (f.error || f.ok !== true) return note(bad('融合不可用：' + (f.error || (f.error_kind ? errKindText(n, f.error_kind) + '：' : '') + (f.error || ''))));
     var cs = f.consistency || {}, md = f.mad || {};
     var html = kv([
       ['融合点', fmt(f.lat, 6) + ', ' + fmt(f.lon, 6)],
@@ -2107,8 +2117,8 @@
   function viaBlock(c) {
     var b = c.bridge || {};
     return kv([
-      ['通道', c.via === 'bridge' ? good('本机桥接服务 server.py（绕开浏览器 CORS/混合内容限制）') : warn('浏览器直连（桥接不可用，可能被 CORS、混合内容或网络策略拦截）')],
-      ['桥接状态', b.ok ? good('在线 ' + esc(String(b.server)) + ' ' + esc(String(b.version)) + '，' + fmt(b.latency_ms, 0) + ' ms') : bad(esc(errKindText(eng('GEONET'), b.error_kind)) + '：' + esc(b.error || ''))],
+      ['通道', c.via === 'bridge' ? good('本机桥接服务（server.py 或 bridge-powershell.ps1，绕开浏览器 CORS/混合内容限制）') : warn('浏览器直连（桥接不可用，可能被 CORS、混合内容或网络策略拦截）')],
+      ['桥接状态', b.ok ? good('在线 ' + String(b.server) + ' ' + String(b.version) + '，' + fmt(b.latency_ms, 0) + ' ms') : bad(errKindText(eng('GEONET'), b.error_kind) + '：' + (b.error || ''))],
       ['桥接能力', ((b.capabilities || []).join(' / ')) || '—']
     ]) + (c.via === 'direct' ? note('如果桥接其实已经启动，请把页面用 ' + esc(String(eng('GEONET').networkPolicy().bridge_base)) + '/ 打开（同源），file:// 页面访问回环端口会被浏览器的私有网络策略拦下。') : '');
   }
@@ -2127,7 +2137,7 @@
     return collectIpSolutions(n, ip, toMs).then(function (c) {
       state.online = { fused: c.fused, results: c.results, via: c.via, ts: new Date().toISOString(), ip: ip };
       html += h4('通道') + viaBlock(c);
-      if (c.error) html += note(bad('多源查询失败：' + esc(c.error)));
+      if (c.error) html += note(bad('多源查询失败：' + c.error));
       html += h4('各源结果') + ipResultsTable(n, c.results);
       html += h4('多源融合') + fusedBlock(n, c.fused);
       if (c.fused && c.fused.ok === true) {
@@ -2147,7 +2157,7 @@
   }
   function escalateBlock(n, d) {
     if (!d) return note('无判定结果');
-    if (!d.checks || !d.checks.length) return note(warn('没有可判定的离线解：' + esc(d.reason || '本次会话还没解算过') + '。判定用的「离线解」来自⑥GNSS 面板最近一次解算，请先解一次。'));
+    if (!d.checks || !d.checks.length) return note(warn('没有可判定的离线解：' + (d.reason || '本次会话还没解算过') + '。判定用的「离线解」来自⑥GNSS 面板最近一次解算，请先解一次。'));
     var th = d.thresholds || {};
     var rows = (d.checks || []).map(function (c) {
       var sev = isNum(c.severity) ? c.severity : null;
@@ -2156,7 +2166,7 @@
     }).join('');
     var html = '<div class="tablewrap"><table class="grid"><thead><tr><th>判据</th><th>强度</th><th>说明</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     html += kv([
-      ['结论', d.escalate ? warn('建议升级：' + esc(d.reason)) : good('无需升级：' + esc(d.reason))],
+      ['结论', d.escalate ? warn('建议升级：' + d.reason) : good('无需升级：' + d.reason)],
       ['confidence', fmt(d.confidence, 4) + '（' + esc(d.confidence_basis || '启发式强度') + '）'],
       ['离线 σ（内核取用）', d.offline_sigma_m ? m(d.offline_sigma_m.e, 1) + ' / ' + m(d.offline_sigma_m.n, 1) + '（σ 地板 ' + m(th.sigma_floor_m, 0) + '）' : '—'],
       ['阈值', 'α=' + fmt(th.alpha, 4) + '，HDOP≤' + th.max_hdop + '，RMS≤' + th.max_rms_residual_m + ' m，星数≥' + th.min_sats + '，z 硬阈 ' + th.z_hard]
@@ -2198,7 +2208,7 @@
       if (r.ok !== true) {
         html += kv([
           ['通道', warn(String(r.via || 'browser-fallback'))],
-          ['失败', bad(esc(errKindText(n, r.error_kind)) + '：' + esc(r.error || ''))],
+          ['失败', bad(errKindText(n, r.error_kind) + '：' + (r.error || ''))],
           ['伪造跳数', yesno(r.fabricated_hops === true) + '（内核在桥接不可达时返回空跳数，绝不编造）'],
           ['降级可得', r.fallback && r.fallback.ok ? 'DoH 解析到 ' + (r.fallback.answers || []).map(function (a) { return esc(a.data); }).join('、') : '无（DoH 也失败：' + esc((r.fallback && r.fallback.error) || '—') + '）'],
           ['限制', esc(r.limitation || '')]
@@ -2208,9 +2218,9 @@
       }
       var hops = r.hops || [];
       html += kv([
-        ['通道', good(String(r.via)) + '（系统 traceroute 由桥接服务以 argv + shell=False 执行）'],
+        ['通道', good(String(r.via)) + '（系统 traceroute/tracert 由桥接服务用参数数组直接执行，不经命令解释器）'],
         ['目标归属', r.target_scope === 'lan' ? warn('内网/本机') + '（' + esc(r.target_scope_note || '') + '）'
-          : r.target_scope === 'public' ? good('公网') : '桥接未标注（这份 server.py 还没有 target_scope 字段）'],
+          : r.target_scope === 'public' ? good('公网') : '桥接未标注（这份桥接还没有 target_scope 字段）'],
         ['跳数', hops.length + '（' + (r.reached ? good('到达目标') : warn('未在 ' + opt.max_hops + ' 跳内到达')) + '）'],
         ['伪造跳数', yesno(r.fabricated_hops === true)],
         ['耗时', fmt(r.elapsed_ms, 0) + ' ms']
@@ -2237,7 +2247,7 @@
     return n.dohResolve(host, { type: V('netDohType') || 'A', fetch_timeout_ms: N('netTimeout') || 8000 }).then(function (r) {
       var html = netPolBlock(s) + h4('DoH 解析 ' + esc(host) + '（' + esc(r.type || 'A') + '）');
       if (r.ok !== true) {
-        html += kv([['状态', bad(esc(errKindText(n, r.error_kind)) + '：' + esc(r.error || ''))], ['URL', esc(r.url || '—')]]);
+        html += kv([['状态', bad(errKindText(n, r.error_kind) + '：' + (r.error || ''))], ['URL', esc(r.url || '—')]]);
         put('netResult', html); return;
       }
       html += kv([['RCODE', esc(String(r.dns_status)) + '（' + esc(r.Status_text) + '）'], ['URL', esc(r.url)], ['耗时', fmt(r.latency_ms, 0) + ' ms']]);
@@ -2249,20 +2259,28 @@
       put('netResult', html);
     });
   }
+  function bridgeRuntimeText(r) {
+    // 两份桥实现报「运行环境」的字段名不一样：server.py 给 python + platform，
+    // bridge-powershell.ps1 给 runtime 且 python 为 null（它不冒充 Python）。
+    // 早先这里硬写「Python —」，PowerShell 桥接接上后界面会显示一个不存在的解释器。
+    if (r.python) { return 'Python ' + String(r.python) + '，' + String(r.platform || '—'); }
+    if (r.runtime) { return String(r.runtime) + (r.platform ? '，' + String(r.platform) : ''); }
+    return '运行环境未上报';
+  }
   function runBridgeStatus() {
     var s = netSetup(); if (s.err) { putError('netResult', s.err); return Promise.resolve(); }
     var n = s.n;
     return n.bridgeStatus({ fetch_timeout_ms: 2500 }).then(function (r) {
       var html = netPolBlock(s) + h4('桥接自检') + kv([
-        ['结果', r.ok ? good('在线') : bad(esc(errKindText(n, r.error_kind)) + '：' + esc(r.error || ''))],
+        ['结果', r.ok ? good('在线') : bad(errKindText(n, r.error_kind) + '：' + (r.error || ''))],
         ['URL', esc(r.url || '—')],
-        ['服务', esc(String(r.server || '—')) + ' ' + esc(String(r.version || '')) + '（Python ' + esc(String(r.python || '—')) + '，' + esc(String(r.platform || '—')) + '）'],
+        ['服务', esc(String(r.server || '—')) + ' ' + esc(String(r.version || '')) + '（' + esc(bridgeRuntimeText(r)) + '）'],
         ['能力', (r.capabilities || []).map(function (x) { return esc(x); }).join(' / ') || '—'],
         ['耗时', fmt(r.latency_ms, 0) + ' ms']
       ]);
       html += note(r.ok
-        ? '桥接在回环上，只执行 traceroute/ping/dns/geoip 白名单命令；非回环绑定在启动阶段就被 server.py 拒绝。'
-        : '桥接不可达时：路由追踪只能降级为 DoH（拿不到跳数），GeoIP 走浏览器直连，可能被 CORS 或混合内容拦截。说明书里有启动命令。');
+        ? '桥接在回环上，只执行 traceroute/ping/dns/geoip 白名单命令；非回环绑定在启动阶段就被桥接自身拒绝。'
+        : '桥接不可达时：路由追踪只能降级为 DoH（拿不到跳数），GeoIP 走浏览器直连，可能被 CORS 或混合内容拦截。说明书里有两份桥的启动命令（Python 与 PowerShell）。');
       put('netResult', html);
     });
   }
@@ -2441,7 +2459,7 @@
         '<td>' + esc(r.how) + (r.warns.length ? '<br><span class="note">' + r.warns.map(esc).join('；') + '</span>' : '') + '</td></tr>';
     });
     (errs || []).forEach(function (r) {
-      html += '<tr><td>' + r.i + '</td><td colspan="12">' + bad('未解析：' + esc(r.raw)) + '<br><span class="note">' + esc(r.error) + '</span></td></tr>';
+      html += '<tr><td>' + r.i + '</td><td colspan="12">' + bad('未解析：' + r.raw) + '<br><span class="note">' + esc(r.error) + '</span></td></tr>';
     });
     if (tb) tb.innerHTML = html || '<tr><td colspan="13">没有可解析的行。</td></tr>';
     if (tb) Array.prototype.forEach.call(tb.querySelectorAll('button[data-act="bloc"]'), function (btn) {
@@ -2562,7 +2580,7 @@
 
   function batchExport() {
     var b = batchBuild(V('batchFmt') || 'csv');
-    if (b.error) { put('batchStats', h4('导出') + note(bad(esc(b.error)))); return; }
+    if (b.error) { put('batchStats', h4('导出') + note(bad(b.error))); return; }
     var ok1 = false, why = '';
     try {
       if (global.URL && global.URL.createObjectURL && global.Blob && DOC && DOC.createElement) {
@@ -2576,7 +2594,7 @@
       }
     } catch (e) { why = String(e && e.message || e); }
     put('batchStats', h4('导出（' + esc(b.ext) + '，' + b.text.length + ' 字符）') +
-      (ok1 ? note(good('已交给浏览器下载。文件名 ' + stampName(b.ext) + '。')) : note(warn('这个环境不允许直接下载（' + esc(why || '无 Blob/createObjectURL') + '），下面是全文，可手动复制保存：'))) +
+      (ok1 ? note(good('已交给浏览器下载。文件名 ' + stampName(b.ext) + '。')) : note(warn('这个环境不允许直接下载（' + (why || '无 Blob/createObjectURL') + '），下面是全文，可手动复制保存：'))) +
       (ok1 ? '' : pre(b.text.slice(0, 4000) + (b.text.length > 4000 ? '\n…（截断，完整内容请用「复制到剪贴板」）' : ''))) +
       note('CSV/GeoJSON/GPX/KML 的轴序差异：GeoJSON 与 KML 是「经度,纬度」，GPX 用 lat/lon 属性，CSV 按表头列名。') +
       (b.note ? note(esc(b.note)) : ''));
@@ -2584,8 +2602,8 @@
 
   function batchCopy() {
     var b = batchBuild(V('batchFmt') || 'csv');
-    if (b.error) { put('batchStats', h4('复制') + note(bad(esc(b.error)))); return; }
-    var done = function (how) { put('batchStats', h4('复制') + note(good('已' + how + '：' + b.text.length + ' 字符（' + esc(b.ext) + '）。'))); };
+    if (b.error) { put('batchStats', h4('复制') + note(bad(b.error))); return; }
+    var done = function (how) { put('batchStats', h4('复制') + note(good('已' + how + '：' + b.text.length + ' 字符（' + b.ext + '）。'))); };
     var text = b.text.replace(/^\uFEFF/, '');   // BOM 只服务导出文件的 Excel 识别，剪贴板里它是多余字符
     if (global.navigator && global.navigator.clipboard && global.navigator.clipboard.writeText) {
       global.navigator.clipboard.writeText(text).then(function () { done('写入剪贴板'); }, function (e) { fallbackCopy(text, String(e && e.message || e)); });
@@ -2601,7 +2619,7 @@
       DOC.body.removeChild(ta);
       put('batchStats', h4('复制') + note((okc ? good('已用 execCommand 复制') : bad('浏览器拒绝复制')) + '（' + esc(why) + '）。file:// 页面通常在安全上下文外，clipboard API 会被拦，建议改用「导出文件」。'));
       if (!okc) put('batchStats', h4('复制失败，全文如下') + pre(text.slice(0, 4000)));
-    } catch (e) { put('batchStats', h4('复制') + note(bad(esc(String(e && e.message || e)) + '（' + esc(why) + '）'))); }
+    } catch (e) { put('batchStats', h4('复制') + note(bad(String(e && e.message || e) + '（' + why + '）'))); }
   }
 
   function batchFileLoad(file) {
@@ -2704,7 +2722,7 @@
       }
       qr.addData(s.link); qr.make();
       box.innerHTML = qr.createImgTag(4, 8, '定位分享二维码') + note('二维码由本机 vendor/qrcode.js 生成（' + qr.getModuleCount() + '×' + qr.getModuleCount() + ' 模块，纠错级 M），内容是上面那段本地格式文本，任何手机扫码得到的只是经纬度，不含设备信息。');
-    } catch (e) { put('qrBox', note(bad('二维码生成失败：' + esc(String(e && e.message || e)) + '（多半是文本太长）'))); }
+    } catch (e) { put('qrBox', note(bad('二维码生成失败：' + String(e && e.message || e) + '（多半是文本太长）'))); }
   }
 
   function bindBatch() {
@@ -2794,7 +2812,7 @@
     var probe = lsSet('llgz.probe.v1', 1);
     if (probe.ok) { try { global.localStorage.removeItem('llgz.probe.v1'); } catch (e) { } }
     put('histNote', h4('本机存储') + kv([
-      ['写入能力', probe.ok ? good('可用') : bad('不可写：' + esc(probe.error || ''))],
+      ['写入能力', probe.ok ? good('可用') : bad('不可写：' + (probe.error || ''))],
       ['键名', esc(LS.hist) + ' / ' + esc(LS.fav) + ' / ' + esc(LS.prefs)],
       ['条数', '历史 ' + hist.length + ' 条、收藏 ' + fav.length + ' 条（各上限 200 条，超出丢弃最旧的）']
     ]) + note('数据只存在这台机器的这个浏览器里：清缓存、换浏览器、换电脑都不会带过去；本页不会把历史发往任何服务器。'));
@@ -2858,7 +2876,7 @@
     });
     var html = '';
     blocks.forEach(function (b) {
-      html += h4(b.ns + ' — ' + b.name + '：' + b.gates + ' 门，' + (b.bad ? bad(b.bad + ' 个失败') : good('0 失败'))) +
+      html += '<h4>' + esc(b.ns + ' — ' + b.name + '：' + b.gates + ' 门，') + (b.bad ? bad(b.bad + ' 个失败') : good('0 失败')) + '</h4>' +
         (b.rows.length ? '<div class="tablewrap"><table class="grid"><thead><tr><th>门</th><th>结果</th><th>实测值</th></tr></thead><tbody>' +
           b.rows.map(function (r) {
             return '<tr><td>' + esc(r[0]) + '</td><td>' + (r[1] === 'bad' ? bad('FAIL') : good('PASS')) + '</td><td class="num">' + esc(r[2]) + '</td></tr>';
@@ -2882,7 +2900,7 @@
         return eng('GEONET').selfTestAsync().then(function (list) {
           var b = (list || []).filter(function (x) { return !x.pass; });
           var el = $('stDetail');
-          if (el) el.innerHTML += h4('GEONET 异步门（含并发/超时/缓存/隐私策略）：' + (list || []).length + ' 门，' + (b.length ? bad(b.length + ' 失败') : good('0 失败'))) +
+          if (el) el.innerHTML += '<h4>' + esc('GEONET 异步门（含并发/超时/缓存/隐私策略）：' + (list || []).length + ' 门，') + (b.length ? bad(b.length + ' 失败') : good('0 失败')) + '</h4>' +
             (b.length ? '<div class="tablewrap"><table class="grid"><thead><tr><th>门</th><th>实测值</th></tr></thead><tbody>' +
               b.map(function (x) { return '<tr><td>' + esc(x.name) + '</td><td class="num">' + esc(x.detail) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '');
         });
@@ -2906,18 +2924,28 @@
         : good('陆域多边形 ' + mp.land_blocks + ' 块已挂图（base 图层 ' + mp.layers.base + ' 个对象）'));
     var missU = [];
     miss.forEach(function (id) { if (missU.indexOf(id) < 0) missU.push(id); });
+    // 画面里出现「标记源码」是肉眼直接看得见的坏：渲染 helper 一旦被双重转义，
+    // 用户就会在面板上看到 <span class="good">…</span> 或 &lt;h4&gt; 这样一行字，
+    // 而 515 道数字闸门全绿也照不出来。所以这里扫的是真正显示出来的文字（innerText）。
+    // 判据只认本界面 helper 的指纹（带 good/bad/warn/note 的 span、h4 标签、被转义掉一个 `<` 的标签头），
+    // 用户在批处理里粘贴的普通尖括号文本不算漏——那种字本来就该照原样显示。
+    // 报告里把尖括号与 & 换成点，免得这条说明自己变成下一轮的命中。
+    var leakRe = /<span class="(?:good|bad|warn|note)">|<\/?h4>|&lt;\/?[a-zA-Z]/;
+    var leakText = ((DOC.querySelector('main') || DOC.body || {}).innerText) || '';
+    var leakHit = leakText.match(leakRe);
     var html = h4('运行环境') + kv([
       ['内核', k + ' / 6 已加载' + (k === 6 ? ' ' + good('齐') : ' ' + bad(ENGINES.filter(function (e) { return !eng(e.ns); }).map(function (e) { return e.ns; }).join('、')))],
       ['地图组件', hasL ? good('Leaflet 已加载') : warn('未加载：矢量陆域与底图不可用，数值功能不受影响')],
       ['二维码', hasQ ? good('vendor/qrcode.js 已加载') : bad('未加载：二维码不可用')],
-      ['离线数据', gd ? good('GEODATA：' + esc(gdKeys)) : bad('未加载 GEODATA（app/data/ 三个文件）')],
+      ['离线数据', gd ? good('GEODATA：' + gdKeys) : bad('未加载 GEODATA（app/data/ 三个文件）')],
       ['矢量陆域', landRow],
-      ['localStorage', ls.ok ? good('可写') : bad('不可写：' + esc(ls.error || ''))],
-      ['协议', esc(location.protocol) + (location.protocol === 'file:' ? '（路由追踪需要 server.py 桥接）' : '')],
-      ['界面缺失 id', missU.length ? warn(missU.join('、')) : good('0 个')]
+      ['localStorage', ls.ok ? good('可写') : bad('不可写：' + (ls.error || ''))],
+      ['协议', esc(location.protocol) + (location.protocol === 'file:' ? '（路由追踪需要本机桥接：server.py 或 bridge-powershell.ps1）' : '')],
+      ['界面缺失 id', missU.length ? warn(missU.join('、')) : good('0 个')],
+      ['画面标记源码', leakHit ? bad('漏出 ' + leakHit[0].replace(/[<>&";]/g, '·') + '（多半是渲染时多转义了一次；若这段字来自你粘贴的内容，可忽略）') : good('0 处（面板文字里没有转义失败的标签）')]
     ]);
     if (ls.ok) { try { global.localStorage.removeItem('llgz.probe.v2'); } catch (e) { } }
-    return { html: html, bad: (k === 6 ? 0 : 1) + missU.length + (landBad ? 1 : 0), miss: missU.length };
+    return { html: html, bad: (k === 6 ? 0 : 1) + missU.length + (landBad ? 1 : 0) + (leakHit ? 1 : 0), miss: missU.length };
   }
 
   /* ============================================================ 19. 启动 */
@@ -3053,7 +3081,7 @@
       var MAP = mapOf();
       if (!MAP || !MAP.setCrosshair) { status('地图层不可用（缺 vendor/leaflet.js），准星无从依附', 'busy'); return; }
       var r = MAP.setCrosshair(!(MAP.crosshairOn && MAP.crosshairOn()));
-      if (r && r.error) { put('mapReadout', '准星：' + bad('地图还没初始化（' + esc(String(r.error)) + '）')); return; }
+      if (r && r.error) { put('mapReadout', '准星：' + bad('地图还没初始化（' + String(r.error) + '）')); return; }
       var btn = $('btnCross'); if (btn) btn.classList.toggle('active', !!r.on);
       if (r.on) { put('mapReadout', crossLine(r.lat, r.lon)); status('准星已开：点地图任意处把该点转到正中，读数条跟着更新', 'ok'); }
       else { put('mapReadout', '游标：准星已关闭'); status('准星已关', 'ok'); }

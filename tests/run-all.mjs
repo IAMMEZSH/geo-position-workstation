@@ -5,6 +5,7 @@
  *
  *   node tests/run-all.mjs              只跑内核闸门
  *   node tests/run-all.mjs --with-server  再跑一次 server.py --selftest（需要本机有 python）
+ *   node tests/run-all.mjs --with-bridge  再跑一次 bridge-powershell.ps1 -SelfTest（仅 Windows）
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -87,7 +88,26 @@ if (process.argv.includes('--with-server')) {
   serverFailed = r.status !== 0;
 }
 
-if (failed || serverFailed) {
+let bridgeFailed = false;
+if (process.argv.includes('--with-bridge')) {
+  // PowerShell 那份桥是「不装 Python 也能用」的那条路，只有 Windows 自带它；
+  // 非 Windows 上这一步是明确的跳过，不是悄悄通过——不然 CI 的 ubuntu 作业会让人以为测过了。
+  if (process.platform !== 'win32') {
+    console.log('bridge-powershell.ps1 -SelfTest：跳过（当前平台 ' + process.platform + '，这份桥只在 Windows 上跑）');
+  } else {
+    const r = spawnSync('powershell.exe', [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+      path.join(ROOT, 'bridge-powershell.ps1'), '-SelfTest',
+    ], { encoding: 'utf8' });
+    const out = (r.stdout || '') + (r.stderr || '');
+    const m = out.match(/(\d+)\s*项[^0-9]*(\d+)\s*失败/);
+    console.log('bridge-powershell.ps1 -SelfTest 退出码 ' + r.status + (m ? '（' + m[0] + '）' : ''));
+    console.log(out.split('\n').slice(-8).join('\n'));
+    bridgeFailed = r.status !== 0;
+  }
+}
+
+if (failed || serverFailed || bridgeFailed) {
   console.error('结论：有闸门未通过。');
   process.exit(1);
 }

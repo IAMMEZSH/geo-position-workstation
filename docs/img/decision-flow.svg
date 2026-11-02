@@ -45,7 +45,7 @@
   <text x="128" y="546" font-size="14" font-weight="bold" fill="#9c4526">才升级：⑧ 联网与路由（要你在面板里显式授权）</text>
   <text x="128" y="568" font-size="12" fill="#7a4a34">浏览器定位：需用户点授权；file:// 与回环 http 都算安全上下文，非安全来源直接被浏览器拒绝</text>
   <text x="128" y="586" font-size="12" fill="#7a4a34">IP 定位：6 个上游并行 → 剔除不可用源 → 加权融合（BLUE σ 与 75% 分位取大者当报告精度）</text>
-  <text x="128" y="604" font-size="12" fill="#7a4a34">路由追踪：交给 server.py 跑系统 tracert；解析不出跳就返回 0 跳 + 原因，绝不编造跳数</text>
+  <text x="128" y="604" font-size="12" fill="#7a4a34">路由追踪：交给本机桥接跑系统 tracert；解析不出跳就返回 0 跳 + 原因，绝不编造跳数</text>
 
   <path d="M350,640 L350,668" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
 
@@ -66,7 +66,7 @@
 
     <rect x="720" y="228" width="400" height="66" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
     <text x="734" y="250" font-size="13" font-weight="bold" fill="#1f5c33">2 · 基站定时提前 / 多边交会</text>
-    <text x="734" y="270" fill="#3d5a48">实测样例：3 站 LTE，残差 RMS 7.7 m，不确定半径 75.4 m</text>
+    <text x="734" y="270" fill="#3d5a48">实测样例：3 站 LTE，残差 RMS 21.5 m，不确定半径 102.2 m</text>
     <text x="734" y="288" fill="#3d5a48">TA 是量出来的距离；纯 RSSI 估距要低一档看</text>
 
     <rect x="720" y="302" width="400" height="60" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
@@ -83,8 +83,8 @@
 
     <rect x="720" y="506" width="400" height="76" rx="6" fill="#fdf3ef" stroke="#dba98f"/>
     <text x="734" y="528" font-size="13" font-weight="bold" fill="#9c4526">6 · IP 粗定位（最弱，仅城市/区级）</text>
-    <text x="734" y="548" fill="#7a4a34">实测样例：3 源融合 30.0087, 121.2565，报告精度 100 km，</text>
-    <text x="734" y="566" fill="#7a4a34">χ²=0.193 判「不矛盾」，MAD 把超时与 403 的源剔除</text>
+    <text x="734" y="548" fill="#7a4a34">实测样例：2/6 源可用，融合 30.0156, 121.2294，精度 50 km，</text>
+    <text x="734" y="566" fill="#7a4a34">χ²=0.148 判「不矛盾」，超时与 403 的源被剔除并逐条写明原因</text>
 
     <rect x="720" y="590" width="400" height="60" rx="6" fill="#f6f2fa" stroke="#b48ed0"/>
     <text x="734" y="612" font-size="13" font-weight="bold" fill="#593379">0 · 什么都不够</text>
@@ -92,10 +92,10 @@
   </g>
 
   <text x="720" y="690" font-size="12" fill="#5a6675">越往下越粗。融合只在同级或更高级证据缺失时才做，</text>
-  <text x="720" y="710" font-size="12" fill="#5a6675">且报告精度取保守值——宁可写 100 km，也不写源自己吹的 20 km。</text>
+  <text x="720" y="710" font-size="12" fill="#5a6675">且报告精度取 BLUE σ 与加权 75% 分位的较大者——宁可写大，不写源自己吹的量级。</text>
   <text x="720" y="732" font-size="12" font-weight="bold" fill="#9c4526">橙色虚线 = 唯一会出网的那一步</text>
 
-  <text x="40" y="784" font-size="13" font-weight="bold" fill="#1b2430">两条硬约束</text>
+  <text x="40" y="784" font-size="13" font-weight="bold" fill="#1b2430">三条硬约束</text>
   <text x="40" y="808" font-size="12" fill="#5a6675">· 默认离线：GEONET 未注入 fetchImpl 且未授权时，任何联网入口返回 offline_disallowed，连 URL 都不构造。</text>
   <text x="40" y="828" font-size="12" fill="#5a6675">· URL 构造审计：自检会把每个联网入口的 URL 拆开检查，坐标类参数（lat/lon/accuracy 等）出现在任何出站 URL 里就是闸门失败。</text>
   <text x="40" y="848" font-size="12" fill="#5a6675">· 桥接缺席不影响其余 10 个面板：⑧ 面板会明确告诉你「桥接不在线」，然后继续用浏览器直连的那几个源。</text>

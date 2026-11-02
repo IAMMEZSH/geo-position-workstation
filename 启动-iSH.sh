@@ -35,7 +35,7 @@ if [ ! -f server.py ]; then
   exit 1
 fi
 
-echo "[1/3] 先跑离线自检（87 项，不联网、不监听端口）……"
+echo "[1/3] 先跑离线自检（不联网、不监听端口，通过与否以退出码为准）……"
 if python3 server.py --selftest >/tmp/geo-selftest.log 2>&1; then
   echo "      自检通过。"
 else

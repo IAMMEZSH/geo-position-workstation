@@ -43,7 +43,6 @@ import argparse
 import ast
 import ipaddress
 import json
-import mimetypes
 import os
 import re
 import shutil
@@ -328,6 +327,9 @@ def safe_join(root, raw_path):
 
 SECRET_EXTS = frozenset({
     ".key", ".pem", ".p12", ".pfx", ".jks", ".id_rsa", ".sqlite", ".db", ".env", ".kdbx",
+    # .log 是本服务自己写的那份访问日志（bridge-*.log）：里面是用户查过哪些主机/URL 的
+    # 原样请求行。桥接既然能写它，就必须不能把它当静态资源发出去。
+    ".log",
 })
 
 # ================================================================ 2. 子进程调用（shell=False）
@@ -561,8 +563,11 @@ def parse_ping_text(text):
     # 单条回复的时间样本：中文「时间=1ms」/英文 "time=1ms"
     out["samples_ms"] = [float(x.replace(",", ".")) for x in
                          re.findall(r"(?:时间|time)\s*[=:]\s*(\d+(?:[.,]\d+)?)\s*ms", body, re.IGNORECASE)]
-    sent = re.search(r"(?:已发送|发送|Sent)\s*[=:]\s*(\d+)|(\d+)\s+packets transmitted", body, re.IGNORECASE)
-    recv = re.search(r"(?:已接收|接收|Received)\s*[=:]\s*(\d+)|(\d+)\s+received", body, re.IGNORECASE)
+    # Linux(iputils) 写 `2 packets transmitted, 0 received`，macOS/BSD 写 `0 packets received`：
+    # 量词 packets 在一行里可能出现也可能不出现，所以两侧都做成可选，否则 macOS 的 ping
+    # 会被解析成「收到了 null」，前端把一次真实的全丢包误报成命令失败。
+    sent = re.search(r"(?:已发送|发送|Sent)\s*[=:]\s*(\d+)|(\d+)\s+packets?\s+transmitted", body, re.IGNORECASE)
+    recv = re.search(r"(?:已接收|接收|Received)\s*[=:]\s*(\d+)|(\d+)\s+(?:packets\s+)?received", body, re.IGNORECASE)
     lost = re.search(r"(?:丢失|Lost)\s*[=:]\s*(\d+)|(\d+)\s+(?:packets\s+)?lost", body, re.IGNORECASE)
     # 丢包率的写法差别最大：`50% 丢失` / `0% loss` / `0% packet loss` —— 所以 % 与关键词之间允许几个词。
     loss = re.search(r"(\d+(?:[.,]\d+)?)\s*%[^\n]{0,14}?(?:丢失|loss)", body, re.IGNORECASE)
@@ -760,7 +765,13 @@ def _reject_constant(name):
 
 
 def _finite(value):
-    """把任意上游值转成有限浮点；非数/inf 一律 None（不返回 NaN，绝不让它进 JSON 输出）。"""
+    """把任意上游值转成有限浮点；非数/inf 一律 None（不返回 NaN，绝不让它进 JSON 输出）。
+
+    布尔值单独拒收：Python 的 float(True) 是 1.0，上游把 lat 写成 true 时会凭空得到一个
+    「北纬 1 度」。PowerShell 那份桥本来就不认布尔，这里跟着拒，两份实现才对得齐。
+    """
+    if isinstance(value, bool):
+        return None
     try:
         f = float(value)
     except (TypeError, ValueError):
@@ -953,31 +964,59 @@ def resolve_dns(host, timeout_s=5.0):
             "error_kind": None if addrs else "dns_empty"}
 
 
+def has_ipv4_loopback_address():
+    """本机是否存在 127 段单播地址。
+
+    之前这里写死 True，等于把没验证过的事实报给用户（PowerShell 那份桥是真的枚举网卡）。
+    用 UDP connect 让内核替我们挑「发往 127.0.0.1 时用哪个源地址」：UDP 的 connect 只登记
+    默认目的地址，一个包都不发，所以既不联网也不影响端口；拿不到就如实 False。
+    """
+    probe = None
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe.settimeout(0.5)
+        probe.connect(("127.0.0.1", 53))
+        return probe.getsockname()[0].startswith("127.")
+    except OSError:
+        return False
+    finally:
+        if probe is not None:
+            try:
+                probe.close()
+            except OSError:
+                pass
+
+
 def iface_summary(bind_host, port):
     """本机网络接口摘要 —— 刻意只给「数量」和「是否回环」，不给任何可识别的值。
 
     为什么不返回主机名/MAC/局域网 IP：这个端点会被任意本地页面（包括用户从
     file:// 打开的 HTML）用 CORS `*` 访问到，那些信息足够做设备指纹与内网测绘。
     前端真正需要的是「桥接是否只在回环上」这个安全事实，所以只报事实。
+    枚举失败时说「取不到」（ok=false + error），而不是给一个 0 假装这台机器没有网卡。
     """
-    names = []
-    try:
-        names = [n for _, n in socket.if_nameindex()]
-    except (OSError, AttributeError, ValueError):
-        names = []
-    loop_ok, why = is_bind_address_loopback(bind_host)
-    return {
+    out = {
         "ok": True,
         "bind_address": bind_host,
         "port": port,
-        "bind_is_loopback": loop_ok,
-        "bind_check_reason": why,
-        "interface_count": len(names),
-        "ipv4_loopback_present": True,
+        "bind_is_loopback": False,
+        "bind_check_reason": None,
+        "interface_count": 0,
+        "ipv4_loopback_present": has_ipv4_loopback_address(),
         "redacted_fields": ["hostname", "mac", "interface_names", "lan_addresses"],
         "note": "本端点刻意不返回主机名/MAC/内网地址：/api/* 用 CORS `*` 对任意本地页面开放，"
                 "这些信息足以做设备指纹。需要排查本机网络请用系统命令。",
     }
+    loop_ok, why = is_bind_address_loopback(bind_host)
+    out["bind_is_loopback"] = loop_ok
+    out["bind_check_reason"] = why
+    try:
+        out["interface_count"] = len(socket.if_nameindex())
+    except (OSError, AttributeError, ValueError) as exc:
+        out["ok"] = False
+        out["error"] = "枚举网卡失败：%s" % exc
+        out["error_kind"] = "os_error"
+    return out
 
 # ================================================================ 6. HTTP 处理器
 
@@ -1013,13 +1052,47 @@ def one_line(text, cap=200):
     return s[:cap]
 
 
+# 静态资源的 Content-Type 表：值写全（该带 charset 的带上，图片与 svg 不带），发送时不再临时拼。
+# 不用 mimetypes.guess_type：那台机器的 /etc/mime.types 有什么，它就说什么——同一份 server.py
+# 在 Windows、macOS、iSH 上可能给同一个 .py 报出三种类型，而 PowerShell 那份桥又没有这个库。
+# 这份表与 ps1 的 $script:TextTypes 必须逐键逐值相同，由 tests/check-package.py 比字面量。
 TEXT_TYPES = {
     ".html": "text/html; charset=utf-8", ".htm": "text/html; charset=utf-8",
-    ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
-    ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8",
-    ".md": "text/plain; charset=utf-8", ".txt": "text/plain; charset=utf-8",
-    ".svg": "image/svg+xml", ".map": "application/json; charset=utf-8",
-    ".geojson": "application/geo+json; charset=utf-8",
+    ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8",
+    ".map": "application/json; charset=utf-8", ".geojson": "application/geo+json; charset=utf-8",
+    ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8",
+    ".csv": "text/csv; charset=utf-8", ".wkt": "text/plain; charset=utf-8",
+    ".py": "text/plain; charset=utf-8",
+    ".gpx": "application/gpx+xml", ".kml": "application/vnd.google-earth.kml+xml",
+    ".xml": "application/xml", ".ico": "image/x-icon", ".png": "image/png",
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp",
+}
+
+
+# ---------------------------------------------------------------- 响应契约
+# 两份实现（本文件与 bridge-powershell.ps1）逐字段对齐，页面才能「不知道自己连上的是哪一个」。
+# 这份清单就是那句话的可执行版本：ps1 里有一份同名同值的副本，
+# tests/check-package.py 把两份字面量按端点做集合比较，多一个字段或少一个字段都会红。
+# 列的是**成功响应**的键（失败分支少几个字段是刻意的，见各端点的 fail 路径）。
+BRIDGE_CONTRACT = {
+    "/api/health": ["active_children", "bind", "capabilities", "endpoints", "geoip_sources",
+                    "limits", "note", "ok", "platform", "privacy", "python", "runtime",
+                    "server", "status", "tools", "version"],
+    "/api/iface": ["bind_address", "bind_check_reason", "bind_is_loopback", "error", "error_kind",
+                   "interface_count", "ipv4_loopback_present", "note", "ok", "port", "redacted_fields"],
+    "/api/dns": ["Answer", "Status", "addresses", "error", "error_kind", "family", "host",
+                 "kind", "note", "ok"],
+    "/api/ping": ["argv", "command", "count", "elapsed_ms", "error", "error_kind", "exit_code",
+                  "fabricated_stats", "host", "note", "ok", "shell", "stats", "stderr",
+                  "target_ip", "target_scope", "target_scope_note", "timed_out"],
+    "/api/traceroute": ["argv", "command", "elapsed_ms", "error", "error_kind", "exit_code",
+                        "fabricated_hops", "hop_count", "hops", "host", "host_kind", "max_hops",
+                        "note", "ok", "per_hop_timeout_s", "reached", "shell", "stderr",
+                        "target_ip", "target_scope", "target_scope_note", "timed_out",
+                        "unparsed_lines", "wall_clock_s"],
+    "/api/geoip": ["elapsed_ms", "error", "error_kind", "fields_note", "http_status",
+                   "normalized", "note", "ok", "source", "upstream", "url"],
 }
 
 
@@ -1030,6 +1103,9 @@ def health_payload(bind_host, port):
         "ok": True, "status": "ok",
         "server": SERVER_NAME, "version": VERSION,
         "python": sys.version.split()[0], "platform": sys.platform,
+        # runtime 与 PowerShell 那份桥同名字段：界面在 python 为 null 时靠它说明自己连的是谁，
+        # 所以两边都得填，不能只有一边有。（值就是本进程的运行环境，不做二次加工。）
+        "runtime": "Python " + sys.version.split()[0],
         "capabilities": [k for k, v in tools.items() if v] + ["dns", "iface", "geoip", "static"],
         "tools": {k: (v or "未找到（该功能会降级）") for k, v in tools.items()},
         "endpoints": ["/api/health", "/api/traceroute?host=&max_hops=", "/api/ping?host=&count=",
@@ -1307,6 +1383,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "count": count, "stats": stats,
             "exit_code": run.get("code"), "timed_out": run.get("timed_out", False),
             "elapsed_ms": run.get("elapsed_ms"),
+            # stderr 与 fabricated_stats 和 PowerShell 那份桥同名字段：统计段有没有被补过，
+            # 是这一行说了算，而不是靠注释保证。
+            "stderr": one_line(run.get("stderr") or "", 240),
+            "fabricated_stats": False,
             "error": None if got_stats else (run["error"] or "未能从 ping 输出中解析统计段"),
             "error_kind": None if got_stats else (run.get("error_kind") or "parse_empty"),
             "note": "统计值只来自 ping 自己的输出；解析不到就是 null，不填默认值",
@@ -1408,9 +1488,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.fail(500, "读取文件失败：%s" % exc, "io_error", api=False, head_only=not body)
             return 500
         ext = os.path.splitext(target)[1].lower()
-        ctype = TEXT_TYPES.get(ext) or mimetypes.guess_type(target)[0] or "application/octet-stream"
-        if ctype.startswith("text/") or ctype in ("application/javascript", "application/json"):
-            ctype = ctype if "charset" in ctype else ctype + "; charset=utf-8"
+        # 表里的值就是最终响应头，不再按前缀临时补 charset，也不再问平台的 mime 库：
+        # 同一份文件在两份桥、三种平台上必须给出同一个头（PowerShell 那份桥用的是同一张表）。
+        ctype = TEXT_TYPES.get(ext) or "application/octet-stream"
         self._emit(200, data, ctype, api=False, head_only=not body)
         return 200
 
@@ -1827,6 +1907,12 @@ def run_selftest(root_dir=None):
     check("统计段缺失时用逐条回复样本兜底平均（真实测得值，不是推测值）",
           parse_ping_text("Reply from 1.2.3.4: time=3ms\nReply from 1.2.3.4: time=5ms")["avg_ms"] == 4.0,
           repr(parse_ping_text("Reply from 1.2.3.4: time=3ms\nReply from 1.2.3.4: time=5ms")))
+    pm = parse_ping_text("PING 192.0.2.2 (192.0.2.2): 56 data bytes\n"
+                         "--- 192.0.2.2 ping statistics ---\n"
+                         "2 packets transmitted, 0 packets received, 100.0% packet loss")
+    check("macOS/BSD 的 `0 packets received` 写法也能解析（量词不写就漏解析）",
+          (pm["sent"], pm["received"], pm["loss_percent"]) == (2, 0, 100.0) and pm["target_ip"] == "192.0.2.2",
+          repr(pm))
 
     # ---------- F. GeoIP 归一（纯 mock，不发请求） ----------
     all_src_ok = True
@@ -1860,6 +1946,28 @@ def run_selftest(root_dir=None):
     oob = parse_geoip_json({"latitude": 120.0, "longitude": 200.0}, "ipapi_co")
     check("经纬度越界判 field_invalid（不返回一个看起来正常的伪解）",
           oob["ok"] is False and oob["error_kind"] == "field_invalid", repr(oob["error"]))
+    # 下面四条与 bridge-powershell.ps1 的 F2 段一一对应：两份桥对同一份上游 JSON 必须给同一个结果。
+    bool_lat = parse_geoip_json({"latitude": True, "longitude": 1.0}, "freeipapi")
+    check("布尔值不当坐标（float(True)=1.0 会在两份桥各造一个「北纬 1 度」）",
+          bool_lat["ok"] is False and bool_lat["error_kind"] == "field_invalid", repr(bool_lat["error"]))
+    case_status = parse_geoip_json({"status": "Success", "lat": 1.0, "lon": 2.0}, "ipapi_com")
+    check("status 比较区分大小写：Success 判失败（PowerShell 的 -eq 本来会放过它，已改成 Ordinal）",
+          case_status["ok"] is False and case_status["error_kind"] == "field_missing", repr(case_status["error"]))
+    check("上游给数组不是对象 → json_error（isinstance 那一判）",
+          parse_geoip_json([1, 2, 3], "ipapi_com")["error_kind"] == "json_error"
+          and parse_geoip_json("text", "ipapi_com")["error_kind"] == "json_error",
+          repr(parse_geoip_json([1, 2, 3], "ipapi_com")))
+    empty_city = parse_geoip_json({"status": "success", "lat": 1.0, "lon": 2.0, "city": ""}, "ipapi_com")
+    check("上游真给了空串就返回空串，不退到下一个候选（两份桥给同一个值）",
+          empty_city["ok"] is True and empty_city["city"] == "", repr(empty_city["city"]))
+    one_axis = parse_geoip_json({"status": "success", "lat": 10.5}, "ipapi_com")
+    check("只解析出一个坐标轴报 field_invalid，而不是当成「没有坐标」",
+          one_axis["ok"] is False and one_axis["error_kind"] == "field_invalid", repr(one_axis["error_kind"]))
+    check("归一结果固定 11 个键（ps1 的 Get-NormalizedGeoIp 同集）",
+          sorted(parse_geoip_json({"status": "success", "lat": 1.0, "lon": 2.0}, "ipapi_com")) ==
+          ["accuracy_fallback", "accuracy_km", "city", "country", "error", "error_kind",
+           "ip", "lat", "lon", "ok", "source"],
+          repr(sorted(parse_geoip_json({}, "ipapi_com"))))
     check("未知来源返回结构化错误而不是异常",
           parse_geoip_json({"lat": 1}, "no_such_source")["error_kind"] == "json_error"
           or parse_geoip_json({"lat": 1}, "no_such_source")["ok"] is False,
@@ -1924,6 +2032,35 @@ def run_selftest(root_dir=None):
     check("health 载荷可被严格 JSON 序列化（说明没有 NaN/Infinity 混进去）", isinstance(hp_text, str), "见上一条")
     check("health 载荷里没有任何坐标字段",
           re.search(r'"(lat|lon|latitude|longitude)"\s*:\s*[-0-9]', hp_text) is None, hp_text[:160])
+    # 契约对齐：本文件的载荷必须**恰好**是 BRIDGE_CONTRACT 声明的那些键。
+    # 少了页面就少一项事实，多了就是两份实现各说各话（ps1 第一版多了 engine/dotnet，
+    # ping 的 argv 在 ps1 里叫 arguments —— 都是这条门当场能抓住的东西）。
+    check("契约覆盖 6 个端点，且每份清单已排序、无重复",
+          sorted(BRIDGE_CONTRACT) == sorted(["/api/health", "/api/iface", "/api/dns", "/api/ping",
+                                             "/api/traceroute", "/api/geoip"])
+          and all(v == sorted(v) and len(set(v)) == len(v) for v in BRIDGE_CONTRACT.values()),
+          repr({k: len(v) for k, v in BRIDGE_CONTRACT.items()}))
+    hp_diff = sorted(set(hp.keys()) ^ set(BRIDGE_CONTRACT["/api/health"]))
+    check("health 的键集合与契约完全相同（与 ps1 同一份清单）", not hp_diff, "差异键：" + (", ".join(hp_diff) or "无"))
+    if1 = iface_summary("127.0.0.1", DEFAULT_PORT)
+    # error/error_kind 只在枚举网卡失败时出现，所以成功响应对的是「契约去掉这两个」。
+    if_want = [k for k in BRIDGE_CONTRACT["/api/iface"] if k not in ("error", "error_kind")]
+    if_diff = sorted(set(if1.keys()) ^ set(if_want))
+    check("iface 成功响应的键与契约（去掉只在失败时出现的 error/error_kind）一字不差", not if_diff,
+          "差异键：" + (", ".join(if_diff) or "无"))
+    ep_paths = sorted({e.split("?")[0] for e in hp["endpoints"]})
+    check("契约端点集合与 health.endpoints 同集（6 条，一份桥多写一个端点就会被抓到）",
+          ep_paths == sorted(BRIDGE_CONTRACT.keys()), repr(ep_paths))
+    # 字面量用拼接写：把要禁的那行原样写进检查里，src_text 就会命中自己的检查文本（老坑）。
+    check("iface 的 ipv4_loopback_present 是真测出来的，不是写死的事实",
+          ('"ipv4_loopback' + '_present": True') not in src_text
+          and 'probe.connect(("127.0.0.1", 53))' in src_text, "源码里还残留写死的 True")
+    check("iface 枚举网卡失败时说「取不到」，不给 0 假装这台机器没有网卡",
+          ("except (OSError, AttributeError, ValueError) as exc" in src_text
+           and 'out["ok"] = False' in src_text), "见 iface_summary")
+    host_now = socket.gethostname()
+    check("iface 序列化后不含本机主机名（CORS `*` 对任意本地页面开放，这是脱敏红线）",
+          len(host_now) < 2 or host_now not in json.dumps(if1, ensure_ascii=False), "响应里出现了主机名")
 
     # ---------- G2. 内网目标：允许，但如实标注归属（⑧ 的本职包含追踪自家路由器） ----------
     lan_hits = ["192.168.1.1", "10.0.0.138", "172.16.5.4", "127.0.0.1", "::1", "0.0.0.0",

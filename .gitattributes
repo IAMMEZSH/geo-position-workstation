@@ -6,6 +6,10 @@
 
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# PowerShell 桥接只在 Windows 上跑，且必须保住 UTF-8 BOM（5.1 没 BOM 就把中文注释按 GBK 读）。
+# 上面 `* text=auto eol=lf` 会把签出内容变成 LF，这里显式钉回 CRLF，让「工作区=仓库」这一条
+# 在谁的机器上都成立，打包闸门里的 BOM/CRLF 检查才不会只在作者本机绿。
+*.ps1 text eol=crlf
 
 *.png binary
 *.jpg binary
