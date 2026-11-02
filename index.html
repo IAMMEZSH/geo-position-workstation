@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>经纬度定位工作站 · 离线优先的多源定位与测绘工具箱</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="app/style.css">
+</head>
+<body data-theme="dark">
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">◎</span>
+    <span class="brand-text">
+      <b>经纬度定位工作站</b>
+      <em>离线内核 + 联网升级 · 基站 / 三角 / 信号 / GNSS / 天象 / IP 路由</em>
+    </span>
+  </div>
+  <div class="topbar-right">
+    <span id="netBadge" class="badge badge-off" title="联网状态">离线</span>
+    <span id="kernelBadge" class="badge" title="已加载引擎">内核检测中…</span>
+    <button id="btnTheme" class="ghost" title="切换深色/浅色主题">◐ 主题</button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="功能分区">
+  <button class="tab active" role="tab" data-tab="overview">① 总览</button>
+  <button class="tab" role="tab" data-tab="coords">② 坐标与格式</button>
+  <button class="tab" role="tab" data-tab="cell">③ 基站定位</button>
+  <button class="tab" role="tab" data-tab="tri">④ 三角定位</button>
+  <button class="tab" role="tab" data-tab="signal">⑤ 信号测距</button>
+  <button class="tab" role="tab" data-tab="gnss">⑥ GNSS 卫星</button>
+  <button class="tab" role="tab" data-tab="astro">⑦ 天象定位</button>
+  <button class="tab" role="tab" data-tab="net">⑧ 联网与路由</button>
+  <button class="tab" role="tab" data-tab="batch">⑨ 批处理导出</button>
+  <button class="tab" role="tab" data-tab="history">⑩ 历史收藏</button>
+  <button class="tab" role="tab" data-tab="selftest">⑪ 内核自检</button>
+</nav>
+
+<main class="layout">
+  <section class="mapwrap">
+    <div id="map" class="map" role="img" aria-label="位置地图"></div>
+    <div class="map-toolbar">
+      <button id="btnTileOff" class="chip active" title="只显示离线矢量陆域">矢量</button>
+      <button id="btnTileOn" class="chip" title="联网时叠加在线底图">在线底图</button>
+      <button id="btnFit" class="chip" title="缩放到全部结果">全览</button>
+      <button id="btnCenter" class="chip" title="回到我的位置">我</button>
+      <button id="btnCross" class="chip" title="中心准星：点地图任意处把该点转到正中，读数条给出它的 DD/DMS/UTM/MGRS/Plus Code 与最近城市">准星</button>
+      <label class="chip"><input type="checkbox" id="chkGraticule" checked> 经纬网</label>
+      <label class="chip"><input type="checkbox" id="chkCities"> 城市注记</label>
+    </div>
+    <div id="mapReadout" class="map-readout">游标：—</div>
+  </section>
+
+  <section class="panels">
+
+    <!-- ① 总览 -->
+    <div class="panel active" data-panel="overview">
+      <h2>定位总览</h2>
+      <p class="hint">全部计算都在本机内核完成。浏览器定位只在你点击按钮时发起，且结果先在离线数据里做反查与最近城市匹配。用法、精度边界与隐私约定见同目录 <code>说明书.md</code>；不知道从哪儿开始就先去 ⑪ 跑一次全量自检。</p>
+      <div class="row">
+        <button id="btnWhereAmI" class="primary">① 用浏览器定位我在这里</button>
+        <button id="btnPasteFromClip" class="ghost">粘贴坐标</button>
+        <input id="quickCoord" class="grow" placeholder="任意格式：31.2304,121.4737 / 31°13'49"N 121°28'25"E / 50R LM 23456 12345 / ww8p4kj / 121.4737 31.2304"">
+        <button id="btnQuickGo" class="ghost">解析</button>
+      </div>
+      <div id="whereAmIResult" class="resultbox"></div>
+      <h3>当前会话的全部解</h3>
+      <div class="tablewrap"><table id="solutionsTable" class="grid"><thead><tr>
+        <th>#</th><th>来源</th><th>纬度</th><th>经度</th><th>精度</th><th>依据</th><th>操作</th>
+      </tr></thead><tbody></tbody></table></div>
+      <div id="solutionCompare" class="resultbox"></div>
+      <h3>两点量测</h3>
+      <div class="grid2">
+        <div>
+          <label>起点 A（lat, lon[, h]）<input id="abA" value="31.2304, 121.4737, 12"></label>
+          <label>终点 B<input id="abB" value="39.9042, 116.4074, 44"></label>
+          <label>椭球/方法
+            <select id="abEll" title="椭球（由 GEOGEO.ELLIPSOIDS 填充）"></select>
+            <select id="abMethod" title="算法（由 GEOGEO.METHODS 填充）"></select>
+          </label>
+          <button id="btnAB" class="primary">正反算</button>
+        </div>
+        <div id="abResult" class="resultbox"></div>
+      </div>
+    </div>
+
+    <!-- ② 坐标与格式 -->
+    <div class="panel" data-panel="coords">
+      <h2>坐标解析与格式互转</h2>
+      <div class="row">
+        <input id="coordAny" class="grow" placeholder="输入任意坐标文本（DMS / 十进制 / UTM / MGRS / Geohash / OLC / URL / 组合串）">
+        <button id="btnParseAny" class="primary">解析</button>
+        <button id="btnParseDemo" class="ghost">载入样例</button>
+      </div>
+      <div id="parseResult" class="resultbox"></div>
+      <h3>投影与编码</h3>
+      <div class="grid2">
+        <div>
+          <label>纬度<input id="pjLat" value="31.2304"></label>
+          <label>经度<input id="pjLon" value="121.4737"></label>
+          <label>UTM 带号（0=自动）<input id="pjZone" type="number" value="0" min="0" max="60"></label>
+          <button id="btnProject" class="primary">正算（→ UTM / MGRS / Geohash / OLC / WebMercator）</button>
+          <hr>
+          <label>UTM 东伪距（米）<input id="upE" value="354633.6"></label>
+          <label>北伪距（米）<input id="upN" value="3456140.5"></label>
+          <label>半球 <select id="upHemi"><option value="N">N</option><option value="S">S</option></select> 带 <input id="upZone" value="51" type="number" min="1" max="60" style="width:5em">（|φ|&gt;84° 自动转 UPS）</label>
+          <button id="btnUnProject" class="ghost">UTM 反算</button>
+          <label>MGRS<input id="mgrsIn" value="51RVQ5463356140"></label>
+          <button id="btnMgrsInv" class="ghost">MGRS 反算</button>
+          <label>Geohash<input id="ghIn" value="wtw3sjq6"></label>
+          <button id="btnGhInv" class="ghost">Geohash 反算</button>
+          <label>Open Location Code<input id="olcIn" value="8Q336FJF+5F5"></label>
+          <button id="btnOlcInv" class="ghost">OLC 反算</button>
+        </div>
+        <div>
+          <div id="projectResult" class="resultbox"></div>
+          <h3>中国坐标偏移（WGS84 / GCJ-02 / BD-09）</h3>
+          <div class="row">
+            <select id="gcjFrom" title="源坐标系"><option value="WGS84">WGS84</option><option value="GCJ02">GCJ-02</option><option value="BD09">BD-09</option></select>
+            <span aria-hidden="true">→</span>
+            <select id="gcjTo" title="目标坐标系"><option value="GCJ02">GCJ-02</option><option value="WGS84">WGS84</option><option value="BD09">BD-09</option></select>
+            <button id="btnGcj" class="primary">转换</button>
+          </div>
+          <div id="gcjResult" class="resultbox"></div>
+          <h3>基准与椭球</h3>
+          <label>源基准 <select id="datumSel" title="仅用于标注，参数仍要你填"></select></label>
+          <label>目标基准 <select id="datumSel2" title="仅用于标注，参数仍要你填"></select></label>
+          <div class="grid2">
+            <label>ΔX m<input id="dDx" type="number" step="0.001" value="13.7"></label>
+            <label>ΔY m<input id="dDy" type="number" step="0.001" value="-9.3"></label>
+            <label>ΔZ m<input id="dDz" type="number" step="0.001" value="11.2"></label>
+            <label>εX ″<input id="dRx" type="number" step="0.001" value="0"></label>
+            <label>εY ″<input id="dRy" type="number" step="0.001" value="0"></label>
+            <label>εZ ″<input id="dRz" type="number" step="0.001" value="0"></label>
+            <label>ΔS ppm<input id="dDs" type="number" step="0.001" value="0"></label>
+            <label>旋转约定
+              <select id="dConv">
+                <option value="position-vector">位置矢量（Bursa–Wolf 常规）</option>
+                <option value="coordinate-frame">坐标轴旋转（EPSG 惯例）</option>
+              </select>
+            </label>
+          </div>
+          <button id="btnDatum" class="ghost">7 参数（布尔莎）转换当前点</button>
+          <div id="datumResult" class="resultbox"></div>
+          <h3>精度与有效位</h3>
+          <div id="precisionResult" class="resultbox"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 基站定位 -->
+    <div class="panel" data-panel="cell">
+      <h2>基站（蜂窝）定位</h2>
+      <p class="hint">输入运营商城管数据里的基站清单，内核按 MCC/MNC/TAC/CI + RSSI 估距并做多边定位。离线优先，可选联网补充。</p>
+      <textarea id="cellInput" spellcheck="false">{
+  "operator": "China Mobile",
+  "towers": [
+    {"mcc":460,"mnc":0,"tac":33262,"ci":1154321,"rat":"LTE","arfcn":1650,"pci":213,"rssi":-57,"timing_adv":16,"lat":31.2304,"lon":121.4737},
+    {"mcc":460,"mnc":0,"tac":33262,"ci":1154322,"rat":"LTE","arfcn":1650,"pci":214,"rssi":-62,"timing_adv":29,"lat":31.2530,"lon":121.4620},
+    {"mcc":460,"mnc":1,"tac":33263,"ci":998811,"rat":"GSM","arfcn":900,"pci":101,"rssi":-53,"timing_adv":3,"lat":31.2480,"lon":121.4960}
+  ]
+}</textarea>
+      <div class="row">
+        <button id="btnCellDemo1" class="ghost">样例：3 站 LTE</button>
+        <button id="btnCellDemo2" class="ghost">样例：GSM 定时提前</button>
+        <button id="btnCellDemo3" class="ghost">样例：5G NR + 扇区</button>
+        <button id="btnCellSolve" class="primary">解算基站位置</button>
+      </div>
+      <div class="row wrap">
+        <label>传播模型 <select id="cellModel" title="由 GEOCELL.MODELS 填充，含各自有效频段"></select></label>
+        <label>环境
+          <select id="cellEnv">
+            <option value="urban">市区（n=3.5）</option>
+            <option value="dense_urban">密集城区（n=4.0）</option>
+            <option value="suburban">郊区（n=3.0）</option>
+            <option value="rural">农村（n=2.7）</option>
+            <option value="indoor">室内（n=4.5）</option>
+            <option value="outdoor">室外（n=2.8）</option>
+          </select>
+        </label>
+        <label>频点 MHz（留空=按 RAT/ARFCN 推断）<input id="cellFreq" type="number" placeholder="auto" style="width:9em"></label>
+        <label>发射功率 dBm<input id="cellEirp" type="number" placeholder="auto" style="width:8em"></label>
+      </div>
+      <div class="grid2">
+        <div id="cellStations" class="resultbox"></div>
+        <div id="cellResult" class="resultbox"></div>
+      </div>
+      <h3>手工补充基站坐标（用于加权/扇区绘制）</h3>
+      <div class="row">
+        <input id="cellKnown" class="grow" value="1154321 = 31.2304, 121.4737, 90, 120" placeholder="格式：ci 或 lac:ci = lat, lon[, 方位角, 波束宽]；每行一条">
+        <button id="btnCellKnown" class="ghost">应用</button>
+      </div>
+      <div id="cellKnownResult" class="resultbox"></div>
+    </div>
+
+    <!-- ④ 三角定位 -->
+    <div class="panel" data-panel="tri">
+      <h2>三角定位 / 交会</h2>
+      <p class="hint">已知两个以上参考点的坐标，观测到它们的方位角（罗盘/恒星/天线指向）或距离，内核用球面三角与最小二乘求待定点。</p>
+      <h3>A. 方位角交会（2 条可交会，3 条做多余观测检核）</h3>
+      <div class="grid2">
+        <div>
+          <label>参考点 1<input id="triP1" value="31.2304, 121.4737"></label>
+          <label>站 1→待定点 的方位角 °<input id="triB1" type="number" value="29.417" step="0.001"></label>
+          <label>参考点 2<input id="triP2" value="31.2530, 121.4620"></label>
+          <label>站 2→待定点 的方位角 °<input id="triB2" type="number" value="130.046" step="0.001"></label>
+          <label>参考点 3（可留空）<input id="triP3" value="31.2480, 121.4960"></label>
+          <label>站 3→待定点 的方位角 °<input id="triB3" type="number" value="239.807" step="0.001"></label>
+          <label>测角中误差 σ °/条<input id="triSigma" type="number" value="2" step="0.1" min="0.05" max="60"></label>
+          <button id="btnTriBear" class="primary">方位交会</button>
+        </div>
+        <div id="triBearResult" class="resultbox"></div>
+      </div>
+      <h3>B. 距离交会（圆相交 / 三标位）</h3>
+      <div class="grid2">
+        <div>
+          <textarea id="triRanges" spellcheck="false">31.2304, 121.4737, 1222
+31.2530, 121.4620, 2240
+31.2480, 121.4960, 1764</textarea>
+          <label>距离不确定度 m/条<input id="triRangeSigma" type="number" value="30" step="1" min="1"></label>
+          <label class="inline"><input type="checkbox" id="triLSQ" checked> 用最小二乘（≥3 个圆）并给 GDOP</label>
+          <button id="btnTriRange" class="primary">距离交会</button>
+        </div>
+        <div id="triRangeResult" class="resultbox"></div>
+      </div>
+      <h3>C. 未知点→参考点反算（正算/斜距网格）</h3>
+      <div class="row">
+        <input id="triUnknown" class="grow" value="31.2400, 121.4800" placeholder="待定点 lat, lon">
+        <button id="btnTriBack" class="ghost">求到各参考点的距离与方位</button>
+      </div>
+      <div id="triBackResult" class="resultbox"></div>
+    </div>
+
+    <!-- ⑤ 信号测距 -->
+    <div class="panel" data-panel="signal">
+      <h2>信号强度 / 指纹定位</h2>
+      <p class="hint">RSSI→距离用对数距离路径损耗模型；指纹匹配用加权余弦/欧氏距离；另含 TDOA 与 BLE 邻近。</p>
+      <h3>A. RSSI ↔ 距离</h3>
+      <div class="grid2">
+        <div>
+          <div class="row wrap">
+            <label>传播模型 <select id="sigModel" title="由 GEOCELL.MODELS 填充"></select></label>
+            <label>环境
+              <select id="sigEnv">
+                <option value="indoor">室内（n=4.5）</option>
+                <option value="urban">市区（n=3.5）</option>
+                <option value="dense_urban">密集城区（n=4.0）</option>
+                <option value="suburban">郊区（n=3.0）</option>
+                <option value="rural">农村（n=2.7）</option>
+                <option value="outdoor">室外（n=2.8）</option>
+              </select>
+            </label>
+          </div>
+          <label>频点 MHz<input id="sigFreq" type="number" value="2437"></label>
+          <label>RSSI dBm<input id="sigRssi" type="number" value="-67"></label>
+          <label>发射功率 dBm（留空=不启用链路预算）<input id="sigTx" type="number" placeholder="auto"></label>
+          <label>1 m 参考损耗 dB（留空=按模型）<input id="sigFspl" type="number" placeholder="auto"></label>
+          <label>路径损耗指数 n<input id="sigN" type="number" value="2.7" step="0.1"></label>
+          <button id="btnSigRssi" class="primary">估距离</button>
+          <hr>
+          <label>目标距离 m<input id="sigDist" type="number" value="45"></label>
+          <button id="btnSigInv" class="ghost">由距离预测 RSSI</button>
+        </div>
+        <div id="sigRssiResult" class="resultbox"></div>
+      </div>
+      <h3>B. Wi-Fi / 蓝牙指纹库匹配</h3>
+      <div class="grid2">
+        <div>
+          <label>指纹库（JSON）</label>
+          <textarea id="fpRef" spellcheck="false">[
+ {"lat":31.2301,"lon":121.4731,"aps":[{"bssid":"AA:BB:CC:00:00:01","rssi":-55},{"bssid":"AA:BB:CC:00:00:02","rssi":-72}]},
+ {"lat":31.2315,"lon":121.4742,"aps":[{"bssid":"AA:BB:CC:00:00:01","rssi":-83},{"bssid":"AA:BB:CC:00:00:03","rssi":-61}]},
+ {"lat":31.2290,"lon":121.4755,"aps":[{"bssid":"AA:BB:CC:00:00:02","rssi":-64},{"bssid":"AA:BB:CC:00:00:03","rssi":-90}]}
+]</textarea>
+          <label>现场扫描</label>
+          <textarea id="fpScan" spellcheck="false">[
+ {"bssid":"AA:BB:CC:00:00:01","rssi":-62,"ssid":"shop-2.4"},
+ {"bssid":"AA:BB:CC:00:00:02","rssi":-70,"ssid":"shop-guest"},
+ {"bssid":"AA:BB:CC:00:00:04","rssi":-88,"ssid":"未知"}
+]</textarea>
+          <div class="row wrap">
+            <label>相似度
+              <select id="fpMethod"><option value="cosine">加权余弦（内核默认）</option><option value="euclidean">欧氏距离</option></select>
+            </label>
+            <label>近邻 k<input id="fpK" type="number" value="3" min="1" max="10" style="width:6em"></label>
+          </div>
+          <button id="btnFingerprint" class="primary">指纹匹配</button>
+          <hr>
+          <label>BLE 邻近：发射功率 dBm<input id="bleTx" type="number" value="-59"> 实测 RSSI<input id="bleRssi" type="number" value="-72"></label>
+          <label>路径损耗指数 n（留空=2.0 自由空间）<input id="bleN" type="number" placeholder="2.0" step="0.1" style="width:7em"></label>
+          <button id="btnBle" class="ghost">BLE 估距</button>
+        </div>
+        <div id="sigFpResult" class="resultbox"></div>
+      </div>
+      <h3>C. TDOA 到达时间差</h3>
+      <div class="grid2">
+        <div>
+          <textarea id="tdoaInput" spellcheck="false">{"anchor":[31.2304,121.4737,0],"stations":[{"lat":31.19,"lon":121.54,"ns":22488},{"lat":31.28,"lon":121.42,"ns":20053}]}</textarea>
+          <label>时差测量 σ m（留空=内核默认）<input id="tdoaSigma" type="number" placeholder="auto" step="1" style="width:8em"></label>
+          <button id="btnTdoa" class="primary">TDOA 解算</button>
+        </div>
+        <div id="tdoaResult" class="resultbox"></div>
+      </div>
+    </div>
+
+    <!-- ⑥ GNSS -->
+    <div class="panel" data-panel="gnss">
+      <h2>GNSS 卫星定位与质量评估</h2>
+      <p class="hint">粘贴设备输出的 NMEA，或用内置星历做单点定位/RAIM/DOP 演示。所有解算都是本地计算，不上传。</p>
+      <h3>A. NMEA 解码</h3>
+      <textarea id="nmeaInput" spellcheck="false">$GPGGA,063000.00,3113.8240,N,12128.4220,E,1,11,1.2,12.5,M,-8.6,M,0,0000*7D
+$GPRMC,063000.00,A,3113.8240,N,12128.4220,E,2.4,84.6,021126,,,A*63
+$GPGSA,A,3,02,03,04,05,06,09,12,15,17,20,23,26,2.1,1.2,1.7*3D
+$GPVTG,84.6,T,,M,2.4,N,4.4,K,A*31
+$GPGST,063000.00,1.4,0.6,0.9,35.2,0.8,0.4,1.0*61
+$GPGSV,3,1,11,02,35,120,42,03,52,240,45,04,20,010,38,05,45,090,44*78
+$GPGSV,3,2,11,06,12,200,35,09,68,015,47,12,28,140,40,15,55,275,45*74
+$GPGSV,3,3,11,17,22,060,37,20,41,185,43,23,08,320,32,07,00,000,00*7F
+$GLGSV,1,1,04,65,40,100,40,66,25,200,36,67,60,300,42,68,15,030,33*68
+$BDGSV,1,1,05,07,30,120,44,08,55,210,46,09,18,030,37,10,42,300,43,11,63,150,47*55</textarea>
+      <div class="row wrap">
+        <button id="btnNmeaDecode" class="primary">解码</button>
+        <label class="inline"><input type="checkbox" id="nmeaStrict"> 严格校验和（错句丢弃）</label>
+        <label>时区偏移<input id="nmeaTz" placeholder="如 +8" style="width:7em"></label>
+      </div>
+      <div id="nmeaResult" class="resultbox"></div>
+      <h3>B. 星历 + 伪距单点定位（演示：真值已知，可加噪看收敛）</h3>
+      <div class="grid2">
+        <div>
+          <label>演示真值 lat/lon/h（解算初值由内核故意偏 0.08°，看它能不能收敛回来）<input id="gpsPrior" value="31.31, 121.39, 12"></label>
+          <label>可见卫星数<input id="gpsN" type="number" value="9" min="4" max="12"></label>
+          <label>截止高度角 °<input id="gpsMask" type="number" value="5" step="1"></label>
+          <label>伪距噪声 σ m（场景侧）<input id="gpsNoise" type="number" value="3" min="0" step="0.5"></label>
+          <label>解算先验 σ m（权重用）<input id="gpsSigma" type="number" value="5" min="0.5" step="0.5"></label>
+          <label>随机种子（同 seed = 同星座，便于复现）<input id="gpsSeed" type="number" value="20261101" step="1"></label>
+          <label><input type="checkbox" id="gpsRaim" checked> 注入 1 个粗差并启用 RAIM 剔除</label>
+          <label>粗差量 m<input id="gpsOutlier" type="number" value="120" step="10"></label>
+          <label class="inline"><input type="checkbox" id="gpsWeightSnr" checked> 按 SNR 定权（C/N₀ 越大权重越高）</label>
+          <button id="btnGpsSolve" class="primary">最小二乘解算</button>
+        </div>
+        <div id="gpsResult" class="resultbox"></div>
+      </div>
+      <div id="gpsSatTable" class="resultbox"></div>
+      <h3>C. 天空图与几何</h3>
+      <div class="row wrap">
+        <button id="btnSkyPlot" class="ghost">用上一次解算的星座画天空图</button>
+        <label class="inline"><input type="checkbox" id="skyLos" checked> 叠加地球遮挡视线检查</label>
+        <canvas id="skyCanvas" class="sky" width="300" height="300"></canvas>
+      </div>
+      <div id="skyResult" class="resultbox"></div>
+      <h3>D. 相对定位 / 差分</h3>
+      <div class="grid2">
+        <div>
+          <label>基准点 lat, lon, h<input id="rfBase" value="31.2304, 121.4737, 12"></label>
+          <label>流动点 lat, lon, h<input id="rfRov" value="31.2311, 121.4744, 14"></label>
+          <button id="btnRelFix" class="primary">ENU 基线解</button>
+        </div>
+        <div id="rfResult" class="resultbox"></div>
+      </div>
+      <h3>E. 对流层 / 电离层改正</h3>
+      <div class="grid2">
+        <div>
+          <label>气压 hPa<input id="atmP" type="number" value="1013.25" step="0.01"></label>
+          <label>温度 K<input id="atmT" type="number" value="288.15" step="0.1"></label>
+          <label>相对湿度 %（留空=用默认水汽压 11 hPa）<input id="atmRH" type="number" value="60" step="1"></label>
+          <label>纬度 °<input id="atmLat" type="number" value="31.23" step="0.01"></label>
+          <label>站高 km<input id="atmH" type="number" value="0.012" step="0.001"></label>
+          <label>卫星高度角 °<input id="atmElev" type="number" value="15" step="0.5"></label>
+          <hr>
+          <label>电离层：高度角 °<input id="ionoElev" type="number" value="15" step="0.5"></label>
+          <label>壳高 km<input id="ionoShell" type="number" value="350" step="10"></label>
+          <label>VTEC TECU<input id="ionoVtec" type="number" value="12" step="0.5"></label>
+          <label>f1 MHz<input id="ionoF1" type="number" value="1575.42" step="0.01"></label>
+          <label>f2 MHz<input id="ionoF2" type="number" value="1227.60" step="0.01"></label>
+          <label>P1 m<input id="ifP1" type="number" value="20000000" step="0.1"></label>
+          <label>P2 m<input id="ifP2" type="number" value="20000003.9" step="0.1"></label>
+          <button id="btnAtm" class="primary">算大气延迟</button>
+        </div>
+        <div id="atmResult" class="resultbox"></div>
+      </div>
+      <h3>F. 精密服务电文（L6 / PPP-B2b / 域改正）</h3>
+      <div class="grid2">
+        <div>
+          <label>L6/CLAS 帧头比特（前 8 位 PRN、接着 6 位消息类型；63=CLAS）</label>
+          <textarea id="l6Bits" spellcheck="false">11000001 111111 0101 01 10 00</textarea>
+          <label>PPP-B2b 比特（前 6 位消息类型，3=精密轨道钟差）</label>
+          <textarea id="b2bBits" spellcheck="false">000011 000101 0010 000000101000</textarea>
+          <label>径向比例因子 m/bit（留空=不猜测，内核返回 null）<input id="b2bScale" type="number" value="0.000244140625" step="0.000000001"></label>
+          <hr>
+          <label>域改正 dR m<input id="pppR" type="number" value="0.6" step="0.1"></label>
+          <label>dT m<input id="pppT" type="number" value="-0.3" step="0.1"></label>
+          <label>dN m<input id="pppN" type="number" value="0.2" step="0.1"></label>
+          <hr>
+          <label>原始伪距 m<input id="pppRawRange" type="number" value="20183546.712" step="0.001"></label>
+          <label>卫星钟差 s<input id="pppClkS" type="number" value="-4.12e-5" step="0.000001"></label>
+          <label>TGD s<input id="pppTgd" type="number" value="1.2e-8" step="0.000000001"></label>
+          <label>电离层 m<input id="pppIonoM" type="number" value="6.4" step="0.1"></label>
+          <label>对流层 m<input id="pppTropoM" type="number" value="2.3" step="0.1"></label>
+          <button id="btnPppMsg" class="primary">解电文并作用到观测</button>
+        </div>
+        <div id="pppResult" class="resultbox"></div>
+      </div>
+    </div>
+
+    <!-- ⑦ 天象 -->
+    <div class="panel" data-panel="astro">
+      <h2>天象定位（太阳 / 月亮 / 恒星）</h2>
+      <p class="hint">用天文历算做方位与纬度测定：恒星过中天方位、北极星罗经、日出日落、月相、子太阳点。历表级以外的导航级精度，内核给出实测离散度。</p>
+      <div class="grid2">
+        <div>
+          <label>观测时刻（本地，配合右侧时区；留空=用浏览器时钟）<input id="astTime" value="2026-11-02 14:30"></label>
+          <label>时区偏移 h<input id="astTz" type="number" value="8" step="0.5" min="-12" max="14"></label>
+          <label>观测点 lat, lon<input id="astPos" value="31.2304, 121.4737"></label>
+          <label>恒星名（或留空用北极星）<input id="astStar" placeholder="Vega / Polaris / Betelgeuse"></label>
+          <label>过中天最大高度 °（北极星罗经/纬度测定用）<input id="astAlt" type="number" value="31.888" step="0.001"></label>
+          <label>过中天时天体位于观测者
+            <select id="astToward"><option value="north">之北（北极星等极侧天体）</option><option value="south">之南</option></select>
+          </label>
+          <div class="row wrap">
+            <button id="btnAstSun" class="primary">太阳</button>
+            <button id="btnAstMoon" class="ghost">月亮</button>
+            <button id="btnAstStar" class="ghost">恒星方位</button>
+            <button id="btnAstPolar" class="ghost">北极星罗经</button>
+            <button id="btnAstLat" class="ghost">由高度反推纬度</button>
+          </div>
+        </div>
+        <div id="astResult" class="resultbox"></div>
+      </div>
+      <h3>子太阳点 / 子月点（图上可见）</h3>
+      <div class="row wrap">
+        <button id="btnAstSub" class="ghost">计算并标出子太阳点与子月点</button>
+        <label class="inline"><input type="checkbox" id="astTerminator" checked> 绘制晨昏线</label>
+        <label>经度改正 °（UT1−UTC / 时钟未同步；留空=不加）<input id="astLonCorr" type="number" placeholder="0" step="0.0001" style="width:9em"></label>
+      </div>
+      <div id="astSubResult" class="resultbox"></div>
+      <h3>内核自报精度</h3>
+      <div class="row wrap">
+        <button id="btnAstAccuracy" class="ghost">列出内核自报精度与独立验证方式</button>
+        <span class="hint">这份表是内核自己声明的：每一项都写了「由什么独立验证」，没验证的会直说，别当成历表级精度用。</span>
+      </div>
+      <div id="astAccuracy" class="resultbox"></div>
+    </div>
+
+    <!-- ⑧ 联网 -->
+    <div class="panel" data-panel="net">
+      <h2>联网定位 / IP 与路由追踪</h2>
+      <p class="hint">联网只在离线结果可疑或你主动点击时发起。隐私策略可调：全部查询只用 IP、可选加 MAC/精确 GPS；内核会给出脱敏审计。</p>
+      <div class="grid2">
+        <div>
+          <label>目标主机（路由追踪 / DoH 用）<input id="netHost" value="example.com" placeholder="example.com 或 8.8.8.8"></label>
+          <label>被查 IP（IP 定位用；留空=查询我自己的出口 IP）<input id="netIp" placeholder="如 114.114.114.114"></label>
+          <div class="row wrap">
+            <label>跳数上限<input id="netMaxHops" type="number" value="20" min="1" max="40" style="width:6em"></label>
+            <label>超时 ms<input id="netTimeout" type="number" value="8000" min="500" step="500" style="width:7em"></label>
+            <label>记录类型
+              <select id="netDohType"><option>A</option><option>AAAA</option><option>CNAME</option><option>TXT</option><option>MX</option><option>NS</option></select>
+            </label>
+          </div>
+          <label>隐私策略
+            <select id="netPolicy">
+              <option value="ip_only">只用 IP（默认）</option>
+              <option value="ip_plus_gps">IP + 精确 GPS</option>
+              <option value="offline_only">禁用联网</option>
+            </select>
+          </label>
+          <label>桥接服务地址（server.py）<input id="netBridge" placeholder="留空＝自动：同源回环端口，file:// 打开时用 127.0.0.1:8765"></label>
+          <div class="row wrap">
+            <button id="btnGeoIp" class="primary">IP 定位（多源并行）</button>
+            <button id="btnTrace" class="ghost">路由追踪</button>
+            <button id="btnDoh" class="ghost">DoH 解析</button>
+            <button id="btnBridgeStatus" class="ghost">桥接自检</button>
+          </div>
+        </div>
+        <div id="netResult" class="resultbox"></div>
+      </div>
+      <h3>离线 vs 联网：自动升级判定</h3>
+      <div class="row">
+        <button id="btnEscalate" class="primary">把当前会话的离线解与联网解做 χ² 一致性判定</button>
+      </div>
+      <div id="escalateResult" class="resultbox"></div>
+      <h3>缓存与健康度</h3>
+      <div class="row">
+        <button id="btnHealth" class="ghost">源健康快照</button>
+        <button id="btnCacheStats" class="ghost">缓存统计</button>
+        <button id="btnResetNet" class="ghost">清空缓存/健康记录</button>
+      </div>
+      <div id="netMisc" class="resultbox"></div>
+    </div>
+
+    <!-- ⑨ 批处理 -->
+    <div class="panel" data-panel="batch">
+      <h2>批量坐标处理与导出</h2>
+      <p class="hint">粘贴 CSV/文本（每行一个坐标，可带名称与高度），一次完成解析、格式转换、量测与导出。</p>
+      <textarea id="batchInput" spellcheck="false">上海, 31.2304, 121.4737, 12
+北京, 39.9042, 116.4074, 44
+广州, 23.1291, 113.2644, 11
+成都, 30.5728, 104.0668, 504
+拉萨, 29.65, 91.1409, 3650</textarea>
+      <div class="row wrap">
+        <button id="btnBatchRun" class="primary">解析并量测</button>
+        <label>分隔 <select id="batchDelim"><option value="auto">自动</option><option value=",">逗号</option><option value="tab">Tab</option></select></label>
+        <label>输出格式 <select id="batchFmt"><option value="csv">CSV</option><option value="geojson">GeoJSON</option><option value="gpx">GPX</option><option value="kml">KML</option><option value="wkt">凸包边界 WKT</option></select></label>
+        <button id="btnBatchExport" class="ghost">导出文件</button>
+        <button id="btnBatchCopy" class="ghost">复制到剪贴板</button>
+        <button id="btnBatchFile" class="ghost">从文件读取</button>
+        <input type="file" id="batchFile" accept=".csv,.txt,.gpx,.kml,.geojson,.json" hidden>
+      </div>
+      <div class="tablewrap"><table id="batchTable" class="grid"><thead></thead><tbody></tbody></table></div>
+      <div id="batchStats" class="resultbox"></div>
+      <h3>分享链接 / 二维码</h3>
+      <div class="row">
+        <button id="btnShare" class="ghost">生成分享链接</button>
+        <input id="shareLink" class="grow" readonly placeholder="点击生成">
+        <button id="btnQr" class="ghost">二维码</button>
+      </div>
+      <div id="qrBox" class="qrbox"></div>
+    </div>
+
+    <!-- ⑩ 历史 -->
+    <div class="panel" data-panel="history">
+      <h2>历史记录与收藏</h2>
+      <p class="hint">全部存本机 localStorage，不联网、不上传。</p>
+      <div class="row">
+        <button id="btnSaveCur" class="primary">收藏当前会话的解</button>
+        <button id="btnClearHist" class="ghost">清空历史</button>
+        <label class="inline"><input type="checkbox" id="histAuto"> 每次解算自动记历史</label>
+      </div>
+      <div class="tablewrap"><table id="histTable" class="grid"><thead><tr><th>时间</th><th>标签</th><th>纬度</th><th>经度</th><th>来源</th><th>操作</th></tr></thead><tbody></tbody></table></div>
+      <div id="histNote" class="resultbox"></div>
+    </div>
+
+    <!-- ⑪ 自检 -->
+    <div class="panel" data-panel="selftest">
+      <h2>内核自检（可复核的零失败门）</h2>
+      <p class="hint">六个内核各跑一遍 selfTest。每个门都用与实现无关的独立路线（恒等式、守恒律、物理包络、第二份录入）复算，任一公式或常数写错就会在这里破。</p>
+      <div class="row">
+        <button id="btnRunAll" class="primary">运行全部自检</button>
+        <button id="btnRunQuick" class="ghost">只跑快速项</button>
+        <label class="inline"><input type="checkbox" id="stShowPass"> 展开通过项明细</label>
+      </div>
+      <div id="stSummary" class="resultbox"></div>
+      <div id="stDetail" class="resultbox"></div>
+    </div>
+
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="statusText">就绪</span>
+  <span id="statusRight">内核：GEOGEO · GEODATUM · GEOCELL · GEOGNSS · GEOASTRO · GEONET — 全部本地计算</span>
+</footer>
+
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="app/data/data-cities.js"></script>
+<script src="app/data/data-countries.js"></script>
+<script src="app/data/data-land.js"></script>
+<script src="app/core-geodetic.js"></script>
+<script src="app/core-datums.js"></script>
+<script src="app/core-cell.js"></script>
+<script src="app/core-gnss.js"></script>
+<script src="app/core-astro.js"></script>
+<script src="app/core-net.js"></script>
+<script src="app/ui-map.js"></script>
+<script src="app/ui-app.js"></script>
+</body>
+</html>

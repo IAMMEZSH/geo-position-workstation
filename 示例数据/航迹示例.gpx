@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="经纬度定位工作站示例" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="31.2304" lon="121.4737"><ele>12.0</ele><name>起点·外滩</name></wpt>
+  <trk><name>示例航迹</name><trkseg>
+    <trkpt lat="31.2304" lon="121.4737"><time>2026-11-02T06:30:00Z</time></trkpt>
+    <trkpt lat="31.2358" lon="121.4689"><time>2026-11-02T06:31:00Z</time></trkpt>
+    <trkpt lat="31.2412" lon="121.4634"><time>2026-11-02T06:32:00Z</time></trkpt>
+    <trkpt lat="31.2467" lon="121.4590"><time>2026-11-02T06:33:00Z</time></trkpt>
+    <trkpt lat="31.2530" lon="121.4620"><time>2026-11-02T06:34:00Z</time></trkpt>
+  </trkseg></trk>
+</gpx>

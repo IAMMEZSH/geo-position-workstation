@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="760" viewBox="0 0 1180 760" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c1663f"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="760" fill="#f7f8fa"/>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#1b2430">隐私边界：什么留在本机、什么会出去、什么被代码禁止</text>
+  <text x="40" y="72" font-size="14" fill="#5a6675">这一张图对应的是闸门，不是承诺：违反任何一条，⑪ 自检或 tests/check-package.py 就会红</text>
+
+  <!-- 留在本机 -->
+  <rect x="40" y="96" width="360" height="560" rx="10" fill="#f2f8f2" stroke="#2e7d46" stroke-width="2"/>
+  <text x="60" y="126" font-size="16" font-weight="bold" fill="#1f5c33">① 永远留在本机</text>
+  <g font-size="12" fill="#3d5a48">
+    <text x="60" y="152" font-weight="bold" fill="#1f5c33">全部计算</text>
+    <text x="60" y="172">六个内核的解析、投影、转换、交会、</text>
+    <text x="60" y="188">轨道推演、大气延迟、天文视位置</text>
+    <text x="60" y="214" font-weight="bold" fill="#1f5c33">离线数据</text>
+    <text x="60" y="234">城市 2.0 MB / 陆域 748 KB / 国家表 12 KB</text>
+    <text x="60" y="250">随包分发，运行期不下载、不校验更新</text>
+    <text x="60" y="276" font-weight="bold" fill="#1f5c33">你输入的东西</text>
+    <text x="60" y="296">粘贴的坐标、NMEA 日志、基站表、观测值</text>
+    <text x="60" y="312">只在内存里；⑩ 历史与收藏写 localStorage</text>
+    <text x="60" y="328">（本机浏览器存储，不上传，可一键清空）</text>
+    <text x="60" y="354" font-weight="bold" fill="#1f5c33">地图</text>
+    <text x="60" y="374">「矢量」模式用离线陆域轮廓渲染，</text>
+    <text x="60" y="390">不发任何瓦片请求</text>
+    <text x="60" y="416" font-weight="bold" fill="#1f5c33">分享链接</text>
+    <text x="60" y="436">⑨ 生成的深链/二维码只含经纬度与缩放，</text>
+    <text x="60" y="452">不含设备标识、历史或任何输入内容</text>
+    <text x="60" y="478" font-weight="bold" fill="#1f5c33">桥接服务</text>
+    <text x="60" y="498">只绑 127.0.0.1；非回环绑定在启动阶段</text>
+    <text x="60" y="514">就被拒绝，运行期不可能改成 0.0.0.0</text>
+    <text x="60" y="540" font-weight="bold" fill="#1f5c33">/api/iface</text>
+    <text x="60" y="560">只回答「是否只在回环上」和接口数量，</text>
+    <text x="60" y="576">不返回主机名、MAC、内网地址清单</text>
+    <text x="60" y="612" font-size="13" font-weight="bold" fill="#1f5c33">关掉网络也能用 10 / 11 个面板</text>
+    <text x="60" y="632">只有 ⑧ 需要出网，且要显式授权</text>
+  </g>
+
+  <!-- 会出去 -->
+  <rect x="420" y="96" width="360" height="560" rx="10" fill="#fdf3ef" stroke="#c1663f" stroke-width="2"/>
+  <text x="440" y="126" font-size="16" font-weight="bold" fill="#9c4526">② 会离开本机的，只有这四条</text>
+  <g font-size="12" fill="#7a4a34">
+    <text x="440" y="152" font-weight="bold" fill="#9c4526">1 · GeoIP 查询</text>
+    <text x="440" y="172">出站内容 = 一个 IP + 源名。查「我自己的出口 IP」</text>
+    <text x="440" y="188">时，IP 本身即粗位置，会暴露给第三方——</text>
+    <text x="440" y="204">这不是本工具能匿名化的通道，所以写在这里</text>
+    <text x="440" y="230" font-weight="bold" fill="#9c4526">2 · 在线底图瓦片</text>
+    <text x="440" y="250">tile.openstreetmap.org，按视野中心发瓦片请求；</text>
+    <text x="440" y="266">与「矢量」互斥，默认关</text>
+    <text x="440" y="292" font-weight="bold" fill="#9c4526">3 · 系统命令的目标主机名</text>
+    <text x="440" y="312">tracert/ping 天生要把包发给被查主机；</text>
+    <text x="440" y="328">工具能做的只是：白名单字符集 + argv 列表 +</text>
+    <text x="440" y="344">shell=False，非法输入 400 且根本不起进程</text>
+    <text x="440" y="370" font-weight="bold" fill="#9c4526">4 · 浏览器 Geolocation</text>
+    <text x="440" y="390">由浏览器/系统直接处理，本工具不转发、</text>
+    <text x="440" y="406">不落盘；用户拒绝授权就显示拒绝原因</text>
+
+    <text x="440" y="446" font-size="13" font-weight="bold" fill="#9c4526">共同前提</text>
+    <text x="440" y="466">· 未点「授权出网」时，allow_real_network=false，</text>
+    <text x="440" y="482">  任何联网入口返回 offline_disallowed</text>
+    <text x="440" y="498">· 上游 URL 只来自内置源表，只有 {ip} 占位符；</text>
+    <text x="440" y="514">  自建上游用 upstream_url，必须含 {ip}，</text>
+    <text x="440" y="530">  且拒绝回环/私有/链路本地地址与非 http(s)</text>
+    <text x="440" y="546">  → 桥接不会变成任意 URL 的中继（SSRF）</text>
+    <text x="440" y="578">· 静态资源不带 CORS 头；/api/* 才带 Access-Control-</text>
+    <text x="440" y="594">  Allow-Origin: *，好让 file:// 页面能调 API</text>
+  </g>
+
+  <!-- 禁止 -->
+  <rect x="800" y="96" width="340" height="560" rx="10" fill="#f6f2fa" stroke="#7a4fa3" stroke-width="2"/>
+  <text x="820" y="126" font-size="16" font-weight="bold" fill="#593379">③ 代码里被禁掉的</text>
+  <g font-size="12" fill="#5c4a6b">
+    <text x="820" y="152" font-weight="bold" fill="#593379">坐标类参数一律拒收</text>
+    <text x="820" y="172">lat / lon / lng / latitude / longitude /</text>
+    <text x="820" y="188">position / loc / accuracy，</text>
+    <text x="820" y="204">另加 alt / altitude / bearing / heading / speed</text>
+    <text x="820" y="220">→ 桥接永远不知道你在哪儿</text>
+    <text x="820" y="248" font-weight="bold" fill="#593379">没有 shell 执行</text>
+    <text x="820" y="268">os.system / os.popen / shell=True / eval / exec</text>
+    <text x="820" y="284">由 tests/check-package.py 走 AST 检查，</text>
+    <text x="820" y="300">注释里的讲解不算违规</text>
+    <text x="820" y="328" font-weight="bold" fill="#593379">没有遥测</text>
+    <text x="820" y="348">无统计脚本、无更新检查、无崩溃上报；</text>
+    <text x="820" y="364">vendor 里是本地 Leaflet 与 qrcode.js</text>
+    <text x="820" y="392" font-weight="bold" fill="#593379">不做路径穿越</text>
+    <text x="820" y="412">静态服务遇到 .. 或点文件/私钥返回 403，</text>
+    <text x="820" y="428">而不是「悄悄改写」成别的路径</text>
+    <text x="820" y="456" font-weight="bold" fill="#593379">不编造数据</text>
+    <text x="820" y="476">traceroute 解析不出跳 → 0 跳 + 原因；</text>
+    <text x="820" y="492">RTT 里 &lt;1 ms 的样本保留为上界，</text>
+    <text x="820" y="508">不插值成 0.5 ms；内核返回 null 就显示 null</text>
+    <text x="820" y="536" font-weight="bold" fill="#593379">不替你决定歧义</text>
+    <text x="820" y="556">「31.23 121.47」这种合并数字会列出多个候选</text>
+    <text x="820" y="572">读法与置信度，由你选，不悄悄猜一个</text>
+  </g>
+
+  <path d="M400,300 L420,300" stroke="#c1663f" stroke-width="2" fill="none" marker-end="url(#p)"/>
+  <path d="M780,300 L800,300" stroke="#c1663f" stroke-width="2" fill="none" marker-end="url(#p)"/>
+
+  <text x="40" y="692" font-size="13" font-weight="bold" fill="#1b2430">复核方式</text>
+  <text x="40" y="714" font-size="12" fill="#5a6675">浏览器 ⑪：GEONET 100 门里包含「6 个联网入口的 URL 构造审计，未发现任何坐标类参数」；server.py --selftest：80 项覆盖白名单、argv、</text>
+  <text x="40" y="732" font-size="12" fill="#5a6675">回环绑定、路径穿越、上游 URL 约束与解析器不编造跳数；python tests/check-package.py：14 项守住启动器编码、换行符与 AST 红线。</text>
+</svg>

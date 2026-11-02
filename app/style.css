@@ -1,0 +1,377 @@
+/* 经纬度定位工作站 — 界面样式（深色/浅色双主题，移动/桌面自适应） */
+
+:root,
+body[data-theme="dark"] {
+  --bg: #0b1220;
+  --bg-2: #111a2e;
+  --bg-3: #16223a;
+  --fg: #e8eefc;
+  --fg-dim: #9fb0cf;
+  --line: #24334f;
+  --accent: #4da3ff;
+  --accent-2: #35e0b0;
+  --warn: #ffb648;
+  --bad: #ff6b6b;
+  --ok: #35e0b0;
+  --map-bg: #06101f;
+  --land: #21406b;
+  --land-stroke: #3d76b8;
+  --grid: #1d2c46;
+  --shadow: 0 6px 24px rgba(0, 0, 0, .45);
+  --chip-bg: #17233c;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+body[data-theme="light"] {
+  --bg: #eef2f9;
+  --bg-2: #ffffff;
+  --bg-3: #f4f7fc;
+  --fg: #16233a;
+  --fg-dim: #5b6c86;
+  --line: #d3dcec;
+  --accent: #1668d8;
+  --accent-2: #0f8f6f;
+  --warn: #b8730a;
+  --bad: #c0392b;
+  --ok: #0f8f6f;
+  --map-bg: #dfeaf6;
+  --land: #b9cfe6;
+  --land-stroke: #7ba3cd;
+  --grid: #c9d7ea;
+  --shadow: 0 6px 20px rgba(20, 40, 80, .12);
+  --chip-bg: #e7eefb;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  /* Leaflet 内部（画布/控件）用的是 400~1000 这一档 z-index，吸顶栏必须压过它，
+     否则页面一滚，标题行和标签页就被地图“盖住”而点不动。 */
+  z-index: 1300;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logo { font-size: 24px; color: var(--accent); }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-text b { font-size: 17px; letter-spacing: .5px; white-space: nowrap; }
+.brand-text em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.badge {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.badge-ok { color: var(--ok); border-color: var(--ok); }
+.badge-bad { color: var(--bad); border-color: var(--bad); }
+.badge-off { color: var(--warn); }
+
+/* ---------- 标签栏 ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+  position: sticky;
+  top: 57px;
+  z-index: 1200;
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: 7px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px 9px 0 0;
+  background: transparent;
+  color: var(--fg-dim);
+  font-size: 13.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--fg); background: var(--bg-3); }
+.tab.active {
+  color: var(--fg);
+  background: var(--bg);
+  border-color: var(--line);
+  border-bottom-color: var(--bg);
+  font-weight: 600;
+}
+
+/* ---------- 主布局 ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  align-items: start;
+}
+
+/* isolation: Leaflet 的画布与控件自带 400~1000 的 z-index。窄屏断点下 .mapwrap 会退成
+   position:static（不再形成层叠上下文），那些数字就会跑到整页最前面，把吸顶的标题行/标签页
+   盖到点不动。用 isolation 把这一档锁在地图这一块里，与定位方式无关。 */
+.mapwrap { position: sticky; top: 108px; isolation: isolate; }
+.map {
+  height: 62vh;
+  min-height: 380px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--map-bg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+/* 准星：钉在容器正中的叠层，永远严格等于 map.getCenter()。
+   pointer-events:none 让点击穿透回地图（点哪儿就把哪儿转到正中）。 */
+.crosshair { position: absolute; inset: 0; z-index: 640; pointer-events: none; }
+.crosshair i { position: absolute; display: block; background: var(--accent-2); opacity: .92; }
+.crosshair .ch-up, .crosshair .ch-down { left: 50%; width: 2px; margin-left: -1px; height: 20px; }
+.crosshair .ch-up { bottom: 50%; margin-bottom: 12px; }
+.crosshair .ch-down { top: 50%; margin-top: 12px; }
+.crosshair .ch-left, .crosshair .ch-right { top: 50%; height: 2px; margin-top: -1px; width: 20px; }
+.crosshair .ch-left { right: 50%; margin-right: 12px; }
+.crosshair .ch-right { left: 50%; margin-left: 12px; }
+.crosshair .ch-ring {
+  left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  border: 2px solid var(--accent-2); border-radius: 50%; background: transparent;
+}
+
+.map-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }.map-readout {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--fg-dim);
+  padding: 5px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* ---------- 面板 ---------- */
+.panels { min-width: 0; }
+.panel {
+  display: none;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px 18px;
+  box-shadow: var(--shadow);
+}
+.panel.active { display: block; }
+
+.panel h2 { margin: 2px 0 6px; font-size: 18px; }
+.panel h3 { margin: 18px 0 8px; font-size: 14.5px; color: var(--accent); }
+.hint { margin: 0 0 12px; color: var(--fg-dim); font-size: 12.5px; }
+
+label { display: block; margin: 7px 0; font-size: 13px; color: var(--fg-dim); }
+label.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--fg); }
+label input, label select, label textarea { margin-top: 3px; }
+
+input, select, textarea, button {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+input[type="checkbox"] { width: auto; padding: 0; accent-color: var(--accent); }
+textarea {
+  width: 100%;
+  min-height: 110px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+  resize: vertical;
+  white-space: pre;
+  overflow: auto;
+}
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.row { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: nowrap; }
+.row.wrap { flex-wrap: wrap; }
+.row .grow { flex: 1 1 auto; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+
+button { cursor: pointer; background: var(--chip-bg); }
+button:hover { border-color: var(--accent); }
+button:active { transform: translateY(1px); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #04101f; font-weight: 700; }
+body[data-theme="light"] button.primary { color: #fff; }
+button.ghost { background: transparent; }
+
+.chip {
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.chip.active { color: var(--fg); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--chip-bg)); }
+
+/* ---------- 结果块 ---------- */
+.resultbox {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  overflow: auto;
+  max-height: 62vh;
+}
+.resultbox:empty { display: none; }
+.resultbox .k { color: var(--fg-dim); }
+.resultbox .v { font-family: var(--mono); color: var(--fg); }
+.resultbox .good { color: var(--ok); }
+.resultbox .warn { color: var(--warn); }
+.resultbox .bad { color: var(--bad); }
+.resultbox h4 { margin: 12px 0 4px; font-size: 13px; color: var(--accent); }
+.resultbox table.kv { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.resultbox table.kv td { padding: 3px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+.resultbox table.kv td:first-child { color: var(--fg-dim); white-space: nowrap; width: 1%; }
+.resultbox pre { margin: 0; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+.resultbox .note { color: var(--fg-dim); font-size: 12px; margin-top: 8px; }
+
+/* ---------- 表格 ---------- */
+.tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-family: var(--mono);
+  background: var(--bg-3);
+}
+table.grid th, table.grid td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+table.grid th { position: sticky; top: 0; background: var(--bg-2); color: var(--fg-dim); font-weight: 600; z-index: 2; }
+table.grid tbody tr:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+table.grid td.num { text-align: right; }
+table.grid button { padding: 3px 8px; font-size: 11.5px; }
+
+/* ---------- 天空图 / 二维码 ---------- */
+.qrbox { display: flex; justify-content: center; padding: 8px; }
+.qrbox canvas, .qrbox img { border-radius: 8px; background: #fff; padding: 6px; }
+.qrbox:empty { display: none; }
+
+.sky { display: block; margin: 8px auto; max-width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; }
+
+/* ---------- 状态栏 ---------- */
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+  font-size: 12px;
+  color: var(--fg-dim);
+  flex-wrap: wrap;
+}
+#statusText.ok { color: var(--ok); }
+#statusText.bad { color: var(--bad); }
+#statusText.busy { color: var(--warn); }
+
+/* ---------- Leaflet 适配 ---------- */
+.leaflet-container { background: var(--map-bg); font: inherit; }
+.leaflet-control-attribution { background: rgba(0, 0, 0, .45); color: #cfd8ea; }
+.leaflet-control-attribution a { color: #9fc4ff; }
+.leaflet-bar a { background: var(--bg-2); color: var(--fg); border-color: var(--line); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg-2); color: var(--fg); }
+.leaflet-popup-content { margin: 8px 10px; font-size: 12.5px; }
+
+.pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+}
+.pin-me { background: var(--accent); }
+.pin-cell { background: #ff9f43; }
+.pin-sat { background: #a55eea; }
+.pin-ip { background: #26de81; }
+.pin-astro { background: #fed330; }
+.pin-unknown { background: #778ca3; }
+
+.offline-note {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 20;
+  font-size: 11.5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .mapwrap { position: static; }
+  .map { height: 46vh; min-height: 300px; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .tabs { top: 55px; }
+}
+
+@media (max-width: 640px) {
+  .brand-text em { display: none; }
+  .topbar { padding: 8px 10px; }
+  .layout { padding: 10px; gap: 10px; }
+  .panel { padding: 12px; }
+  .row { flex-wrap: wrap; }
+  .resultbox { max-height: none; }
+  #statusRight { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media print {
+  .topbar, .tabs, .mapwrap, .statusbar, button, .map-toolbar { display: none !important; }
+  .panel { display: block !important; border: none; }
+  body { background: #fff; color: #000; }
+}

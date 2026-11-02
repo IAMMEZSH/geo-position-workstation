@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a5566"/>
+    </marker>
+    <marker id="fb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b07a1b"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="900" fill="#f7f8fa"/>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#1b2430">离线优先：什么时候才允许出网，以及证据强度怎么排</text>
+  <text x="40" y="72" font-size="14" fill="#5a6675">左边是实际执行顺序；右边是这套工具对「一个解有多可信」的排序，① 面板的会话表按它来标注来源</text>
+
+  <!-- 主流程 -->
+  <rect x="40" y="100" width="620" height="56" rx="10" fill="#ffffff" stroke="#1b2430" stroke-width="2"/>
+  <text x="60" y="126" font-size="15" font-weight="bold" fill="#1b2430">入口：双击 index.html（或桥接后开 127.0.0.1:8765）</text>
+  <text x="60" y="146" font-size="12" fill="#5a6675">此时没有任何请求发出；页面加载 = 读本地文件</text>
+
+  <path d="M350,156 L350,182" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+
+  <rect x="40" y="182" width="620" height="86" rx="10" fill="#f2f8f2" stroke="#2e7d46" stroke-width="2"/>
+  <text x="60" y="208" font-size="15" font-weight="bold" fill="#1f5c33">第一步 · 全部在本地算</text>
+  <text x="60" y="230" font-size="12" fill="#3d5a48">任意写法解析（DMS / DDM / DD / UTM / UPS / MGRS / Geohash / Plus Code / 合并数字 / 地图 URL）→</text>
+  <text x="60" y="248" font-size="12" fill="#3d5a48">拿到的坐标先在离线数据里反查：最近城市、国家、陆域还是水域、是否在中国偏转区</text>
+
+  <path d="M350,268 L350,294" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+
+  <polygon points="350,294 560,340 350,386 140,340" fill="#fff8e8" stroke="#c9a253" stroke-width="2"/>
+  <text x="350" y="334" font-size="13" font-weight="bold" fill="#8a6414" text-anchor="middle">离线证据够不够？</text>
+  <text x="350" y="354" font-size="12" fill="#6b5522" text-anchor="middle">判据：有没有实测观测量（TA/RSRP/伪距/方位/距离）</text>
+
+  <path d="M140,340 L80,340 L80,420 L110,420" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+  <text x="86" y="332" font-size="12" fill="#1f5c33" font-weight="bold">够</text>
+
+  <path d="M560,340 L620,340 L620,520 L590,520" stroke="#b07a1b" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#fb)"/>
+  <text x="566" y="332" font-size="12" fill="#8a6414" font-weight="bold">不够</text>
+
+  <rect x="110" y="392" width="480" height="84" rx="10" fill="#ffffff" stroke="#2e7d46" stroke-width="2"/>
+  <text x="128" y="418" font-size="14" font-weight="bold" fill="#1f5c33">直接出解，并诚实标注精度</text>
+  <text x="128" y="440" font-size="12" fill="#3d5a48">内核返回 null / 误差过大 / 观测不足 4 星 → 界面就显示「算不出」与原因，</text>
+  <text x="128" y="458" font-size="12" fill="#3d5a48">不插值、不借用别的源、不拿城市中心点冒充你的位置</text>
+
+  <rect x="110" y="520" width="480" height="120" rx="10" fill="#fdf3ef" stroke="#c1663f" stroke-width="2"/>
+  <text x="128" y="546" font-size="14" font-weight="bold" fill="#9c4526">才升级：⑧ 联网与路由（要你在面板里显式授权）</text>
+  <text x="128" y="568" font-size="12" fill="#7a4a34">浏览器定位：需用户点授权；file:// 与回环 http 都算安全上下文，非安全来源直接被浏览器拒绝</text>
+  <text x="128" y="586" font-size="12" fill="#7a4a34">IP 定位：6 个上游并行 → 剔除不可用源 → 加权融合（BLUE σ 与 75% 分位取大者当报告精度）</text>
+  <text x="128" y="604" font-size="12" fill="#7a4a34">路由追踪：交给 server.py 跑系统 tracert；解析不出跳就返回 0 跳 + 原因，绝不编造跳数</text>
+
+  <path d="M350,640 L350,668" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+
+  <rect x="110" y="668" width="480" height="72" rx="10" fill="#eef3fb" stroke="#2f6fb3" stroke-width="2"/>
+  <text x="128" y="694" font-size="14" font-weight="bold" fill="#1d4e7e">汇总进 ① 会话表</text>
+  <text x="128" y="716" font-size="12" fill="#274b6b">每个解都带：来源、精度、依据、时间戳；可互相比较、可在图上对照；准星读数条</text>
+  <text x="128" y="732" font-size="12" fill="#274b6b">给出中心点的 DD / DMS / UTM / MGRS / Plus Code / Geohash / 最近城市</text>
+
+  <!-- 证据强度阶梯 -->
+  <rect x="700" y="100" width="440" height="640" rx="10" fill="#ffffff" stroke="#1b2430" stroke-width="2"/>
+  <text x="720" y="130" font-size="16" font-weight="bold" fill="#1b2430">证据强度阶梯（强 → 弱）</text>
+
+  <g font-size="12">
+    <rect x="720" y="148" width="400" height="72" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
+    <text x="734" y="170" font-size="13" font-weight="bold" fill="#1f5c33">1 · GNSS 伪距最小二乘解算</text>
+    <text x="734" y="190" fill="#3d5a48">实测：与真值差 4.94 m（水平），RAIM 剔除 1 颗粗差星</text>
+    <text x="734" y="208" fill="#3d5a48">报告精度由 DOP × 单位权后验 σ 推得，不是「我觉得准」</text>
+
+    <rect x="720" y="228" width="400" height="66" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
+    <text x="734" y="250" font-size="13" font-weight="bold" fill="#1f5c33">2 · 基站定时提前 / 多边交会</text>
+    <text x="734" y="270" fill="#3d5a48">实测样例：3 站 LTE，残差 RMS 7.7 m，不确定半径 75.4 m</text>
+    <text x="734" y="288" fill="#3d5a48">TA 是量出来的距离；纯 RSSI 估距要低一档看</text>
+
+    <rect x="720" y="302" width="400" height="60" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
+    <text x="734" y="324" font-size="13" font-weight="bold" fill="#1f5c33">3 · 三角/方位交会</text>
+    <text x="734" y="344" fill="#3d5a48">实测样例：3 条方位，角残差等效 0.5 m，不确定半径 52.3 m</text>
+
+    <rect x="720" y="370" width="400" height="60" rx="6" fill="#fff8e8" stroke="#c9a253"/>
+    <text x="734" y="392" font-size="13" font-weight="bold" fill="#8a6414">4 · 天象定位</text>
+    <text x="734" y="412" fill="#6b5522">太阳/恒星高度角 → 纬度线；一条线只定一条圈，要多观测交叉</text>
+
+    <rect x="720" y="438" width="400" height="60" rx="6" fill="#fff8e8" stroke="#c9a253"/>
+    <text x="734" y="460" font-size="13" font-weight="bold" fill="#8a6414">5 · 浏览器定位（Geolocation）</text>
+    <text x="734" y="480" fill="#6b5522">精度圈由系统给（Wi-Fi/蜂窝混合，几十到几百米常见），本工具只转述</text>
+
+    <rect x="720" y="506" width="400" height="76" rx="6" fill="#fdf3ef" stroke="#dba98f"/>
+    <text x="734" y="528" font-size="13" font-weight="bold" fill="#9c4526">6 · IP 粗定位（最弱，仅城市/区级）</text>
+    <text x="734" y="548" fill="#7a4a34">实测样例：3 源融合 30.0087, 121.2565，报告精度 100 km，</text>
+    <text x="734" y="566" fill="#7a4a34">χ²=0.193 判「不矛盾」，MAD 把超时与 403 的源剔除</text>
+
+    <rect x="720" y="590" width="400" height="60" rx="6" fill="#f6f2fa" stroke="#b48ed0"/>
+    <text x="734" y="612" font-size="13" font-weight="bold" fill="#593379">0 · 什么都不够</text>
+    <text x="734" y="632" fill="#5c4a6b">界面显示「算不出」+ 缺什么观测，而不是给你一个看起来像的数</text>
+  </g>
+
+  <text x="720" y="690" font-size="12" fill="#5a6675">越往下越粗。融合只在同级或更高级证据缺失时才做，</text>
+  <text x="720" y="710" font-size="12" fill="#5a6675">且报告精度取保守值——宁可写 100 km，也不写源自己吹的 20 km。</text>
+  <text x="720" y="732" font-size="12" font-weight="bold" fill="#9c4526">橙色虚线 = 唯一会出网的那一步</text>
+
+  <text x="40" y="784" font-size="13" font-weight="bold" fill="#1b2430">两条硬约束</text>
+  <text x="40" y="808" font-size="12" fill="#5a6675">· 默认离线：GEONET 未注入 fetchImpl 且未授权时，任何联网入口返回 offline_disallowed，连 URL 都不构造。</text>
+  <text x="40" y="828" font-size="12" fill="#5a6675">· URL 构造审计：自检会把每个联网入口的 URL 拆开检查，坐标类参数（lat/lon/accuracy 等）出现在任何出站 URL 里就是闸门失败。</text>
+  <text x="40" y="848" font-size="12" fill="#5a6675">· 桥接缺席不影响其余 10 个面板：⑧ 面板会明确告诉你「桥接不在线」，然后继续用浏览器直连的那几个源。</text>
+
+  <text x="40" y="878" font-size="12" fill="#8a94a0">本图描述的是代码里真实存在的分支，不是理想流程；对应实现见 app/core-net.js 的 networkPolicy / buildBridgeUrl 与 app/ui-app.js 的 ① ⑧ 面板绑定。</text>
+</svg>

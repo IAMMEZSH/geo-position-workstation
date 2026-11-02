@@ -1,0 +1,31 @@
+# 换行符由仓库说了算，不由克隆者的 core.autocrlf 说了算。
+# 本机 autocrlf=true 时，Windows 用户 clone 会把 .sh 变成 CRLF —— macOS/Linux 上直接
+# 报 "bad interpreter"，而 .bat 反过来用 LF 又会被 cmd.exe 逐行读断。这两个平台的启动器
+# 是「双击就能用」的全部前提，所以在这里钉死，不指望每个人的 git 配置。
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# 源码与文档统一 LF（.command 无后缀，靠下面这条保住 LF）
+*.sh text eol=lf
+启动-macOS.command text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf
+*.csv text eol=lf
+*.gpx text eol=lf
+*.log text eol=lf

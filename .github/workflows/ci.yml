@@ -1,0 +1,38 @@
+name: gates
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kernel-gates:
+    name: 内核闸门 + 桥接自检（${{ matrix.os }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 537 道闸门：六个内核同步项 + GEONET 异步项。任何一道不过即非零退出。
+      - name: node tests/run-all.mjs --with-server
+        run: node tests/run-all.mjs --with-server
+
+      # 静态文件必须能被 file:// 直接打开：入口引用的每个本地资源都要在树上，
+      # 启动器编码/换行符与桥接的 shell 红线也在这里守住。
+      - name: python tests/check-package.py
+        run: python tests/check-package.py
+        shell: bash

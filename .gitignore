@@ -1,0 +1,22 @@
+# 开发期产物，不属于交付包
+app/_build/
+_build/
+工具/__pycache__/
+__pycache__/
+*.pyc
+
+# 运行期日志与本地状态
+# 只忽略根目录那一个：示例数据里有个 NMEA 语句文件后缀就是 .log，
+# 写 *.log 会把要交付的样例一起静默吞掉。
+/桥接服务.log
+
+# 操作系统/编辑器垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.idea/
+.vscode/
+
+# 依赖目录（本项目零依赖，出现即属误装）
+node_modules/

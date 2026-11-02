@@ -1,0 +1,17 @@
+[
+ {
+  "bssid": "AA:BB:CC:00:00:01",
+  "rssi": -62,
+  "ssid": "shop-2.4"
+ },
+ {
+  "bssid": "AA:BB:CC:00:00:02",
+  "rssi": -70,
+  "ssid": "shop-guest"
+ },
+ {
+  "bssid": "AA:BB:CC:00:00:04",
+  "rssi": -88,
+  "ssid": "未知"
+ }
+]
