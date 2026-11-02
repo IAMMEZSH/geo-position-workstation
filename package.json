@@ -1,7 +1,7 @@
 {
   "name": "geo-position-workstation",
   "version": "1.0.0",
-  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用；六个内核浏览器侧 515 道自检闸门，Node 侧含 GEONET 异步门共 541 道；桥接有 Python 与 PowerShell 两份实现，不装 Python 也能全功能）",
+  "description": "经纬度定位工作站 · 离线优先的多源定位与测量工作站（双击 index.html 即用；七个内核 623 道自检闸门，浏览器侧与 Node 侧同数，含 71 道异步门；桥接有 Python 与 PowerShell 两份实现，不装 Python 也能全功能）",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -27,7 +27,7 @@
     "index.html",
     "README.md",
     "LICENSE",
-    "说明书.md",
+    "MANUAL.md",
     "app",
     "vendor",
     "docs/img",

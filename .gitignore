@@ -1,6 +1,7 @@
 # 开发期产物，不属于交付包
 app/_build/
 _build/
+dist/
 工具/__pycache__/
 __pycache__/
 *.pyc

@@ -1,104 +1,143 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900" font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#0c1626"/>
+      <stop offset="0.45" stop-color="#070d18"/>
+      <stop offset="1" stop-color="#03060c"/>
+    </linearGradient>
+    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
+      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
+    </pattern>
+    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
+      <feGaussianBlur stdDeviation="2.1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
+    </filter>
+  </defs>
   <defs>
     <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#4a5566"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#8fa8c2"/>
     </marker>
     <marker id="fb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#b07a1b"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="1180" height="900" fill="#f7f8fa"/>
-  <text x="40" y="46" font-size="24" font-weight="bold" fill="#1b2430">离线优先：什么时候才允许出网，以及证据强度怎么排</text>
-  <text x="40" y="72" font-size="14" fill="#5a6675">左边是实际执行顺序；右边是这套工具对「一个解有多可信」的排序，① 面板的会话表按它来标注来源</text>
+  <rect x="0" y="0" width="1180" height="900" fill="url(#hudbg)"/>
+  <rect x="0" y="0" width="1180" height="900" fill="url(#hudgrid)"/>
+  <rect x="0" y="0" width="1180" height="900" fill="url(#hudscan)"/>
+  <rect x="0" y="0" width="1180" height="900" fill="url(#hudbloom)"/>
+  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
+    <path d="M12 32V12h20"/>
+    <path d="M1148 12h20v20"/>
+    <path d="M1168 868v20h-20"/>
+    <path d="M32 888H12v-20"/>
+  </g>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Offline-first: when traffic may leave the machine, and how fixes rank</text>
+  <text x="40" y="72" font-size="14" fill="#a2b5cb">Left = the order the code actually runs · Right = how this tool ranks "how far can I trust this fix"; panel ① labels every row with its source</text>
 
-  <!-- 主流程 -->
-  <rect x="40" y="100" width="620" height="56" rx="10" fill="#ffffff" stroke="#1b2430" stroke-width="2"/>
-  <text x="60" y="126" font-size="15" font-weight="bold" fill="#1b2430">入口：双击 index.html（或桥接后开 127.0.0.1:8765）</text>
-  <text x="60" y="146" font-size="12" fill="#5a6675">此时没有任何请求发出；页面加载 = 读本地文件</text>
+  <!-- Main flow -->
+  <rect x="40" y="100" width="620" height="56" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="126" font-size="15" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Entry: double-click index.html (or http://127.0.0.1:8765)</text>
+  <text x="60" y="146" font-size="12" fill="#a2b5cb">Nothing is sent at this point; loading the page = reading local files</text>
 
-  <path d="M350,156 L350,182" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+  <path d="M350,156 L350,182" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
 
-  <rect x="40" y="182" width="620" height="86" rx="10" fill="#f2f8f2" stroke="#2e7d46" stroke-width="2"/>
-  <text x="60" y="208" font-size="15" font-weight="bold" fill="#1f5c33">第一步 · 全部在本地算</text>
-  <text x="60" y="230" font-size="12" fill="#3d5a48">任意写法解析（DMS / DDM / DD / UTM / UPS / MGRS / Geohash / Plus Code / 合并数字 / 地图 URL）→</text>
-  <text x="60" y="248" font-size="12" fill="#3d5a48">拿到的坐标先在离线数据里反查：最近城市、国家、陆域还是水域、是否在中国偏转区</text>
+  <rect x="40" y="182" width="620" height="86" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="208" font-size="15" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Step 1 · everything computed locally</text>
+  <text x="60" y="230" font-size="12" fill="#7ff0bb">Parse any notation (DMS/DDM/DD/UTM/UPS/MGRS/Geohash/Plus Code/merged digits/map URL) →</text>
+  <text x="60" y="248" font-size="12" fill="#7ff0bb">then look it up offline: nearest city, country, land or water, inside the GCJ-02 offset zone?</text>
 
-  <path d="M350,268 L350,294" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+  <path d="M350,268 L350,294" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
 
-  <polygon points="350,294 560,340 350,386 140,340" fill="#fff8e8" stroke="#c9a253" stroke-width="2"/>
-  <text x="350" y="334" font-size="13" font-weight="bold" fill="#8a6414" text-anchor="middle">离线证据够不够？</text>
-  <text x="350" y="354" font-size="12" fill="#6b5522" text-anchor="middle">判据：有没有实测观测量（TA/RSRP/伪距/方位/距离）</text>
+  <polygon points="350,294 560,340 350,386 140,340" fill="#1c1608" stroke="#f2d488" stroke-width="2"/>
+  <text x="350" y="334" font-size="13" font-weight="bold" fill="#f5c74d" text-anchor="middle" filter="url(#hudglow)">Enough offline evidence?</text>
+  <text x="350" y="354" font-size="12" fill="#e3c987" text-anchor="middle">any measured observation (TA / RSRP / range)?</text>
 
-  <path d="M140,340 L80,340 L80,420 L110,420" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
-  <text x="86" y="332" font-size="12" fill="#1f5c33" font-weight="bold">够</text>
+  <path d="M140,340 L80,340 L80,420 L110,420" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
+  <text x="86" y="332" font-size="12" fill="#34e88c" font-weight="bold" filter="url(#hudglow)">yes</text>
 
-  <path d="M560,340 L620,340 L620,520 L590,520" stroke="#b07a1b" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#fb)"/>
-  <text x="566" y="332" font-size="12" fill="#8a6414" font-weight="bold">不够</text>
+  <path d="M560,340 L620,340 L620,520 L590,520" stroke="#fbbf24" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#fb)"/>
+  <text x="566" y="332" font-size="12" fill="#f5c74d" font-weight="bold" filter="url(#hudglow)">no</text>
 
-  <rect x="110" y="392" width="480" height="84" rx="10" fill="#ffffff" stroke="#2e7d46" stroke-width="2"/>
-  <text x="128" y="418" font-size="14" font-weight="bold" fill="#1f5c33">直接出解，并诚实标注精度</text>
-  <text x="128" y="440" font-size="12" fill="#3d5a48">内核返回 null / 误差过大 / 观测不足 4 星 → 界面就显示「算不出」与原因，</text>
-  <text x="128" y="458" font-size="12" fill="#3d5a48">不插值、不借用别的源、不拿城市中心点冒充你的位置</text>
+  <rect x="110" y="392" width="480" height="84" rx="10" fill="#111c2a" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="128" y="418" font-size="14" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Return the fix and state its accuracy honestly</text>
+  <text x="128" y="440" font-size="12" fill="#7ff0bb">A kernel returning null / error too large / &lt; 4 satellites makes the UI say</text>
+  <text x="128" y="458" font-size="12" fill="#7ff0bb">"cannot solve" with the reason — no interpolation, no city centroid faked as you</text>
 
-  <rect x="110" y="520" width="480" height="120" rx="10" fill="#fdf3ef" stroke="#c1663f" stroke-width="2"/>
-  <text x="128" y="546" font-size="14" font-weight="bold" fill="#9c4526">才升级：⑧ 联网与路由（要你在面板里显式授权）</text>
-  <text x="128" y="568" font-size="12" fill="#7a4a34">浏览器定位：需用户点授权；file:// 与回环 http 都算安全上下文，非安全来源直接被浏览器拒绝</text>
-  <text x="128" y="586" font-size="12" fill="#7a4a34">IP 定位：6 个上游并行 → 剔除不可用源 → 加权融合（BLUE σ 与 75% 分位取大者当报告精度）</text>
-  <text x="128" y="604" font-size="12" fill="#7a4a34">路由追踪：交给本机桥接跑系统 tracert；解析不出跳就返回 0 跳 + 原因，绝不编造跳数</text>
+  <rect x="110" y="520" width="480" height="120" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="128" y="546" font-size="14" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Only now escalate: panel ⑧, needs your explicit allow</text>
+  <text x="128" y="568" font-size="12" fill="#ffb998">Geolocation: needs your tap; file:// and loopback http are both secure</text>
+  <text x="128" y="586" font-size="12" fill="#ffb998">IP lookup: 6 upstreams in parallel → dead ones dropped → BLUE fusion</text>
+  <text x="128" y="604" font-size="12" fill="#ffb998">Traceroute: via the local bridge; unparsed → 0 hops + reason</text>
 
-  <path d="M350,640 L350,668" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#f)"/>
+  <path d="M350,640 L350,668" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
 
-  <rect x="110" y="668" width="480" height="72" rx="10" fill="#eef3fb" stroke="#2f6fb3" stroke-width="2"/>
-  <text x="128" y="694" font-size="14" font-weight="bold" fill="#1d4e7e">汇总进 ① 会话表</text>
-  <text x="128" y="716" font-size="12" fill="#274b6b">每个解都带：来源、精度、依据、时间戳；可互相比较、可在图上对照；准星读数条</text>
-  <text x="128" y="732" font-size="12" fill="#274b6b">给出中心点的 DD / DMS / UTM / MGRS / Plus Code / Geohash / 最近城市</text>
+  <rect x="110" y="668" width="480" height="72" rx="10" fill="#0c1728" stroke="#6fd3ff" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="128" y="694" font-size="14" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Everything lands in the ① session table</text>
+  <text x="128" y="716" font-size="12" fill="#6fc0ff">Every fix carries source, accuracy, basis, timestamp; rows compare and</text>
+  <text x="128" y="732" font-size="12" fill="#6fc0ff">show on the map. Crosshair bar: DD / DMS / UTM / MGRS / Plus Code</text>
 
-  <!-- 证据强度阶梯 -->
-  <rect x="700" y="100" width="440" height="640" rx="10" fill="#ffffff" stroke="#1b2430" stroke-width="2"/>
-  <text x="720" y="130" font-size="16" font-weight="bold" fill="#1b2430">证据强度阶梯（强 → 弱）</text>
+  <!-- Evidence ladder -->
+  <rect x="700" y="100" width="440" height="640" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="720" y="130" font-size="16" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Evidence ladder (strong → weak)</text>
 
   <g font-size="12">
-    <rect x="720" y="148" width="400" height="72" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
-    <text x="734" y="170" font-size="13" font-weight="bold" fill="#1f5c33">1 · GNSS 伪距最小二乘解算</text>
-    <text x="734" y="190" fill="#3d5a48">实测：与真值差 4.94 m（水平），RAIM 剔除 1 颗粗差星</text>
-    <text x="734" y="208" fill="#3d5a48">报告精度由 DOP × 单位权后验 σ 推得，不是「我觉得准」</text>
+    <rect x="720" y="148" width="400" height="72" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="734" y="170" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">1 · GNSS pseudorange weighted LSQ</text>
+    <text x="734" y="190" fill="#7ff0bb">Measured: 4.94 m off truth (horizontal); RAIM dropped 1 outlier</text>
+    <text x="734" y="208" fill="#7ff0bb">Reported accuracy = DOP × posterior σ₀, never a guess</text>
 
-    <rect x="720" y="228" width="400" height="66" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
-    <text x="734" y="250" font-size="13" font-weight="bold" fill="#1f5c33">2 · 基站定时提前 / 多边交会</text>
-    <text x="734" y="270" fill="#3d5a48">实测样例：3 站 LTE，残差 RMS 21.5 m，不确定半径 102.2 m</text>
-    <text x="734" y="288" fill="#3d5a48">TA 是量出来的距离；纯 RSSI 估距要低一档看</text>
+    <rect x="720" y="228" width="400" height="72" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="734" y="250" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">2 · Cell timing advance / lateration</text>
+    <text x="734" y="270" fill="#7ff0bb">Measured: 3 LTE sites, residual RMS 21.5 m, uncertainty 102.2 m</text>
+    <text x="734" y="288" fill="#7ff0bb">TA is a measured range; pure RSSI ranges rank lower</text>
 
-    <rect x="720" y="302" width="400" height="60" rx="6" fill="#f2f8f2" stroke="#7fb894"/>
-    <text x="734" y="324" font-size="13" font-weight="bold" fill="#1f5c33">3 · 三角/方位交会</text>
-    <text x="734" y="344" fill="#3d5a48">实测样例：3 条方位，角残差等效 0.5 m，不确定半径 52.3 m</text>
+    <rect x="720" y="308" width="400" height="54" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="734" y="328" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">3 · Bearing / triangulation intersection</text>
+    <text x="734" y="348" fill="#7ff0bb">Measured: 3 bearings, residual ≈0.5 m, uncertainty 52.3 m</text>
 
-    <rect x="720" y="370" width="400" height="60" rx="6" fill="#fff8e8" stroke="#c9a253"/>
-    <text x="734" y="392" font-size="13" font-weight="bold" fill="#8a6414">4 · 天象定位</text>
-    <text x="734" y="412" fill="#6b5522">太阳/恒星高度角 → 纬度线；一条线只定一条圈，要多观测交叉</text>
+    <rect x="720" y="370" width="400" height="60" rx="6" fill="#1c1608" stroke="#f2d488" filter="url(#hudlift)"/>
+    <text x="734" y="392" font-size="13" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">4 · Celestial navigation</text>
+    <text x="734" y="412" fill="#e3c987">Altitude of sun/star → circle of position; cross several of them</text>
 
-    <rect x="720" y="438" width="400" height="60" rx="6" fill="#fff8e8" stroke="#c9a253"/>
-    <text x="734" y="460" font-size="13" font-weight="bold" fill="#8a6414">5 · 浏览器定位（Geolocation）</text>
-    <text x="734" y="480" fill="#6b5522">精度圈由系统给（Wi-Fi/蜂窝混合，几十到几百米常见），本工具只转述</text>
+    <rect x="720" y="438" width="400" height="60" rx="6" fill="#1c1608" stroke="#f2d488" filter="url(#hudlift)"/>
+    <text x="734" y="460" font-size="13" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">5 · Browser geolocation</text>
+    <text x="734" y="480" fill="#e3c987">Circle comes from the OS (Wi-Fi/cell, tens of metres typical)</text>
 
-    <rect x="720" y="506" width="400" height="76" rx="6" fill="#fdf3ef" stroke="#dba98f"/>
-    <text x="734" y="528" font-size="13" font-weight="bold" fill="#9c4526">6 · IP 粗定位（最弱，仅城市/区级）</text>
-    <text x="734" y="548" fill="#7a4a34">实测样例：2/6 源可用，融合 30.0156, 121.2294，精度 50 km，</text>
-    <text x="734" y="566" fill="#7a4a34">χ²=0.148 判「不矛盾」，超时与 403 的源被剔除并逐条写明原因</text>
+    <rect x="720" y="506" width="400" height="76" rx="6" fill="#1e120c" stroke="#ffc8ab" filter="url(#hudlift)"/>
+    <text x="734" y="528" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">6 · IP coarse fix (weakest, city level)</text>
+    <text x="734" y="548" fill="#ffb998">Measured: 2/6 sources live, fused 30.0156,121.2294 ±50 km,</text>
+    <text x="734" y="566" fill="#ffb998">χ²=0.148 = consistent; dead sources dropped with reasons listed</text>
 
-    <rect x="720" y="590" width="400" height="60" rx="6" fill="#f6f2fa" stroke="#b48ed0"/>
-    <text x="734" y="612" font-size="13" font-weight="bold" fill="#593379">0 · 什么都不够</text>
-    <text x="734" y="632" fill="#5c4a6b">界面显示「算不出」+ 缺什么观测，而不是给你一个看起来像的数</text>
+    <rect x="720" y="590" width="400" height="60" rx="6" fill="#170f22" stroke="#ddc3ff" filter="url(#hudlift)"/>
+    <text x="734" y="612" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">0 · Nothing sufficient</text>
+    <text x="734" y="632" fill="#cdb8f0">UI says "cannot solve" and names the missing observation</text>
   </g>
 
-  <text x="720" y="690" font-size="12" fill="#5a6675">越往下越粗。融合只在同级或更高级证据缺失时才做，</text>
-  <text x="720" y="710" font-size="12" fill="#5a6675">且报告精度取 BLUE σ 与加权 75% 分位的较大者——宁可写大，不写源自己吹的量级。</text>
-  <text x="720" y="732" font-size="12" font-weight="bold" fill="#9c4526">橙色虚线 = 唯一会出网的那一步</text>
+  <text x="720" y="690" font-size="12" fill="#a2b5cb">Lower = coarser. Fusion only runs when evidence at that level is</text>
+  <text x="720" y="710" font-size="12" fill="#a2b5cb">missing; reported accuracy = max(BLUE σ, weighted 75th pct).</text>
+  <text x="720" y="732" font-size="12" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Orange dashed = the only step that leaves the machine</text>
 
-  <text x="40" y="784" font-size="13" font-weight="bold" fill="#1b2430">三条硬约束</text>
-  <text x="40" y="808" font-size="12" fill="#5a6675">· 默认离线：GEONET 未注入 fetchImpl 且未授权时，任何联网入口返回 offline_disallowed，连 URL 都不构造。</text>
-  <text x="40" y="828" font-size="12" fill="#5a6675">· URL 构造审计：自检会把每个联网入口的 URL 拆开检查，坐标类参数（lat/lon/accuracy 等）出现在任何出站 URL 里就是闸门失败。</text>
-  <text x="40" y="848" font-size="12" fill="#5a6675">· 桥接缺席不影响其余 10 个面板：⑧ 面板会明确告诉你「桥接不在线」，然后继续用浏览器直连的那几个源。</text>
+  <text x="40" y="784" font-size="13" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Three hard constraints</text>
+  <text x="40" y="808" font-size="12" fill="#a2b5cb">· Offline by default: with no fetchImpl injected and no allow, every network entry returns offline_disallowed — not even a URL is constructed.</text>
+  <text x="40" y="828" font-size="12" fill="#a2b5cb">· URL construction audit: the self-test dissects every outbound URL; a coordinate-like parameter (lat/lon/accuracy …) in any of them is a gate failure.</text>
+  <text x="40" y="848" font-size="12" fill="#a2b5cb">· A missing bridge changes nothing else: panel ⑧ says "bridge offline" and keeps using the sources the browser can reach directly.</text>
 
-  <text x="40" y="878" font-size="12" fill="#8a94a0">本图描述的是代码里真实存在的分支，不是理想流程；对应实现见 app/core-net.js 的 networkPolicy / buildBridgeUrl 与 app/ui-app.js 的 ① ⑧ 面板绑定。</text>
+  <text x="40" y="878" font-size="12" fill="#93a8bd">This diagram describes branches that exist in the code, not an ideal flow. See networkPolicy / buildBridgeUrl in app/core-net.js and the ① ⑧ panel bindings in app/ui-app.js.</text>
 </svg>

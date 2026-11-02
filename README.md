@@ -1,92 +1,106 @@
 <p align="center">
-  <b>经纬度定位工作站</b> · Geo Position Workstation<br>
-  <sub>离线优先的多源定位与测量工作站：双击 <code>index.html</code> 就能用，六个自研内核、541 道自检闸门、零依赖、零遥测。</sub>
+  <b>Geo Position Workstation</b> · <code>经纬度定位工作站</code><br>
+  <sub>An offline-first positioning and surveying workstation: double-click <code>index.html</code> and it runs.
+  Seven in-house kernels, 623 self-test gates, zero runtime dependencies, zero telemetry.</sub>
 </p>
 
 <p align="center">
   <a href="https://github.com/IAMMEZSH/geo-position-workstation/actions/workflows/ci.yml"><img alt="gates CI" src="https://github.com/IAMMEZSH/geo-position-workstation/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg">
-  <img alt="no dependencies" src="https://img.shields.io/badge/%E7%AC%AC%E4%B8%89%E6%96%B9%E8%BF%90%E8%A1%8C%E6%97%B6%E4%BE%9D%E8%B5%96-0-blue.svg">
-  <img alt="offline first" src="https://img.shields.io/badge/%E9%BB%98%E8%AE%A4-offline%20first-orange.svg">
-  <img alt="gates" src="https://img.shields.io/badge/%E8%87%AA%E6%A3%80%E9%97%B8%E9%97%A8-541%20%E9%97%A8%20%2F%200%20%E5%A4%B1%E8%B4%A5-brightgreen.svg">
-  <img alt="no python needed" src="https://img.shields.io/badge/%E4%B8%8D%E8%A3%85%20Python%20%E4%B9%9F%E8%83%BD%E7%94%A8-PowerShell%20%E6%A1%A5-blueviolet.svg">
-  <img alt="platforms" src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Android%20%C2%B7%20iOS-lightgrey.svg">
+  <img alt="no dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-blue.svg">
+  <img alt="offline first" src="https://img.shields.io/badge/default-offline%20first-orange.svg">
+  <img alt="gates" src="https://img.shields.io/badge/self--test%20gates-623%20%2F%200%20failures-brightgreen.svg">
+  <img alt="no python needed" src="https://img.shields.io/badge/works%20without%20Python-PowerShell%20bridge-blueviolet.svg">
+  <img alt="encrypted storage" src="https://img.shields.io/badge/local%20storage-AES--256--GCM%20vault-yellow.svg">
+  <img alt="platforms" src="https://img.shields.io/badge/platforms-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Android%20%C2%B7%20iOS-lightgrey.svg">
 </p>
 
 ---
 
-**这一页只是索引。** 全部讲解、全部实测数字、全部实现约定与踩过的坑都在
-[**说明书.md**](说明书.md)（一份写完，不再拆成多页，也不在两处各写一遍）；
-本页只放「这是什么 / 怎么打开 / 想查什么翻第几节 / 图在哪」。
+**This page is only an index.** Every explanation, every measured number, every implementation
+convention and every pitfall lives in [**MANUAL.md**](MANUAL.md) — one document, written once, not
+split across pages and never repeated in two places. This page answers only "what is it / how do I
+open it / which section do I read / where are the pictures".
 
-## 这是什么
+The interface itself is Chinese; MANUAL §3.0 maps each on-screen label to the panel it belongs to.
 
-十一个面板摆在同一张桌子上：坐标格式与投影、基准转换、基站（蜂窝）、三角交会、信号测距、
-GNSS 卫星、天象、联网与 IP/路由、批处理导出、历史收藏、内核自检。默认全部在本机 JS 里算，
-城市与陆域数据随包；只有 ⑧ 面板会出网，而且要你在面板里显式授权。
-内核算不出就返回 `null`，界面就显示「算不出」和缺什么观测——不插值、不借用别的源、
-不拿城市中心点冒充你的位置。
+## What this is
 
-在线地址（GitHub Pages 直接把仓库根目录当静态站发布，与下载版逐字节相同）：
-**<https://iammezsh.github.io/geo-position-workstation/>**
+Eleven panels on one desk: coordinates and formats, datums, cell-station positioning, triangulation,
+signal ranging, GNSS, celestial, networking and IP/route tracing, batch export, history and
+favourites, kernel self-test. Everything computes in local JavaScript by default, with the city and
+land datasets shipped inside the package. Only panel ⑧ may touch the network, and only after you
+allow it in that panel. History, favourites, preferences and probes leave RAM for disk only as one
+passphrase-locked AES-256-GCM envelope. When a kernel cannot solve something it returns `null` and
+the page says so with the missing observation named — no interpolation, no borrowed source, no
+city-centre substituted for your position.
 
-## 怎么打开
+Hosted URL (GitHub Pages serves the repository root as a static site, byte-for-byte the same files
+you download): **<https://iammezsh.github.io/geo-position-workstation/>**
 
-- **不想装任何东西** → 打开上面的在线地址。六个内核、地图、离线数据、⑪ 自检全跑；
-  只有 ⑧ 的逐跳路由追踪需要你本机另起一个桥接。
-- **Windows，要 ⑧ 全功能** → 下载后双击 `启动-Windows.bat`。它会依次尝试
-  Python 桥 → PowerShell 桥 → 直接开页面，**没装 Python 也会用 Windows 自带的 PowerShell 起桥**，
-  十一个面板全开。
-- **macOS / Linux / Android / iPhone / iPad** → 逐平台写法、三级回退、iSH 路径、
-  换端口、以及「不跑桥接会失去什么」写在 **说明书第 2 节**。
+## How to open it
 
-打开后先到 **⑪ 内核自检 → 运行全部自检**，看到「515 门 / 0 失败」再往下用。
+- **Install nothing** → use the hosted URL above. All seven kernels, the map, the offline data and
+  ⑪ run there; only ⑧'s hop-by-hop trace needs a bridge on your own machine.
+- **Windows, full ⑧** → double-click `启动-Windows.bat`. It tries Python bridge → PowerShell bridge
+  → the bare page, in that order, so **a machine with no Python still gets all eleven panels** using
+  the PowerShell that ships with Windows.
+- **macOS / Linux / Android / iPhone / iPad** → per-platform wording, the three-level fallback, the
+  iSH path, changing the port, and exactly what you lose with no bridge: **MANUAL §2** (§2.7 macOS and
+  Linux, §2.8 iPhone/iPad, §2.9 no bridge, §2.10 the five launcher faces and their colour rules).
 
-![离线矢量陆域 + 中心准星 + 城市注记 + 读数条（不发任何瓦片请求）](images/02-crosshair-readout.png)
+Open it and go to panel ⑪ (`⑪ 内核自检`), press **`运行全部自检`** (*run the full self-test*):
+expect **623 gates / 0 failures** before using anything else.
 
-## 想查什么，翻说明书第几节
+![Offline vector land with the centre crosshair, city annotations and the readout bar (no tile request is sent)](images/02-crosshair-readout.png)
 
-| 你要找的 | 在说明书 |
+## Which section answers what
+
+| What you are looking for | In MANUAL.md |
 |---|---|
-| 一分钟上手、下载与解压、第一次打开该点什么 | 第 0 节 |
-| 包里 62 个文件逐个是干什么的 | 第 1 节 |
-| 各平台怎么启动；两份桥（`server.py` 与 `bridge-powershell.ps1`）为什么是同一个契约 | 第 2 节（2.3 两份桥 / 2.5 托管 https 页连本机桥 / 2.6 逐请求来源守卫 / 2.7 iSH） |
-| 十一个面板逐个：吃什么、给什么、2026-11-02 当天实测出来的数 | 第 3 节 |
-| `示例数据/` 那 10 份样例为什么能互相对账 | 第 4 节 |
-| 小数位、GCJ-02 不可逆、IP 定位的保守精度、天文时间尺度 | 第 5 节 + 图 `docs/img/decision-flow.svg` |
-| 分层结构、内核写法约定、地图层、联网层、界面转义模型、加一个新面板要做什么 | 第 6 节 + 图 `docs/img/architecture.svg` |
-| 会离开本机的四类请求、十一条代码级红线、内网目标的取舍、数据留在哪里 | 第 7 节 + 图 `docs/img/privacy-boundary.svg` |
-| 六层门怎么复核（515 / 541 / 101·102 / 187 / 33 / 40）与每条闸门长什么样 | 第 8 节（8.6 写清 ubuntu 与 windows 两份 job 的差别） |
-| 平台矩阵、三条「设计上就不给」、逐面板实测、托管页→桥接、clone 与 ZIP 验证 | 第 9 节 |
-| 离线数据的来源、SHA-256、裁剪参数、怎么重建 | 第 10 节 |
-| 16 条踩过的坑（内核全绿但界面是坏的） | 第 11 节 |
-| 常见问题 | 第 12 节 |
-| 第三方数据来源与许可、署名要求 | 第 13 节 |
+| One-minute start, download and unzip, what to click first | §0 |
+| Every file in the package, one line each, and the per-platform packs | §1 (§1.1 packs) |
+| Launching per platform; why `server.py` and `bridge-powershell.ps1` are one contract | §2 (2.3 bridges · 2.5 hosted page → local bridge · 2.6 per-request origin guard · 2.7 macOS · 2.8 iOS) |
+| Each of the eleven panels: what it eats, what it gives, the numbers measured on the machine | §3 (3.0 label map) |
+| Why the ten files under `示例数据/` cross-check against each other | §4 |
+| Decimal places, GCJ-02 irreversibility, the conservative accuracy of IP lookup, astronomical time scales | §5 + `docs/img/decision-flow.svg` |
+| Layering, how a kernel is written, map layer, network layer, the UI escaping model, the vault layer, the stylesheet, the five mechanism figures, adding a panel | §6 (6.8 vault, 6.10 figures) |
+| What may leave the machine, the red lines enforced in code, who may talk to the bridge, where your data physically is | §7 (7.3 origin allowlist · 7.5 storage) |
+| How "all green" is re-checked — six independent gate layers (623 / 623 / 110 (+1) / 202 / 41 / 67) and what a single gate looks like | §8 (§8.8 CI, ubuntu and windows jobs) |
+| Platform matrix, three things refused by design, panel-by-panel runs, hosted page, clone and ZIP verification | §9 |
+| Offline data: sources, SHA-256, trimming constants, how to rebuild it byte-identically | §10 |
+| Pitfalls actually hit — the class the kernels cannot see | §11 |
+| Questions | §12 |
+| Third-party data, licences, attribution obligations | §13 |
 
-## 复核用的三条命令
+## The commands that re-verify this
 
-零依赖：不需要 `npm install`，不需要 `pip install`。`package.json` 只是脚本入口与元信息。
+Zero dependencies: no `npm install`, no `pip install`. `package.json` is only script entries and
+metadata.
 
 ```bash
-node tests/run-all.mjs --with-server --with-bridge   # 内核 541 门 + Python 桥 101 项 + PowerShell 桥 187 项
-python tests/bridge-parity.py                        # 两份桥实机对账 33 用例
-python tests/check-package.py                        # 打包体检 40 项
+node tests/run-all.mjs --with-server --with-bridge   # kernels 623 + Python bridge 110 (+1) + PowerShell bridge 202
+python tests/bridge-parity.py                        # two bridges at once, 41 live cases
+python tests/check-package.py                        # package inspection, 67 items
 ```
 
-浏览器侧的第 6 层门是 ⑪ 面板本身：**515 门 / 0 失败**（GEONET 的 26 道异步门只在 Node 侧跑，
-所以两边数不一样，构成见说明书第 8.1 节）。CI 在 Ubuntu 与 Windows 上各把这三条跑一遍。
+The sixth layer is panel ⑪ itself, in a real DOM with Leaflet mounted: **623 gates / 0 failures**.
+The browser and Node now report the *same* number because the 71 asynchronous gates (network
+promises and the PBKDF2/AES round trips) run in both; §8.1 shows the arithmetic per kernel. CI runs
+the three commands above on Ubuntu and on Windows for every push (§8.8).
 
-## 图
+## Pictures
 
-15 张截图不是装饰图，全部嵌在说明书对应小节的正文旁边（哪张图配哪一段，跟着读才有意义）：
-⑪ 自检全绿 `09`、① 会话表 `12`、② 解析与投影 `03`、③ 基站多边 `04`、④ 方位交会 `10`、
-⑤ 信号测距 `11`、⑥ GNSS 最小二乘 `05`、⑦ 天象 `06`、⑧ IP 多源 `07`、⑧ 路由追踪 `08`、
-⑧ 桥接自检 `15`、⑨ 批处理与二维码 `14`、准星叠层 `01`、浅色主题 `13`，加上本页首屏的 `02`。
-文件在 [`images/`](images/)，三张机制 SVG 在 [`docs/img/`](docs/img/)。
+The 15 screenshots are not decoration: each is embedded in MANUAL.md next to the paragraph it
+proves, so the number in the text and the number in the image are read together. The files live in
+[`images/`](images/), and the five mechanism diagrams — `architecture.svg`, `decision-flow.svg`,
+`privacy-boundary.svg`, `apple-launch-paths.svg`, `platform-packs.svg` — in
+[`docs/img/`](docs/img/).
 
-## 许可与署名
+## Licence and attribution
 
-MIT（见 [LICENSE](LICENSE)）。第三方不在 MIT 覆盖范围内，其中
-GeoNames `cities15000`（CC BY 4.0）**再分发需保留署名**；Natural Earth `ne_50m_land` 公有领域、
-Leaflet 1.9.4 BSD-2-Clause、qrcode.js MIT（Kazuhiko Arase）。完整表格与在线底图瓦片的
-© OpenStreetMap contributors（ODbL）适用条件写在说明书第 13 节。
+MIT (see [LICENSE](LICENSE)). Third-party material is not covered by that grant: GeoNames
+`cities15000` (CC BY 4.0, **attribution must be kept when you redistribute**), Natural Earth
+`ne_50m_land` (public domain), Leaflet 1.9.4 (BSD-2-Clause), qrcode.js (MIT, Kazuhiko Arase). The
+full table, and when © OpenStreetMap contributors (ODbL) applies to the optional online basemap, is
+in MANUAL §13.

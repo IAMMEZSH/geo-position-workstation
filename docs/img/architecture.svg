@@ -1,126 +1,170 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1180" height="860" viewBox="0 0 1180 860" font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#0c1626"/>
+      <stop offset="0.45" stop-color="#070d18"/>
+      <stop offset="1" stop-color="#03060c"/>
+    </linearGradient>
+    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
+      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
+    </pattern>
+    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
+      <feGaussianBlur stdDeviation="2.1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
+    </filter>
+  </defs>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#4a5566"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#8fa8c2"/>
     </marker>
     <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#b07a1b"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="1180" height="860" fill="#f7f8fa"/>
-  <text x="40" y="46" font-size="24" font-weight="bold" fill="#1b2430">经纬度定位工作站 · 分层结构</text>
-  <text x="40" y="72" font-size="14" fill="#5a6675">实线 = 本机内调用；橙色虚线 = 唯一可能出网的两条边，且都必须先过白名单</text>
+  <rect x="0" y="0" width="1180" height="860" fill="url(#hudbg)"/>
+  <rect x="0" y="0" width="1180" height="860" fill="url(#hudgrid)"/>
+  <rect x="0" y="0" width="1180" height="860" fill="url(#hudscan)"/>
+  <rect x="0" y="0" width="1180" height="860" fill="url(#hudbloom)"/>
+  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
+    <path d="M12 32V12h20"/>
+    <path d="M1148 12h20v20"/>
+    <path d="M1168 828v20h-20"/>
+    <path d="M32 848H12v-20"/>
+  </g>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Geo Position Workstation · layered architecture</text>
+  <text x="40" y="72" font-size="14" fill="#a2b5cb">Solid line = call inside the machine · orange dashed = the only two ways out (panel ⑧ through the bridge, optional map tiles)</text>
 
-  <!-- 浏览器 -->
-  <rect x="40" y="92" width="1100" height="72" rx="10" fill="#ffffff" stroke="#1b2430" stroke-width="2"/>
-  <text x="60" y="122" font-size="16" font-weight="bold" fill="#1b2430">浏览器（唯一的运行载体）</text>
-  <text x="60" y="146" font-size="13" fill="#5a6675">两种打开方式等价：双击 index.html（file://，Origin=null）；或起桥接后开 http://127.0.0.1:8765/index.html（回环 = 安全上下文，浏览器定位可用）</text>
+  <!-- Browser -->
+  <rect x="40" y="92" width="1100" height="72" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="122" font-size="16" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Browser (the only runtime)</text>
+  <text x="60" y="146" font-size="12" fill="#a2b5cb">Two equivalent entries: double-click index.html (file://, Origin=null), or open http://127.0.0.1:8765/index.html with the bridge running (loopback = secure context, so geolocation works)</text>
 
-  <!-- UI 层 -->
-  <rect x="40" y="184" width="1100" height="118" rx="10" fill="#eef3fb" stroke="#2f6fb3" stroke-width="2"/>
-  <text x="60" y="212" font-size="16" font-weight="bold" fill="#1d4e7e">界面层 · 无计算</text>
-  <rect x="60" y="226" width="330" height="60" rx="6" fill="#ffffff" stroke="#8fb4d8"/>
-  <text x="76" y="250" font-size="13" font-weight="bold" fill="#1d4e7e">app/ui-app.js</text>
-  <text x="76" y="270" font-size="12" fill="#5a6675">11 个面板 · 会话解表 · 深链/二维码 · 主题</text>
-  <rect x="410" y="226" width="330" height="60" rx="6" fill="#ffffff" stroke="#8fb4d8"/>
-  <text x="426" y="250" font-size="13" font-weight="bold" fill="#1d4e7e">app/ui-map.js</text>
-  <text x="426" y="270" font-size="12" fill="#5a6675">Leaflet 封装 · 中心准星 · 矢量陆域挂图</text>
-  <rect x="760" y="226" width="360" height="60" rx="6" fill="#ffffff" stroke="#8fb4d8"/>
-  <text x="776" y="250" font-size="13" font-weight="bold" fill="#1d4e7e">只做三件事</text>
-  <text x="776" y="270" font-size="12" fill="#5a6675">收输入 → 调内核 → 画结果；不自己算任何一个数</text>
+  <!-- UI layer -->
+  <rect x="40" y="184" width="1100" height="118" rx="10" fill="#0c1728" stroke="#6fd3ff" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="212" font-size="16" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">UI layer · computes nothing</text>
+  <rect x="60" y="226" width="330" height="60" rx="6" fill="#111c2a" stroke="#9adfff" filter="url(#hudlift)"/>
+  <text x="76" y="250" font-size="13" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">app/ui-app.js</text>
+  <text x="76" y="270" font-size="12" fill="#a2b5cb">11 panels · session table · deep link / QR · theme</text>
+  <rect x="410" y="226" width="330" height="60" rx="6" fill="#111c2a" stroke="#9adfff" filter="url(#hudlift)"/>
+  <text x="426" y="250" font-size="13" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">app/ui-map.js</text>
+  <text x="426" y="270" font-size="12" fill="#a2b5cb">Leaflet wrapper · centre crosshair · land vector</text>
+  <rect x="760" y="226" width="360" height="60" rx="6" fill="#111c2a" stroke="#9adfff" filter="url(#hudlift)"/>
+  <text x="776" y="250" font-size="13" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Exactly three jobs</text>
+  <text x="776" y="270" font-size="12" fill="#a2b5cb">input → kernel call → draw; never computes a number</text>
 
-  <!-- 内核层 -->
-  <rect x="40" y="322" width="1100" height="214" rx="10" fill="#f2f8f2" stroke="#2e7d46" stroke-width="2"/>
-  <text x="60" y="350" font-size="16" font-weight="bold" fill="#1f5c33">六个内核 · 纯函数 + 各自一套可重跑的 selfTest()</text>
+  <!-- Kernels -->
+  <rect x="40" y="322" width="1100" height="214" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="350" font-size="16" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Seven kernels · each with its own re-runnable selfTest() · six are pure, GEOVAULT owns the encrypted store</text>
 
   <g font-size="12">
-    <rect x="60" y="364" width="255" height="76" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="74" y="386" font-size="13" font-weight="bold" fill="#1f5c33">GEOGEO · core-geodetic.js</text>
-    <text x="74" y="406" fill="#3d5a48">椭球 · 大圆正反算 · 布尔莎 7 参数</text>
-    <text x="74" y="422" fill="#3d5a48">ECEF / ENU · 面积凸包 · 罗经方位</text>
+    <rect x="60" y="364" width="255" height="76" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="74" y="386" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEOGEO · core-geodetic.js</text>
+    <text x="74" y="406" fill="#7ff0bb">Ellipsoid · geodesic fwd/inv · Bursa 7</text>
+    <text x="74" y="422" fill="#7ff0bb">ECEF / ENU · convex hull area · azimuth</text>
 
-    <rect x="330" y="364" width="255" height="76" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="344" y="386" font-size="13" font-weight="bold" fill="#1f5c33">GEODATUM · core-datums.js</text>
-    <text x="344" y="406" fill="#3d5a48">DMS/UTM/UPS/MGRS/Geohash/Plus Code</text>
-    <text x="344" y="422" fill="#3d5a48">投影正反算 · GCJ-02 / BD-09 加偏</text>
+    <rect x="330" y="364" width="255" height="76" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="344" y="386" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEODATUM · core-datums.js</text>
+    <text x="344" y="406" fill="#7ff0bb">DMS/UTM/UPS/MGRS/Geohash/Plus Code</text>
+    <text x="344" y="422" fill="#7ff0bb">Projection fwd/inv · GCJ-02 / BD-09</text>
 
-    <rect x="600" y="364" width="255" height="76" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="614" y="386" font-size="13" font-weight="bold" fill="#1f5c33">GEOCELL · core-cell.js</text>
-    <text x="614" y="406" fill="#3d5a48">GSM/WCDMA/LTE/NR 信道→频率</text>
-    <text x="614" y="422" fill="#3d5a48">TA/RSRP 估距 · 多边交会 · 指纹</text>
+    <rect x="600" y="364" width="255" height="76" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="614" y="386" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEOCELL · core-cell.js</text>
+    <text x="614" y="406" fill="#7ff0bb">GSM/WCDMA/LTE/NR ARFCN→frequency</text>
+    <text x="614" y="422" fill="#7ff0bb">TA/RSRP range · lateration · fingerprint</text>
 
-    <rect x="870" y="364" width="250" height="76" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="884" y="386" font-size="13" font-weight="bold" fill="#1f5c33">GEOGNSS · core-gnss.js</text>
-    <text x="884" y="406" fill="#3d5a48">NMEA · 开普勒轨道 · 加权 LSQ PVT</text>
-    <text x="884" y="422" fill="#3d5a48">DOP · RAIM/FDE · 大气 · L6 PPP-B2b</text>
+    <rect x="870" y="364" width="250" height="76" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="884" y="386" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEOGNSS · core-gnss.js</text>
+    <text x="884" y="406" fill="#7ff0bb">NMEA · Kepler orbits · weighted LSQ PVT</text>
+    <text x="884" y="422" fill="#7ff0bb">DOP · RAIM/FDE · tropo/iono · L6/B2b</text>
 
-    <rect x="60" y="452" width="255" height="70" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="74" y="474" font-size="13" font-weight="bold" fill="#1f5c33">GEOASTRO · core-astro.js</text>
-    <text x="74" y="494" fill="#3d5a48">太阳/月亮/恒星视位置 · 子太阳点</text>
-    <text x="74" y="510" fill="#3d5a48">晨昏线 · 北极星罗经 · 由高度反推纬度</text>
+    <rect x="60" y="452" width="255" height="70" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="74" y="474" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEOASTRO · core-astro.js</text>
+    <text x="74" y="494" fill="#7ff0bb">Sun / moon / star apparent place · SSP</text>
+    <text x="74" y="510" fill="#7ff0bb">Terminator · Polaris compass · lat from alt</text>
 
-    <rect x="330" y="452" width="255" height="70" rx="6" fill="#ffffff" stroke="#7fb894"/>
-    <text x="344" y="474" font-size="13" font-weight="bold" fill="#1f5c33">GEONET · core-net.js</text>
-    <text x="344" y="494" fill="#3d5a48">URL/请求构造审计 · 多源融合（BLUE）</text>
-    <text x="344" y="510" fill="#3d5a48">traceroute 解析 · 默认离线，须显式授权</text>
+    <rect x="330" y="452" width="255" height="70" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="344" y="474" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEONET · core-net.js</text>
+    <text x="344" y="494" fill="#7ff0bb">Request audit · multi-source fusion (BLUE)</text>
+    <text x="344" y="510" fill="#7ff0bb">traceroute parsing · offline unless allowed</text>
 
-    <rect x="600" y="452" width="520" height="70" rx="6" fill="#fff8e8" stroke="#c9a253"/>
-    <text x="616" y="474" font-size="13" font-weight="bold" fill="#8a6414">闸门数（同一次运行的实测）</text>
-    <text x="616" y="494" fill="#6b5522">浏览器 ⑪：515 门 / 0 失败（六个内核的同步项，0.7 s 跑完）</text>
-    <text x="616" y="510" fill="#6b5522">Node run-all.mjs：541 门 = 515 + 异步 26；桥接 --selftest 101（Python）/ 187（PowerShell）项</text>
+    <rect x="600" y="452" width="255" height="70" rx="6" fill="#111c2a" stroke="#9ff5c8" filter="url(#hudlift)"/>
+    <text x="614" y="474" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">GEOVAULT · core-vault.js</text>
+    <text x="614" y="494" fill="#7ff0bb">AES-256-GCM · PBKDF2-SHA256 ≥ 250k</text>
+    <text x="614" y="510" fill="#7ff0bb">one disk key · auto-lock · wipe</text>
+
+    <rect x="870" y="452" width="250" height="70" rx="6" fill="#1c1608" stroke="#f2d488" filter="url(#hudlift)"/>
+    <text x="884" y="474" font-size="13" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">Gates measured in one run</text>
+    <text x="884" y="494" fill="#e3c987">623 / 0 in 1.49 s (⑪ and Node)</text>
+    <text x="884" y="510" fill="#e3c987">Py 110(+1) · PS 202 · parity 41</text>
   </g>
 
-  <!-- 数据层 -->
-  <rect x="40" y="556" width="1100" height="112" rx="10" fill="#f6f2fa" stroke="#7a4fa3" stroke-width="2"/>
-  <text x="60" y="584" font-size="16" font-weight="bold" fill="#593379">离线数据与第三方（全部随包，不下载不联网）</text>
+  <!-- Data -->
+  <rect x="40" y="556" width="1100" height="112" rx="10" fill="#170f22" stroke="#c084fc" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="584" font-size="16" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">Offline data and third-party code (all shipped in the package, nothing downloaded)</text>
   <g font-size="12">
-    <rect x="60" y="596" width="250" height="56" rx="6" fill="#ffffff" stroke="#b48ed0"/>
-    <text x="74" y="616" font-size="13" font-weight="bold" fill="#593379">data-cities.js · 2.0 MB</text>
-    <text x="74" y="636" fill="#5c4a6b">GeoNames cities15000（CC BY 4.0）</text>
+    <rect x="60" y="596" width="250" height="56" rx="6" fill="#111c2a" stroke="#ddc3ff" filter="url(#hudlift)"/>
+    <text x="74" y="616" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">data-cities.js · 2.08 MB</text>
+    <text x="74" y="636" fill="#cdb8f0">GeoNames cities15000 (CC BY 4.0)</text>
 
-    <rect x="325" y="596" width="250" height="56" rx="6" fill="#ffffff" stroke="#b48ed0"/>
-    <text x="339" y="616" font-size="13" font-weight="bold" fill="#593379">data-land.js · 748 KB</text>
-    <text x="339" y="636" fill="#5c4a6b">Natural Earth 50m 陆地 · 1374 块</text>
+    <rect x="325" y="596" width="250" height="56" rx="6" fill="#111c2a" stroke="#ddc3ff" filter="url(#hudlift)"/>
+    <text x="339" y="616" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">data-land.js · 763 KB</text>
+    <text x="339" y="636" fill="#cdb8f0">Natural Earth 50m land · 1374 rings</text>
 
-    <rect x="590" y="596" width="250" height="56" rx="6" fill="#ffffff" stroke="#b48ed0"/>
-    <text x="604" y="616" font-size="13" font-weight="bold" fill="#593379">data-countries.js · 12 KB</text>
-    <text x="604" y="636" fill="#5c4a6b">ISO 3166-1 α2 → 中/英文名</text>
+    <rect x="590" y="596" width="250" height="56" rx="6" fill="#111c2a" stroke="#ddc3ff" filter="url(#hudlift)"/>
+    <text x="604" y="616" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">data-countries.js · 9.4 KB</text>
+    <text x="604" y="636" fill="#cdb8f0">ISO 3166-1 alpha-2 → names</text>
 
-    <rect x="855" y="596" width="265" height="56" rx="6" fill="#ffffff" stroke="#b48ed0"/>
-    <text x="869" y="616" font-size="13" font-weight="bold" fill="#593379">vendor/</text>
-    <text x="869" y="636" fill="#5c4a6b">Leaflet 1.9.4 (BSD-2) · qrcode.js (MIT)</text>
+    <rect x="855" y="596" width="265" height="56" rx="6" fill="#111c2a" stroke="#ddc3ff" filter="url(#hudlift)"/>
+    <text x="869" y="616" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">vendor/</text>
+    <text x="869" y="636" fill="#cdb8f0">Leaflet 1.9.4 (BSD-2) · qrcode.js (MIT)</text>
   </g>
 
-  <!-- 桥接 -->
-  <rect x="40" y="688" width="1100" height="132" rx="10" fill="#fdf3ef" stroke="#c1663f" stroke-width="2"/>
-  <text x="60" y="716" font-size="16" font-weight="bold" fill="#9c4526">本机桥接（可选，只绑 127.0.0.1）：两份实现，同一个 /api 契约</text>
+  <!-- Bridge -->
+  <rect x="40" y="688" width="1100" height="132" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="716" font-size="16" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Local bridge (optional, binds 127.0.0.1 only): two implementations, one /api contract</text>
   <g font-size="12">
-    <rect x="60" y="728" width="330" height="76" rx="6" fill="#ffffff" stroke="#dba98f"/>
-    <text x="74" y="748" font-size="13" font-weight="bold" fill="#9c4526">两份实现，页面分不出连了哪个</text>
-    <text x="74" y="766" fill="#7a4a34">server.py：Python 标准库，装了 Python 就用它</text>
-    <text x="74" y="784" fill="#7a4a34">bridge-powershell.ps1：Windows 自带 PS 5.1，零安装</text>
+    <rect x="60" y="728" width="330" height="76" rx="6" fill="#111c2a" stroke="#ffc8ab" filter="url(#hudlift)"/>
+    <text x="74" y="748" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Interchangeable; the page cannot tell which</text>
+    <text x="74" y="766" fill="#ffb998">server.py: Python standard library only</text>
+    <text x="74" y="784" fill="#ffb998">bridge-powershell.ps1: PS 5.1 on Windows, zero install</text>
 
-    <rect x="405" y="728" width="330" height="76" rx="6" fill="#ffffff" stroke="#dba98f"/>
-    <text x="419" y="748" font-size="13" font-weight="bold" fill="#9c4526">外部输入 → 白名单 → 参数数组</text>
-    <text x="419" y="766" fill="#7a4a34">Python：argv 列表 + subprocess(shell=False)</text>
-    <text x="419" y="784" fill="#7a4a34">PowerShell：参数数组 + UseShellExecute=$false</text>
+    <rect x="405" y="728" width="330" height="76" rx="6" fill="#111c2a" stroke="#ffc8ab" filter="url(#hudlift)"/>
+    <text x="419" y="748" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">External input → whitelist → argv array</text>
+    <text x="419" y="766" fill="#ffb998">Python: argv list + subprocess(shell=False)</text>
+    <text x="419" y="784" fill="#ffb998">PowerShell: argument array + UseShellExecute=$false</text>
 
-    <rect x="750" y="728" width="370" height="76" rx="6" fill="#ffffff" stroke="#dba98f"/>
-    <text x="764" y="748" font-size="13" font-weight="bold" fill="#9c4526">拒绝而非警告（两份桥同一套红线）</text>
-    <text x="764" y="766" fill="#7a4a34">非回环绑定启动即拒；每个请求再校验来源地址</text>
-    <text x="764" y="784" fill="#7a4a34">端口已被占用就拒绝再起第二个；解析不出跳就返回 0 跳</text>
+    <rect x="750" y="728" width="370" height="76" rx="6" fill="#111c2a" stroke="#ffc8ab" filter="url(#hudlift)"/>
+    <text x="764" y="748" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Refuses instead of warning (same red lines)</text>
+    <text x="764" y="766" fill="#ffb998">Non-loopback bind rejected; every request re-checked</text>
+    <text x="764" y="784" fill="#ffb998">Busy port → no second listener; unparsed route → 0 hops</text>
   </g>
 
-  <!-- 连线 -->
-  <path d="M590,164 L590,184" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#a)"/>
-  <path d="M590,302 L590,322" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#a)"/>
-  <path d="M590,536 L590,556" stroke="#4a5566" stroke-width="2" fill="none" marker-end="url(#a)"/>
-  <path d="M200,668 L200,688" stroke="#b07a1b" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#a2)"/>
-  <text x="212" y="682" font-size="12" fill="#8a6414">⑧ 面板显式授权后才会走这里</text>
+  <!-- Edges -->
+  <path d="M590,164 L590,184" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M590,302 L590,322" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M590,536 L590,556" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M200,668 L200,688" stroke="#fbbf24" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#a2)"/>
+  <text x="212" y="682" font-size="12" fill="#f5c74d">Panel ⑧ reaches here only after you allow outbound traffic</text>
 
-  <path d="M900,688 C900,640 1010,600 1010,536" stroke="#b07a1b" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#a2)"/>
-  <text x="1018" y="612" font-size="12" fill="#8a6414" transform="rotate(-90 1018 612)">在线底图瓦片（可选，与「矢量」互斥）</text>
+  <path d="M900,688 C900,640 1010,600 1010,536" stroke="#fbbf24" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#a2)"/>
+  <text x="998" y="550" font-size="12" fill="#f5c74d" text-anchor="end">Online map tiles (optional, mutually exclusive with vector)</text>
 
-  <text x="40" y="846" font-size="12" fill="#5a6675">读法：内核之间不互相依赖界面；GEONET 只在 ⑧ 面板被点下「授权出网」后才可能发请求；两份桥都不在时，其余 10 个面板功能完全不变。</text>
+  <text x="40" y="846" font-size="12" fill="#a2b5cb">How to read: kernels never depend on the UI · GEONET sends only after panel ⑧'s explicit allow · with neither bridge running, the other 10 panels behave identically.</text>
 </svg>

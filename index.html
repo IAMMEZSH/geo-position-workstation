@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#03070f">
 <title>经纬度定位工作站 · 离线优先的多源定位与测绘工具箱</title>
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="app/style.css">
@@ -59,7 +59,7 @@
     <!-- ① 总览 -->
     <div class="panel active" data-panel="overview">
       <h2>定位总览</h2>
-      <p class="hint">全部计算都在本机内核完成。浏览器定位只在你点击按钮时发起，且结果先在离线数据里做反查与最近城市匹配。用法、精度边界与隐私约定见同目录 <code>说明书.md</code>；不知道从哪儿开始就先去 ⑪ 跑一次全量自检。</p>
+      <p class="hint">全部计算都在本机内核完成。浏览器定位只在你点击按钮时发起，且结果先在离线数据里做反查与最近城市匹配。用法、精度边界与隐私约定见同目录 <code>MANUAL.md</code>（英文，仓库里唯一的一份完整说明书，界面标签的对应关系在它的 3.0 节）；不知道从哪儿开始就先去 ⑪ 跑一次全量自检。</p>
       <div class="row">
         <button id="btnWhereAmI" class="primary">① 用浏览器定位我在这里</button>
         <button id="btnPasteFromClip" class="ghost">粘贴坐标</button>
@@ -522,7 +522,27 @@ $BDGSV,1,1,05,07,30,120,44,08,55,210,46,09,18,030,37,10,42,300,43,11,63,150,47*5
     <!-- ⑩ 历史 -->
     <div class="panel" data-panel="history">
       <h2>历史记录与收藏</h2>
-      <p class="hint">全部存本机 localStorage，不联网、不上传。</p>
+      <p class="hint">解算结果只进本机保险柜（AES-256-GCM），锁着的时候磁盘上只有一串 base64。</p>
+      <h3>本机保险柜</h3>
+      <div class="row">
+        <input id="vaultPass" class="grow" type="password" autocomplete="off" placeholder="口令（不落盘：忘了只能重建，找不回）">
+        <button id="btnVaultUnlock" class="primary">解锁</button>
+        <button id="btnVaultCreate" class="ghost">建锁</button>
+        <button id="btnVaultLock" class="ghost">立即上锁</button>
+      </div>
+      <div class="row">
+        <input id="vaultPass2" class="grow" type="password" autocomplete="off" placeholder="改口令：上一格填旧口令，这一格填新口令">
+        <button id="btnVaultChange" class="ghost">改口令</button>
+        <button id="btnVaultWipe" class="ghost">擦除保险柜</button>
+        <label class="inline">自动上锁 <select id="vaultAutoLock">
+          <option value="60000">1 分钟</option>
+          <option value="300000">5 分钟</option>
+          <option value="600000" selected>10 分钟</option>
+          <option value="1800000">30 分钟</option>
+          <option value="0">只手动</option>
+        </select></label>
+      </div>
+      <div id="vaultNote" class="resultbox"></div>
       <div class="row">
         <button id="btnSaveCur" class="primary">收藏当前会话的解</button>
         <button id="btnClearHist" class="ghost">清空历史</button>
@@ -535,7 +555,7 @@ $BDGSV,1,1,05,07,30,120,44,08,55,210,46,09,18,030,37,10,42,300,43,11,63,150,47*5
     <!-- ⑪ 自检 -->
     <div class="panel" data-panel="selftest">
       <h2>内核自检（可复核的零失败门）</h2>
-      <p class="hint">六个内核各跑一遍 selfTest。每个门都用与实现无关的独立路线（恒等式、守恒律、物理包络、第二份录入）复算，任一公式或常数写错就会在这里破。</p>
+      <p class="hint">七个内核各跑一遍 selfTest。每个门都用与实现无关的独立路线（恒等式、守恒律、物理包络、第二份录入）复算，任一公式或常数写错就会在这里破。GEOVAULT 的异步门是真的 PBKDF2-SHA256（25 万次）+ AES-256-GCM 往返，不是读注释。</p>
       <div class="row">
         <button id="btnRunAll" class="primary">运行全部自检</button>
         <button id="btnRunQuick" class="ghost">只跑快速项</button>
@@ -564,6 +584,7 @@ $BDGSV,1,1,05,07,30,120,44,08,55,210,46,09,18,030,37,10,42,300,43,11,63,150,47*5
 <script src="app/core-gnss.js"></script>
 <script src="app/core-astro.js"></script>
 <script src="app/core-net.js"></script>
+<script src="app/core-vault.js"></script>
 <script src="app/ui-map.js"></script>
 <script src="app/ui-app.js"></script>
 </body>

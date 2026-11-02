@@ -203,11 +203,18 @@
 
   var POLICY = {
     allow_real_network: false,   // 显式置 true 才允许用环境里的 global.fetch
-    allow_ambient_storage: true, // 浏览器里默认允许用 localStorage（不可用时自动降级内存）
+    // 经纬度缓存是「你到过哪儿」的直接证据，写进宿主 localStorage 等于把明文留在磁盘上：
+    // 同机进程、F12、备份、别人打开这个浏览器都能读。所以这里默认拒绝，
+    // 宿主存储只允许显式注入（闸门、单测、以及知道自己在做加密的调用方）。
+    // 要落盘的记录一律走 GEOVAULT（app/core-vault.js，AES-256-GCM）。
+    allow_ambient_storage: false,
     bridge_base: defaultBridgeBase()
   };
-  var memoryStore = Object.create(null);        // localStorage 不可用时的降级容器（进程内）
+  var memoryStore = Object.create(null);        // 默认容器：进程内，关页面即消失，不跨标签页共享
+  // 出厂值单独留一份：闸门要断言的是「这版代码发布时默认关着」，而不是「跑到这儿时恰好关着」。
+  var SHIPPED_ALLOW_AMBIENT_STORAGE = POLICY.allow_ambient_storage;
   var fetchTrapHits = [];                       // 自检用：记录「本应被拦住」的 fetch 调用
+  var ambientStorageReads = 0;                  // 自检用：真正去读宿主 localStorage 的次数（默认策略下必须恒为 0）
 
   function setNetworkPolicy(patch) {
     if (!patch || typeof patch !== 'object') return { error: '策略参数需为对象' };
@@ -235,12 +242,15 @@
     return f;
   }
 
-  /* 存储抽象：duck-type 兼容 localStorage(getItem/setItem)、Map 风格(get/set)、裸对象 */
+  /* 存储抽象：duck-type 兼容 localStorage(getItem/setItem)、Map 风格(get/set)、裸对象。
+   * 注意顺序：注入优先，其次才是宿主存储，而宿主存储默认就被策略挡在 return 之前——
+   * 「默认不碰 localStorage」不是靠自觉，是靠这一行 early return。 */
   function rawStore(opt) {
     var o = opt || {};
     if (o.storage !== undefined && o.storage !== null) return { store: o.storage, kind: 'injected' };
     if (!POLICY.allow_ambient_storage) return { store: null, kind: 'disabled' };
     try {
+      ambientStorageReads++;
       var ls = global.localStorage;
       if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') return { store: ls, kind: 'localStorage' };
     } catch (e) { /* 隐私模式下访问 localStorage 本身就会抛异常，这里就是「降级」的入口 */ }
@@ -1436,7 +1446,9 @@
       var o = opt || {};
       var s = SOURCE_BY_ID[String(sourceId)];
       if (!s) return { result: errorResult(String(sourceId), 'bad_input', '未知源 ' + esc(sourceId)), health: null };
-      var c = cacheGet(s.id, o.ip, o);
+      /* 缓存也是联网出口：没授权就连读都不读。否则用户「收回联网授权」之后，
+       * 旧的 IP 位置还会以 from_cache 的名义被当成这一轮的实测结果端出去。 */
+      var c = getFetch(o) ? cacheGet(s.id, o.ip, o) : { hit: false, reason: 'policy_off' };
       if (c.hit && c.value && c.value.ok === true) {
         var cached = Object.assign({}, c.value, { from_cache: true, latency_ms: 0, cache_age_ms: c.age_ms });
         recordHealth(s.id, null, 0);
@@ -1751,6 +1763,27 @@
     }
   }
 
+  function readCorsPolicy(cp) {
+    if (!cp || typeof cp !== 'object' || Array.isArray(cp)) return null;   // 旧桥没这个字段：如实报 null，不猜
+    var list = function (v) {
+      var out = [];
+      if (!Array.isArray(v)) return out;
+      for (var i = 0; i < v.length && out.length < 16; i++) {
+        if (typeof v[i] === 'string' && v[i]) out.push(String(v[i]).slice(0, 96));
+      }
+      return out;
+    };
+    return {
+      declared: true,
+      wildcard: cp.wildcard === true,
+      built_in: list(cp.built_in),
+      extra: list(cp.extra),
+      loopback_origins_allowed: cp.loopback_origins_allowed === true,
+      no_origin_clients_allowed: cp.no_origin_clients_allowed === true,
+      note: pickStr(cp, ['note'], 200)
+    };
+  }
+
   async function bridgeStatus(opt) {
     var o = opt || {};
     try {
@@ -1765,6 +1798,10 @@
         // runtime 只有 PowerShell 那份桥会填（它 python=null，界面靠这个字段说清自己跑在什么上）。
         // 少带这一个字段，health 里明明写了「PowerShell 5.1」，界面却显示「运行环境未上报」。
         runtime: pickStr(j, ['runtime'], 48),
+        // cors_policy 同理：⑧ 面板要回答的不是「我能连上这台桥吗」，
+        // 而是「除了我，还有谁能在浏览器里读它」。名单不在这里透出来，界面只能说「桥版本过旧」，
+        // 于是新桥也会被误报成旧桥——这一条在真浏览器里实测到过，所以给它配了闸门。
+        cors_policy: readCorsPolicy(j.cors_policy),
         capabilities: Array.isArray(j.capabilities) ? j.capabilities.filter(function (x) { return typeof x === 'string'; }) : [],
         latency_ms: isNum(got.latency_ms) ? rnd(got.latency_ms, 1) : null,
         error: null, error_kind: null
@@ -1984,7 +2021,7 @@
       return Array.isArray(s) && s.every(function (x) { return !hasBad(x); });
     })(), healthSnapshot().length + ' 条记录');
 
-    /* ---------- 6. 缓存：localStorage + 隐私模式降级 ---------- */
+    /* ---------- 6. 缓存：注入存储 + 默认不碰宿主存储 + 隐私模式降级 ---------- */
     resetHealth();
     var ls = mockLocalStorage();
     var cput = cacheSet('ipapi_com', null, SAMPLE_RESULT(), { storage: ls });
@@ -2008,7 +2045,7 @@
       var s = cacheSet('ipinfo_io', null, SAMPLE_RESULT(), { storage: boom });
       var g = cacheGet('ipinfo_io', null, { storage: boom });
       return s.ok === false && g.hit === false && g.reason === 'miss';
-    })(), 'localStorage 在部分浏览器隐私模式下访问即抛，必须被吞掉');
+    })(), '宿主 localStorage 在部分浏览器隐私模式下访问即抛，注入的存储也一样：异常必须被吞掉');
     push('配额超限（setItem 抛）→ 只丢缓存，不丢定位', (function () {
       var full = mockLocalStorage({ throwOnSet: true });
       var s = cacheSet('freeipapi', null, SAMPLE_RESULT(), { storage: full });
@@ -2021,12 +2058,57 @@
       var n = clearCache({ storage: ls3 });
       return n.removed >= 1 && ls3.getItem('someone-elses-key') === 'keep me';
     })(), '按索引删除，索引本身也带前缀');
-    push('无注入且环境无 localStorage 时自动用内存 Map', (function () {
+    push('出厂默认就禁用宿主存储：allow_ambient_storage=false 且 rawStore 取不到宿主句柄', (function () {
+      POLICY.allow_ambient_storage = SHIPPED_ALLOW_AMBIENT_STORAGE;   // 用模块加载时的出厂值判断，不受前置闸门改动影响
+      var p = networkPolicy();
+      var r = rawStore({});
+      return p.allow_ambient_storage === false && r.store === null && r.kind === 'disabled';
+    })(), 'GEONET 不提供任何明文落盘路径：要留档的记录只能进 GEOVAULT 的 AES-256-GCM 信封');
+    push('策略禁用宿主存储时，缓存写入落进模块内存并可命中（不是静默失败）', (function () {
+      POLICY.allow_ambient_storage = false;
       var st = storageHandle({});
       cacheSet('ipapi_co', null, SAMPLE_RESULT(), {});
       var g = cacheGet('ipapi_co', null, {});
-      return (st.kind === 'memory' || st.kind === 'localStorage') && g.hit === true;
-    })(), '环境里没有 localStorage 也不算失败：内存兜住');
+      return st.kind === 'disabled(policy)' && st.raw === memoryStore && g.hit === true && g.storage === 'disabled(policy)';
+    })(), '关页面即消失，不写磁盘、不跨标签页共享');
+    var ambWindow = (function () {
+      var before = ambientStorageReads;
+      cacheSet('ipwho_is', null, SAMPLE_RESULT(), {});
+      cacheGet('ipwho_is', null, {});
+      cacheStats({});
+      clearCache({});
+      return { before: before, after: ambientStorageReads };
+    })();
+    push('策略禁用宿主存储时，缓存四个入口一次都不读 localStorage', ambWindow.after === ambWindow.before,
+      '宿主存储读取计数 ' + ambWindow.before + ' → ' + ambWindow.after + '（读一次就可能写一次，明文位置等于交给别人）');
+    push('显式授权后宿主存储才可用；收回授权立刻回到 disabled', (function () {
+      var before = ambientStorageReads;
+      POLICY.allow_ambient_storage = true;
+      var r = rawStore({});
+      var hits = ambientStorageReads - before;
+      POLICY.allow_ambient_storage = false;
+      var back = rawStore({});
+      return hits === 1 && (r.kind === 'localStorage' || r.kind === 'memory') && back.kind === 'disabled';
+    })(), '本环境宿主存储：' + (function () {
+      POLICY.allow_ambient_storage = true;
+      var k = rawStore({}).kind;
+      POLICY.allow_ambient_storage = false;
+      return k === 'localStorage' ? '有 localStorage（授权后确实会用）' : '没有 localStorage（浏览器隐私模式 / Node 沙箱）';
+    })() + '——授权位是唯一入口，默认关闭');
+    push('全部缓存闸门跑完，宿主 localStorage 里没有本模块前缀的键', (function () {
+      var amb;
+      try { amb = global.localStorage; } catch (e) { amb = null; }
+      if (!amb || typeof amb.length !== 'number' || typeof amb.key !== 'function') return true;
+      for (var i = 0; i < amb.length; i++) {
+        var k = amb.key(i);
+        if (typeof k === 'string' && k.indexOf(DEFAULTS.cache_prefix) === 0) return false;
+      }
+      return true;
+    })(), (function () {
+      var amb;
+      try { amb = global.localStorage; } catch (e) { amb = null; }
+      return amb && typeof amb.length === 'number' ? ('真实宿主存储已逐键检查（' + amb.length + ' 键）') : '本环境没有宿主存储，此门为旁证（主证是上一条的读取计数）';
+    })());
 
     /* ---------- 7. 多源融合 ---------- */
     var mkRes = function (id, lat, lon, acc, okFlag) {
@@ -2513,12 +2595,14 @@
       { match: 'freeipapi', body: SAMPLE_IP.freeipapi.body }
     ];
 
-    /* ---- A. 离线策略：环境 fetch 一次都不能被摸 ---- */
+    /* ---- A. 离线策略：环境 fetch 一次都不能被摸，缓存也不许回供 ---- */
     var off = await fetchGeoIpAll({ sources: SRC5 });
-    push('默认策略下 fetchGeoIpAll 不碰环境 fetch，逐源返回 offline_disallowed', (function () {
-      return trapHits === 0 && off.results.length === SRC5.length &&
-        off.results.every(function (r) { return r.ok === false && r.error_kind === 'offline_disallowed'; });
-    })(), '环境 fetch 命中 ' + trapHits + ' 次（必须 0），' + off.results.length + ' 源全部被策略拦住');
+    var offDenied = off.results.filter(function (r) { return r.ok === false && r.error_kind === 'offline_disallowed'; }).length;
+    var offCached = off.results.filter(function (r) { return r.from_cache === true; }).length;
+    push('默认策略下 fetchGeoIpAll 不碰环境 fetch，逐源返回 offline_disallowed（缓存也不端）', (function () {
+      return trapHits === 0 && off.results.length === SRC5.length && offCached === 0 && offDenied === SRC5.length;
+    })(), '环境 fetch 命中 ' + trapHits + ' 次（必须 0），策略拦住 ' + offDenied + '/' + SRC5.length
+      + ' 源，缓存回供 ' + offCached + ' 源（必须 0）');
 
     /* ---- B. 注入 mock 的多源链路 ---- */
     var bag = { calls: [] };
@@ -2570,7 +2654,7 @@
     /* ---- D. 路由追踪：桥接可用 / 不可用 ---- */
     var bridgeRoutes = [
       { match: '/api/traceroute', body: { ok: true, host: 'example.com', elapsed_ms: 900, reached: true, hops: [{ hop: 1, ip: '10.0.0.1', hostname: 'gw', rtts_ms: [2, 2, 3] }, { hop: 2, ip: '93.184.216.34', hostname: 'example.com', rtts_ms: [15] }] } },
-      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.0.0', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'] } },
+      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.0.0', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'], cors_policy: { wildcard: false, built_in: ['null', 'https://iammezsh.github.io'], extra: [], loopback_origins_allowed: true, no_origin_clients_allowed: true, note: '名单外的浏览器来源一律 403 origin_not_allowed' } } },
       { match: 'dns.google/resolve', body: { Status: 0, Answer: [{ type: 1, name: 'example.com.', data: '93.184.216.34', TTL: 300 }] } }
     ];
     var t1 = await tracerouteViaBridge('example.com', { fetchImpl: makeMockFetch(bridgeRoutes, { calls: [] }) });
@@ -2615,6 +2699,32 @@
     })(), String(tBad.error));
     var bs = await bridgeStatus({ fetchImpl: makeMockFetch([bridgeRoutes[1]], { calls: [] }) });
     push('bridgeStatus 解析能力清单', bs.ok === true && bs.capabilities.length === 5 && bs.server === 'geonet-bridge', bs.capabilities.join(','));
+    // ⑧ 面板要回答「除了我还有谁能在浏览器里读这台桥」，靠的就是这个字段。
+    // 上一版 bridgeStatus 把它当未知字段丢掉了，于是真浏览器里新桥被报成「桥版本过旧」——
+    // 内核自检当时全绿，因为它自己没测这条透传。这两门就是补那一课。
+    push('bridgeStatus 把 cors_policy 原样透出（新桥不会被误报成旧桥）', (function () {
+      var c = bs.cors_policy;
+      return c && c.declared === true && c.wildcard === false && c.built_in.length === 2 &&
+        c.built_in.indexOf('null') >= 0 && c.built_in.indexOf('https://iammezsh.github.io') >= 0 &&
+        c.loopback_origins_allowed === true && c.extra.length === 0 && String(c.note).indexOf('403') > 0;
+    })(), JSON.stringify(bs.cors_policy));
+    var bsJunk = await bridgeStatus({
+      fetchImpl: makeMockFetch([{
+        match: '/api/health',
+        body: { ok: true, server: 'geonet-bridge', version: '0.9', capabilities: [], cors_policy: { wildcard: 'yes-please', built_in: ['https://a.example', 42, '', 'https://b.example', 'x'.repeat(400)], extra: 'not-a-list', loopback_origins_allowed: 1, note: 'y'.repeat(500) } }
+      }], { calls: [] })
+    });
+    push('cors_policy 里的 junk 被夹成能安全显示的形状（字符串才是 true、条目截断、多余项丢弃）', (function () {
+      var c = bsJunk.cors_policy;
+      return c && c.declared === true && c.wildcard === false && c.built_in.length === 3 &&
+        c.built_in[2].length === 96 && c.extra.length === 0 && c.loopback_origins_allowed === false &&
+        String(c.note).length <= 200;
+    })(), 'built_in=' + JSON.stringify((bsJunk.cors_policy || {}).built_in) + ' note 长度=' + String(((bsJunk.cors_policy || {}).note) || '').length);
+    var bsOld = await bridgeStatus({
+      fetchImpl: makeMockFetch([{ match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '0.8', capabilities: ['ping'] } }], { calls: [] })
+    });
+    push('没声明 cors_policy 的旧桥如实报 null（界面据此才许说「桥版本过旧」）',
+      bsOld.ok === true && bsOld.cors_policy === null, JSON.stringify(bsOld.cors_policy));
     // PowerShell 那份桥 python 恒为 null、改用 runtime 报运行环境。这一门钉住「runtime 必须透出」：
     // 少带这个字段，界面就显示「运行环境未上报」，而服务自己明明在 health 里写了 PowerShell 版本。
     var bsPs = await bridgeStatus({

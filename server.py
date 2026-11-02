@@ -990,8 +990,8 @@ def has_ipv4_loopback_address():
 def iface_summary(bind_host, port):
     """本机网络接口摘要 —— 刻意只给「数量」和「是否回环」，不给任何可识别的值。
 
-    为什么不返回主机名/MAC/局域网 IP：这个端点会被任意本地页面（包括用户从
-    file:// 打开的 HTML）用 CORS `*` 访问到，那些信息足够做设备指纹与内网测绘。
+    为什么不返回主机名/MAC/局域网 IP：这个端点会被本地页面（用户从 file:// 打开的那份 HTML、
+    以及官方托管页）经来源白名单访问到，那些信息足够做设备指纹与内网测绘。
     前端真正需要的是「桥接是否只在回环上」这个安全事实，所以只报事实。
     枚举失败时说「取不到」（ok=false + error），而不是给一个 0 假装这台机器没有网卡。
     """
@@ -1004,7 +1004,7 @@ def iface_summary(bind_host, port):
         "interface_count": 0,
         "ipv4_loopback_present": has_ipv4_loopback_address(),
         "redacted_fields": ["hostname", "mac", "interface_names", "lan_addresses"],
-        "note": "本端点刻意不返回主机名/MAC/内网地址：/api/* 用 CORS `*` 对任意本地页面开放，"
+        "note": "本端点刻意不返回主机名/MAC/内网地址：/api/* 对来源白名单（file://、回环、官方托管页）开放，"
                 "这些信息足以做设备指纹。需要排查本机网络请用系统命令。",
     }
     loop_ok, why = is_bind_address_loopback(bind_host)
@@ -1021,12 +1021,78 @@ def iface_summary(bind_host, port):
 # ================================================================ 6. HTTP 处理器
 
 def is_api_path(path):
-    """只有 /api/* 会拿到 CORS `*`。
+    """只有 /api/* 才可能被授予跨站读权限（名单见 origin_allowed）。
 
     单独抽成函数是因为这条规则必须能**离线断言**：静态目录如果也带上 CORS，
     任意本地页面（包括用户从网上下载的 HTML）就能把项目源码与数据文件全部读走。
     """
     return isinstance(path, str) and path.startswith("/api/")
+
+
+# ---------------------------------------------------------------- 跨站来源白名单
+# 这条边以前是 `Access-Control-Allow-Origin: *`，等于「你浏览器里开着的任何网页都能借这台
+# 机器的桥接发包、并把响应读走」。桥接里从来没有你的坐标（位置类参数一律 400），但它能替你
+# 跑 tracert/ping，也能被拿来探测本机服务，所以这条边现在收成一张写死的名单：
+#   null                        → file:// 双击打开的页面（浏览器给的是不透明来源）
+#   https://iammezsh.github.io  → 官方托管页（跨协议打本机回环，见 MANUAL §2.5）
+#   回环 origin                 → 本机自己提供的同源页面（端口跟着页面走，换端口不必改名单）
+#   压根没有 Origin 头           → 非浏览器客户端（启动器探测 /api/health、curl），照常放行
+# 其余任何来源一律 403 origin_not_allowed。自建域名或内网镜像用 --allow-origin 追加
+# （PowerShell 那份桥是 -AllowOrigin）：名单只能变长，默认值不会变短。
+CORS_ALLOWED_ORIGINS = ("null", "https://iammezsh.github.io")
+EXTRA_ALLOWED_ORIGINS = []          # main() 按 --allow-origin 追加；两份桥同一个概念
+# 回环 origin 的判定不用正则猜形状，交给 urllib.parse 拆开 + ipaddress 判性质：
+# 主机名必须正好是 localhost，或者是一个「真的是回环」的 IP 字面量。于是
+#   [2001:db8::1]、10.0.0.5      → 是 IP，但不回环 → 拒
+#   [::ffff:8.8.8.8]             → IPv4 映射写法：拆开看内层，8.8.8.8 不回环 → 拒
+#   127.1                        → 不是合法的点分四段，ipaddress 直接报错 → 拒
+#   127.0.0.1.evil.com           → 不是 IP，也不叫 localhost → 拒
+# 拒绝只是让本机同源页面换个写法，放过则等于给伪装留门，所以宁可严一点。
+def _is_loopback_origin(parsed):
+    host = parsed.hostname
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        addr = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    mapped = getattr(addr, "ipv4_mapped", None)   # ::ffff:a.b.c.d 的真身在括号里，得看内层；IPv4 没这个属性
+    return (mapped or addr).is_loopback
+
+
+def origin_allowed(origin, extra=None):
+    """浏览器带进来的 Origin 能不能放行（放行就是把原值回显成 Access-Control-Allow-Origin）。"""
+    o = "" if origin is None else str(origin).strip()
+    if o == "":
+        return True                  # 非浏览器客户端：CORS 对它没有意义，请求照做
+    low = o.lower()
+    if low in tuple(x.lower() for x in CORS_ALLOWED_ORIGINS):
+        return True
+    p = urllib.parse.urlsplit(low)
+    # origin 只有「协议 + 主机 + 端口」这一段。带路径、带查询、带账号密码的都不是 origin，
+    # 而是伪造出来想把名单骗过去的字符串，一律不给过。端口不解析（urlsplit 对
+    # `host:443.evil.cn` 取端口会抛异常），因为名单判定根本不需要它。
+    if p.scheme not in ("http", "https") or not p.netloc or p.path or p.query or p.fragment:
+        return False
+    if p.username or p.password:
+        return False
+    if _is_loopback_origin(p):
+        return True
+    for x in tuple(extra or ()) + tuple(EXTRA_ALLOWED_ORIGINS):
+        if low == str(x).strip().lower():
+            return True
+    return False
+
+
+def add_allowed_origin(origin):
+    """--allow-origin 的落点：只接受完整 origin（协议+主机[:端口]），别的写法直接拒。"""
+    o = str(origin or "").strip().lower().rstrip("/")
+    if re.match(r"^https?://[a-z0-9.\-\[\]:]+$", o) is None or "://" not in o:
+        return {"ok": False, "error": "来源写法不对（要 https://域名 或 http://127.0.0.1:端口）：%s" % one_line(origin, 60)}
+    EXTRA_ALLOWED_ORIGINS.append(o)
+    return {"ok": True, "added": o}
 
 
 def q_first(query, key, default=None):
@@ -1076,9 +1142,9 @@ TEXT_TYPES = {
 # tests/check-package.py 把两份字面量按端点做集合比较，多一个字段或少一个字段都会红。
 # 列的是**成功响应**的键（失败分支少几个字段是刻意的，见各端点的 fail 路径）。
 BRIDGE_CONTRACT = {
-    "/api/health": ["active_children", "bind", "capabilities", "endpoints", "geoip_sources",
-                    "limits", "note", "ok", "platform", "privacy", "python", "runtime",
-                    "server", "status", "tools", "version"],
+    "/api/health": ["active_children", "bind", "capabilities", "cors_policy", "endpoints",
+                    "geoip_sources", "limits", "note", "ok", "platform", "privacy", "python",
+                    "runtime", "server", "status", "tools", "version"],
     "/api/iface": ["bind_address", "bind_check_reason", "bind_is_loopback", "error", "error_kind",
                    "interface_count", "ipv4_loopback_present", "note", "ok", "port", "redacted_fields"],
     "/api/dns": ["Answer", "Status", "addresses", "error", "error_kind", "family", "host",
@@ -1121,6 +1187,14 @@ def health_payload(bind_host, port):
                     "note": "所有坐标类参数一律 400；GeoIP 代理只接受 IP 字面量或留空（查出口 IP）。"
                              "traceroute/ping 可以打内网（追踪自家路由器是它的本职），"
                              "响应里的 target_scope 会标明目标是内网还是公网"},
+        # 跨站来源白名单也当成一条对外事实报出来，页面 ⑧ 的桥接自检才能直接显示
+        # 「现在谁能借这条边」，而不是让用户去猜配置。两份桥同名同形状。
+        "cors_policy": {"wildcard": False, "built_in": list(CORS_ALLOWED_ORIGINS),
+                        "extra": list(EXTRA_ALLOWED_ORIGINS),
+                        "loopback_origins_allowed": True,
+                        "no_origin_clients_allowed": True,
+                        "note": "名单外的浏览器来源一律 403 origin_not_allowed；"
+                                "回显具体来源而不是 *，所以任意网页读不到本机响应"},
         "geoip_sources": geoip_source_ids(),
         "active_children": _ACTIVE["children"],
         "note": "所有系统命令均以 argv 列表 + shell=False 执行；只监听回环地址",
@@ -1149,11 +1223,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         if api:
-            # 只对 /api/* 开 CORS。为什么是 `*` 而不是回显 Origin：
-            # 本服务没有任何鉴权与 Cookie，`*` 才能覆盖 file:// 页面发来的 `Origin: null`
-            # ——那种情况下回显具体 Origin 并加 Allow-Credentials 才是安全写法，
-            # 而我们刻意**不发** Access-Control-Allow-Credentials，所以 `*` 不会带来凭据风险。
-            self.send_header("Access-Control-Allow-Origin", "*")
+            # 跨站读权限只给名单里的来源（见 origin_allowed），且**原样回显**而不是 `*`：
+            # `*` 会让「你浏览器里开着的任意网页」都能读走响应，回显加名单才把这条边收紧到
+            # 本项目自己的页面。没有 Origin 头（本机程序、启动器探测）时不回显任何 CORS 头，
+            # 请求照做——CORS 只对浏览器有意义，非浏览器客户端本来也没有跨站这个概念。
+            req_origin = (self.headers.get("Origin") or "").strip()
+            if req_origin and origin_allowed(req_origin):
+                self.send_header("Access-Control-Allow-Origin", req_origin)
+                self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "content-type")
             self.send_header("Access-Control-Max-Age", "600")
@@ -1198,19 +1275,28 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self._dispatch(body=False)
 
     def do_OPTIONS(self):
-        """CORS 预检。file:// 页面的 `Origin: null` 同样允许，因为响应是 `*`。"""
+        """CORS 预检。只有来源白名单里的页面能预检通过；其余一律 403（含 file:// 之外的任意站点）。"""
         parsed = urllib.parse.urlsplit(self.path)
         api = is_api_path(parsed.path)
         if not api:
             self.fail(405, "静态资源不接受预检（本服务只支持 GET/HEAD/OPTIONS-on-/api）", "method_not_allowed", api=False)
             return
+        req_origin = (self.headers.get("Origin") or "").strip()
+        if req_origin and not origin_allowed(req_origin):
+            # 不在名单里的站点连预检都不给它过：状态码 403 + 中文原因，界面会原样显示。
+            self.fail(403, "跨站来源 %s 不在白名单里，本桥只服务本机自己的页面"
+                      "（file://、回环地址与官方托管页；要加别的域名请用 --allow-origin）"
+                      % one_line(req_origin, 80), "origin_not_allowed")
+            return
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        if req_origin:
+            self.send_header("Access-Control-Allow-Origin", req_origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "content-type")
         # 托管页（https）访问本机回环属于「私有网络访问」，Chrome 等会先发带
         # Access-Control-Request-Private-Network 的预检并要求该回显。按调用方是否提出来决定回显，
-        # 不给静态资源回：桥接本来就只监听回环，且 /api/* 全是只读。
+        # 不给静态资源回、也不给名单外的来源回：桥接本来就只监听回环，且 /api/* 全是只读。
         if (self.headers.get("Access-Control-Request-Private-Network") or "").lower() == "true":
             self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Access-Control-Max-Age", "600")
@@ -1252,6 +1338,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
                           % ", ".join(bad), "privacy_rejected", api=api, head_only=not body)
                 return
             if api:
+                # 第二道闸：跨站来源。名单外的网页既读不到响应，也借不到这台机器发包。
+                req_origin = (self.headers.get("Origin") or "").strip()
+                if req_origin and not origin_allowed(req_origin):
+                    code = 403
+                    self.fail(403, "跨站来源 %s 不在白名单里，本桥只服务本机自己的页面"
+                              "（file://、回环地址与官方托管页；要加别的域名请用 --allow-origin）"
+                              % one_line(req_origin, 80), "origin_not_allowed", api=True,
+                              head_only=not body)
+                    return
                 code = self._route_api(path, query, body)
                 return
             code = self._serve_static(path, body)
@@ -2023,6 +2118,45 @@ def run_selftest(root_dir=None):
           is_api_path("/api/health") is True and is_api_path("/api/x") is True
           and is_api_path("/app/core-net.js") is False and is_api_path("/api") is False
           and is_api_path("/evil/api/health") is False and is_api_path(None) is False, "CORS 判定范围不对")
+
+    # 跨站来源白名单：这条边以前是 `*`，现在是一张写死的名单，判定必须逐条钉住，
+    # 否则「收紧」会变成一句注释。
+    check("白名单：file:// 的 null 与官方托管页放行（大小写不敏感）",
+          origin_allowed("null") is True and origin_allowed("https://iammezsh.github.io") is True
+          and origin_allowed("HTTPS://IAMMEZSH.GitHub.IO") is True, "本项目自己的两种打开方式被拒了")
+    loopback_ok = ["http://127.0.0.1:8765", "http://127.0.0.1", "https://127.0.0.1:8443",
+                   "http://localhost:9000", "http://LOCALHOST:1", "http://[::1]:8765",
+                   "http://[::ffff:127.0.0.1]:8765"]
+    check("白名单：回环来源（含任意端口与 IPv6 方括号写法）全部放行（%d 例）" % len(loopback_ok),
+          all(origin_allowed(o) for o in loopback_ok) is True,
+          repr([o for o in loopback_ok if origin_allowed(o) is not True]))
+    hostile = ["https://evil.example", "http://127.0.0.1.evil.com", "https://iammezsh.github.io.evil.com",
+               "https://not-iammezsh.github.io", "http://10.0.0.5:8765", "http://192.168.2.1:8765",
+               "http://[::ffff:8.8.8.8]:8765", "http://[2001:db8::1]", "http://127.1:8765",
+               "null.com", "//iammezsh.github.io", "https://iammezsh.github.io:443.evil.cn",
+               "http://localhost.evil.cn", "http://evil@127.0.0.1:8765", "http://127.0.0.1:8765/api/health",
+               "http://127.0.0.1:8765?u=https://evil.example"]
+    check("白名单：任意网页与内网非回环来源一律拒绝（%d 例，含前缀伪装）" % len(hostile),
+          not [o for o in hostile if origin_allowed(o) is True],
+          "误放：" + repr([o for o in hostile if origin_allowed(o) is True]))
+    check("没有 Origin 头时照常服务（启动器探测与 curl 不受 CORS 影响）",
+          origin_allowed(None) is True and origin_allowed("") is True and origin_allowed("   ") is True,
+          "非浏览器客户端被当成跨站来源拒掉了")
+    check("--allow-origin 只收完整 origin，写法不对就拒绝启动",
+          add_allowed_origin("https://maps.example.com")["ok"] is True
+          and origin_allowed("https://maps.example.com") is True
+          and add_allowed_origin("maps.example.com")["ok"] is False
+          and add_allowed_origin("https://example.com/a?b=1")["ok"] is False
+          and add_allowed_origin("")["ok"] is False, "追加名单的校验没挡住畸形写法")
+    EXTRA_ALLOWED_ORIGINS.remove("https://maps.example.com")   # 别把这条临时项留给后面的判定
+    check("追加名单清空后不再放行（--allow-origin 只在启动时生效，运行期不会被网页自己加宽）",
+          origin_allowed("https://maps.example.com") is False and EXTRA_ALLOWED_ORIGINS == [],
+          repr(EXTRA_ALLOWED_ORIGINS))
+    # 字面量用拼接写：把要禁的那行原样写进检查里，src_text 就会命中自己的检查文本（老坑）。
+    check("响应里不再出现通配 `Access-Control-Allow-Origin: *`（改成回显名单内的来源）",
+          ('"Access-Control-Allow-' + 'Origin", "*"') not in src_text, "源码里还在发通配头")
+    check("预检与实请求走同一张名单（两处都有 403 分支）",
+          src_text.count('"origin_not_allowed"') >= 2, "只有一处拒绝，另一处会放过")
     hp = health_payload("127.0.0.1", DEFAULT_PORT)
     check("health 载荷字段与前端 bridgeStatus 对齐（ok/server/version/python/platform/capabilities）",
           hp["ok"] is True and hp["server"] == SERVER_NAME and isinstance(hp["capabilities"], list)
@@ -2059,8 +2193,14 @@ def run_selftest(root_dir=None):
           ("except (OSError, AttributeError, ValueError) as exc" in src_text
            and 'out["ok"] = False' in src_text), "见 iface_summary")
     host_now = socket.gethostname()
-    check("iface 序列化后不含本机主机名（CORS `*` 对任意本地页面开放，这是脱敏红线）",
+    check("iface 序列化后不含本机主机名（白名单内的页面照样是别人的浏览器，脱敏红线不变）",
           len(host_now) < 2 or host_now not in json.dumps(if1, ensure_ascii=False), "响应里出现了主机名")
+    check("health 如实报出自己的跨站政策（wildcard=False、内建名单非空、含 null）",
+          hp["cors_policy"]["wildcard"] is False
+          and hp["cors_policy"]["built_in"] == list(CORS_ALLOWED_ORIGINS)
+          and "null" in hp["cors_policy"]["built_in"]
+          and hp["cors_policy"]["extra"] == []
+          and bool(re.search(r"[\u4e00-\u9fff]", hp["cors_policy"]["note"])), repr(hp["cors_policy"]))
 
     # ---------- G2. 内网目标：允许，但如实标注归属（⑧ 的本职包含追踪自家路由器） ----------
     lan_hits = ["192.168.1.1", "10.0.0.138", "172.16.5.4", "127.0.0.1", "::1", "0.0.0.0",
@@ -2261,8 +2401,10 @@ USAGE = """
   其余路径 = 项目静态文件（拒绝 .. 与点文件/私钥）
 
 配套前端：在浏览器打开项目里的页面后，`GEONET.tracerouteViaBridge(host)` 会自动走这里。
-  页面从 file:// 打开时 Origin 是 null，本服务对 /api/* 返回 `Access-Control-Allow-Origin: *`，
-  因此可以直接跨域调用；静态资源不带 CORS 头，避免任意本地页面读取项目文件。
+  /api/* 的跨站读权限只给来源白名单：null（file:// 打开的页面）、回环 origin、官方托管页
+  https://iammezsh.github.io；命中时**原样回显那个 Origin**（不是 `*`），名单外一律 403
+  origin_not_allowed。要加自己的域名或内网镜像用 --allow-origin（可重复）。
+  没有 Origin 头的客户端（启动器探测、curl）不受影响；静态资源一律不带 CORS 头。
 
 安全说明：所有外部输入先过白名单（字符集 [A-Za-z0-9._:-] + 结构校验），
   再以 argv 列表 + shell=False 交给 subprocess；非法输入直接 400 并给中文原因。
@@ -2282,8 +2424,17 @@ def main(argv=None):
                         help="绑定地址，只允许回环（127.0.0.1 / ::1 / localhost）")
     parser.add_argument("--root", default=None, help="静态根目录（默认为本文件所在目录）")
     parser.add_argument("--quiet", action="store_true", help="不打印每请求一行日志")
+    parser.add_argument("--allow-origin", action="append", default=[], dest="allow_origin",
+                        help="追加一个允许跨站调用 /api/* 的来源（可重复，如 https://example.com）；"
+                             "默认名单已含 file://、回环与官方托管页")
     parser.add_argument("--selftest", action="store_true", help="离线自检后退出（不监听端口、不外联）")
     args = parser.parse_args(argv)
+
+    for o in args.allow_origin:
+        r = add_allowed_origin(o)
+        if r.get("ok") is not True:
+            print_safe("启动被拒绝：%s" % r.get("error"))
+            return 2
 
     root = os.path.abspath(args.root or os.path.dirname(os.path.abspath(__file__)))
 

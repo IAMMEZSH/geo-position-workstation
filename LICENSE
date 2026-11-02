@@ -22,7 +22,7 @@ SOFTWARE.
 
 ---
 
-第三方数据与组件的许可不在本 MIT 覆盖范围内，见 说明书.md 第 9 节：
-GeoNames cities15000（CC BY 4.0，要求署名）、Natural Earth ne_50m_land（公有领域）、
-Leaflet 1.9.4（BSD-2-Clause）、qrcode.js（MIT, Kazuhiko Arase）。
-再分发时请连同该节一并保留。
+Third-party data and components are not covered by this MIT grant; see MANUAL.md §13 for the full
+table. GeoNames cities15000 (CC BY 4.0, attribution required), Natural Earth ne_50m_land (public
+domain), Leaflet 1.9.4 (BSD-2-Clause), qrcode.js (MIT, Kazuhiko Arase). When you redistribute, keep
+that section together with the package — the attribution obligation travels with the data.

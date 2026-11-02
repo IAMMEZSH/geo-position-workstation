@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   kernel-gates:
-    name: 内核闸门 + 桥接自检（${{ matrix.os }}）
+    name: Kernel gates + bridge self-tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,8 +27,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 541 道闸门：六个内核同步项 + GEONET 异步项。任何一道不过即非零退出。
-      # --with-bridge 让 Windows 作业顺带跑 PowerShell 那份桥的 187 项自检；
+      # 623 道闸门：七个内核的同步项，加上 GEONET 与 GEOVAULT 的异步项。任何一道不过即非零退出。
+      # --with-bridge 让 Windows 作业顺带跑 PowerShell 那份桥的 202 项自检；
       # ubuntu 上这一步打印「跳过」而不是假装通过（那份桥本来就只在 Windows 上跑）。
       - name: node tests/run-all.mjs --with-server --with-bridge
         run: node tests/run-all.mjs --with-server --with-bridge
@@ -38,16 +38,28 @@ jobs:
       # 退出码 3 = 当前平台不是 Windows（那份桥依赖 PowerShell 5.1 + http.sys），如实跳过而不是假装通过。
       # 写成 `|| rc=$?` 是必须的：这个 shell 带 -e，裸写一行 `python ...` 再 `rc=$?`
       # 会在非零退出的那一刻整个中止，跳过分支根本轮不到执行（第一版就在 ubuntu 上这样假红过）。
-      - name: python tests/bridge-parity.py（两份桥实机对账）
+      - name: python tests/bridge-parity.py (both bridges, live cross-check)
         run: |
           rc=0
           python tests/bridge-parity.py || rc=$?
-          if [ $rc -eq 3 ]; then echo '::notice::跳过实机对账：这一步只在 Windows 上有意义（当前平台没有 PowerShell 5.1 + http.sys）'; exit 0; fi
+          if [ $rc -eq 3 ]; then echo '::notice::skipped: the live cross-check needs PowerShell 5.1 + http.sys, so it only means something on Windows'; exit 0; fi
           exit $rc
+        shell: bash
+
+      # 启动器一律是 POSIX sh。Ubuntu 的 /bin/sh 是 dash，比 bash 严：混进 bash 专用语法
+      # （[[ ]]、数组、local…）在开发机上跑得好好的，到 macOS/Linux 用户「点开就能用」
+      # 那一刻才会当场失败，所以用真实 dash 提前做 sh -n 语法检查。
+      # Windows 跑的是 Git Bash 的 sh，同样检查一遍——两份实现都点头才算过。
+      - name: sh -n every launcher (POSIX syntax)
+        run: |
+          for f in 启动-*.sh 启动-macOS.command; do
+            echo "-- $f"
+            sh -n "$f"
+          done
         shell: bash
 
       # 静态文件必须能被 file:// 直接打开：入口引用的每个本地资源都要在树上，
       # 启动器编码/换行符与桥接的 shell 红线也在这里守住。
-      - name: python tests/check-package.py
+      - name: python tests/check-package.py (package + documentation)
         run: python tests/check-package.py
         shell: bash

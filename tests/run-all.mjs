@@ -1,7 +1,9 @@
 /*
- * tests/run-all.mjs — 在 Node 里按浏览器方式加载六个内核并跑全部自检闸门。
+ * tests/run-all.mjs — 在 Node 里按浏览器方式加载各内核并跑全部自检闸门。
  * 内核文件是不含 import/export 的 IIFE（挂到 globalThis），所以这里用 vm 建一个沙箱执行，
  * 与浏览器 <script> 的加载语义一致；沙箱里不放 DOM，因此只覆盖内核，不覆盖界面。
+ * 沙箱里给 crypto（WebCrypto）：GEOVAULT 的异步闸门要真跑 PBKDF2 + AES-GCM，
+ * 不给 localStorage：加密内核必须能在「没有持久层」的环境里如实报告能力，而不是假装写成功。
  *
  *   node tests/run-all.mjs              只跑内核闸门
  *   node tests/run-all.mjs --with-server  再跑一次 server.py --selftest（需要本机有 python）
@@ -18,8 +20,9 @@ const ROOT = path.join(HERE, '..');
 const APP = path.join(ROOT, 'app');
 
 const DATA = ['data/data-countries.js', 'data/data-cities.js', 'data/data-land.js'];
-const CORE = ['core-geodetic.js', 'core-datums.js', 'core-cell.js', 'core-gnss.js', 'core-astro.js', 'core-net.js'];
+const CORE = ['core-geodetic.js', 'core-datums.js', 'core-cell.js', 'core-gnss.js', 'core-astro.js', 'core-net.js', 'core-vault.js'];
 const ENGINES = [
+  ['GEOVAULT', 'core-vault.js'],
   ['GEOGEO', 'core-geodetic.js'],
   ['GEODATUM', 'core-datums.js'],
   ['GEOCELL', 'core-cell.js'],
@@ -39,6 +42,8 @@ const sandbox = {
   setTimeout, clearTimeout, setInterval, clearInterval,
   fetch: typeof fetch === 'function' ? fetch : undefined,
   URL, TextEncoder, TextDecoder,
+  // WebCrypto：GEOVAULT 的异步闸门要在沙箱里真的派生密钥、真的加解密。
+  crypto: typeof crypto !== 'undefined' && crypto.getRandomValues ? crypto : undefined,
 };
 const ctx = vm.createContext(sandbox);
 for (const f of DATA.concat(CORE)) vm.runInContext(load(f), ctx, { filename: f });
@@ -66,6 +71,23 @@ total += asyncGates.length;
 failed += asyncBad.length;
 rows.push(['GEONET async', asyncGates.length, asyncBad.length]);
 asyncBad.slice(0, 5).forEach((g) => console.error('  FAIL GEONET async · ' + g.name + ' · ' + (g.detail || '')));
+
+// 加密内核的异步闸门是真的 PBKDF2（25 万次）+ AES-256-GCM 往返，不是读注释；
+// 沙箱里必须拿得到 WebCrypto，拿不到就让它红，不许静默「跳过即通过」。
+if (typeof ctx.GEOVAULT.selfTestAsync !== 'function') {
+  console.error('FAIL  GEOVAULT 未导出 selfTestAsync()');
+  process.exit(2);
+}
+if (!ctx.GEOVAULT.webCryptoReady()) {
+  console.error('FAIL  Node 沙箱里没有 WebCrypto（crypto.subtle），GEOVAULT 的加密闸门无法验证');
+  process.exit(2);
+}
+const vaultGates = await ctx.GEOVAULT.selfTestAsync();
+const vaultBad = vaultGates.filter((g) => !g.pass);
+total += vaultGates.length;
+failed += vaultBad.length;
+rows.push(['GEOVAULT crypto', vaultGates.length, vaultBad.length]);
+vaultBad.slice(0, 8).forEach((g) => console.error('  FAIL GEOVAULT crypto · ' + g.name + ' · ' + (g.detail || '')));
 
 const width = Math.max(...rows.map((r) => r[0].length));
 console.log('\n经纬度定位工作站 · 内核闸门（Node 沙箱，与浏览器同一份文件）\n');

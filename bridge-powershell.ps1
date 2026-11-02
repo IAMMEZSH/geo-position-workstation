@@ -22,6 +22,7 @@
 # 用法：
 #   powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1
 #   参数：-Port 8765  -BindHost 127.0.0.1  -Root <静态根>  -Workers 4
+#         -AllowOrigin https://内网镜像域名（可重复，跨站读权限白名单）
 #         -SelfTest（离线闸门，不联网不起进程） -Quiet（不写日志）
 #   关掉这个窗口就是停止桥接。
 # ============================================================================
@@ -32,6 +33,7 @@ param(
     [string]$BindHost = '127.0.0.1',
     [string]$Root = '',
     [int]$Workers = 4,
+    [string[]]$AllowOrigin = @(),
     [switch]$SelfTest,
     [switch]$Quiet,
     # 内部用：工作线程 dot-source 本文件时只取函数定义，不启动服务器
@@ -60,6 +62,20 @@ $script:PositionParams = @(
     'accuracy', 'alt', 'altitude', 'bearing', 'heading', 'lat', 'latitude',
     'loc', 'lon', 'lng', 'longitude', 'position', 'speed'
 )
+
+# 跨站来源白名单（与 server.py 的 CORS_ALLOWED_ORIGINS 同一张名单、同一套判定）。
+# 这条边以前是 `Access-Control-Allow-Origin: *`，等于「你浏览器里开着的任何网页都能借这台
+# 机器的桥接发包、并把响应读走」。桥接里从来没有你的坐标（位置类参数一律 400），但它能替你
+# 跑 tracert/ping，也能被拿来探测本机服务，所以这条边收成一张写死的名单：
+#   null                        → file:// 双击打开的页面（浏览器给的是不透明来源）
+#   https://iammezsh.github.io  → 官方托管页（跨协议打本机回环，见 MANUAL §2.5）
+#   回环 origin                 → 本机自己提供的同源页面（端口跟着页面走，换端口不必改名单）
+#   压根没有 Origin 头           → 非浏览器客户端（启动器探测 /api/health、curl），照常放行
+# 其余任何来源一律 403 origin_not_allowed。自建域名或内网镜像用 -AllowOrigin 追加
+# （server.py 那份桥是 --allow-origin）：名单只能变长，默认值不会变短。
+$script:CorsBuiltInOrigins = @('null', 'https://iammezsh.github.io')
+$script:CorsExtraOrigins = @()          # 启动时由 -AllowOrigin 追加，运行期不再变化
+$script:CorsOriginErrors = @()          # 写法不对的 -AllowOrigin 值；启动段据此 exit 2
 
 # 静态目录里一旦有人误放了凭据，不该被「只是想看 index.html」的服务顺手带出来。
 $script:SecretExts = @('.key', '.pem', '.p12', '.pfx', '.jks', '.id_rsa', '.sqlite', '.db', '.env', '.kdbx', '.log')
@@ -110,7 +126,7 @@ $script:GeoIpSources = @{
 # 两份桥共同的响应契约（成功响应的键）。server.py 里有一份同名同值的 BRIDGE_CONTRACT，
 # tests/check-package.py 逐端点比较两份字面量；本文件的自检再用它核对自己的 health/iface。
 $script:BridgeContract = @{
-    '/api/health' = @('active_children', 'bind', 'capabilities', 'endpoints', 'geoip_sources',
+    '/api/health' = @('active_children', 'bind', 'capabilities', 'cors_policy', 'endpoints', 'geoip_sources',
                       'limits', 'note', 'ok', 'platform', 'privacy', 'python', 'runtime',
                       'server', 'status', 'tools', 'version')
     '/api/iface' = @('bind_address', 'bind_check_reason', 'bind_is_loopback', 'error', 'error_kind',
@@ -594,7 +610,7 @@ function Resolve-HostName {
 
 function Get-IfaceSummary {
     # 与 server.py iface_summary() 同形，而且必须继续保持「脱敏」：
-    # /api/* 用 CORS `*` 对任意本地页面开放（包括用户从 file:// 打开的那份 HTML），
+    # /api/* 对来源白名单（file://、回环、官方托管页）开放（包括用户从 file:// 打开的那份 HTML），
     # 网卡名、内网地址、主机名凑在一起就够做设备指纹和内网测绘了。
     # 第一版这里把名字和地址全列出来了，属于把隐私红线写反——现在只回两件事：
     # 接口数量，以及「绑定是不是只在回环上」。
@@ -604,7 +620,7 @@ function Get-IfaceSummary {
         bind_is_loopback = $false; bind_check_reason = $null
         interface_count = 0; ipv4_loopback_present = $false
         redacted_fields = @('hostname', 'mac', 'interface_names', 'lan_addresses')
-        note = '本端点刻意不返回主机名/MAC/内网地址：/api/* 用 CORS `*` 对任意本地页面开放，' +
+        note = '本端点刻意不返回主机名/MAC/内网地址：/api/* 对来源白名单（file://、回环、官方托管页）开放，' +
                '这些信息足以做设备指纹。需要排查本机网络请用系统命令。'
     }
     $bind = Test-LoopbackBind $script:BindHost
@@ -722,17 +738,123 @@ function Invoke-JsonFetch {
     return $out
 }
 
+# ---------------------------------------------------------------- 7b. 跨站来源判定
+function Test-LoopbackDottedQuad {
+    param($Text)
+    # 点分四段、每段 0..255、第一段是 127，才算回环。
+    # 为什么不用 [System.Net.IPAddress]::Parse：.NET 认「127.1」这种简写（悄悄补成 127.0.0.1），
+    # 而 Origin 里出现简写本身就是一种伪装尝试——拒绝只是让本机页面换个写法，
+    # 放过则等于给「看起来像回环」的外部站点开门。
+    $m = [regex]::Match(('' + $Text), '^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$')
+    if (-not $m.Success) { return $false }
+    foreach ($g in @(1, 2, 3, 4)) { if ([int]$m.Groups[$g].Value -gt 255) { return $false } }
+    return ([int]$m.Groups[1].Value -eq 127)
+}
+
+function Split-OriginAuthority {
+    param($Authority)
+    # origin 只有「协议 + 主机 + 端口」。这里把主机与端口拆开：方括号里的 IPv6 整体算主机，
+    # 端口必须是纯数字。拆不出来（多个冒号、方括号不成对、端口写了别的）返回 $null → 拒绝。
+    $a = ('' + $Authority).Trim().ToLowerInvariant()
+    if ($a.Length -eq 0) { return $null }
+    if ($a.StartsWith('[')) {
+        $end = $a.IndexOf(']')
+        if ($end -lt 0) { return $null }
+        $headText = $a.Substring(0, $end + 1)
+        $tail = $a.Substring($end + 1)
+        if ($tail.Length -eq 0) { return @{ host = $headText; port = '' } }
+        if (-not $tail.StartsWith(':')) { return $null }
+        if ($tail.Substring(1) -notmatch '^[0-9]{1,5}$') { return $null }
+        return @{ host = $headText; port = $tail.Substring(1) }
+    }
+    if ($a.IndexOf(']') -ge 0) { return $null }      # 方括号只能出现在最前面
+    $colon = $a.LastIndexOf(':')
+    if ($colon -ge 0) {
+        $headText = $a.Substring(0, $colon)
+        $portText = $a.Substring($colon + 1)
+        if ($portText -notmatch '^[0-9]{1,5}$') { return $null }
+        if ($headText.Length -eq 0) { return $null }
+        return @{ host = $headText; port = $portText }
+    }
+    return @{ host = $a; port = '' }
+}
+
+function Test-LoopbackOriginHost {
+    param($HostText)
+    # 主机名 → 是不是回环。域名只有 localhost 算（浏览器给它的 Origin 就是 http://localhost:端口）；
+    # 其余必须是 IP 字面量，且真是回环段。[::ffff:a.b.c.d] 这种「IPv6 写法包着 IPv4」要看内层，
+    # 所以 [::ffff:8.8.8.8] 会在这里被拒（8.8.8.8 不是回环）。
+    $t = ('' + $HostText).Trim().ToLowerInvariant()
+    if ($t -eq 'localhost') { return $true }
+    if ($t.StartsWith('[')) {
+        $inner = $t.Substring(1, $t.Length - 2)
+        $v4 = [regex]::Match($inner, '^::ffff:([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})$')
+        if ($v4.Success) { return (Test-LoopbackDottedQuad $v4.Groups[1].Value) }
+        if ($inner -match '^[0-9a-f:.]+$') {
+            try { return [bool][System.Net.IPAddress]::IsLoopback([System.Net.IPAddress]::Parse($inner)) } catch { return $false }
+        }
+        return $false
+    }
+    if ($t -match '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$') { return (Test-LoopbackDottedQuad $t) }
+    return $false
+}
+
+function Test-OriginAllowed {
+    param($Origin, $Extra)
+    # 放行 = 把这个 Origin 原样回显成 Access-Control-Allow-Origin。
+    # 判定顺序与 server.py 的 origin_allowed() 逐条对应：空 → 内置名单 → 回环 → 追加名单。
+    $o = ('' + $Origin).Trim().ToLowerInvariant()
+    if ($o.Length -eq 0) { return $true }
+    if ($script:CorsBuiltInOrigins -contains $o) { return $true }
+    $m = [regex]::Match($o, '^(https?)://([^/?#@]+)$')
+    if ($m.Success) {
+        $parts = Split-OriginAuthority $m.Groups[2].Value
+        if ($null -ne $parts -and (Test-LoopbackOriginHost $parts.host)) { return $true }
+    }
+    $list = @($script:CorsExtraOrigins)
+    if ($null -ne $Extra) { $list = @($Extra) + $list }
+    foreach ($x in $list) { if ($o -eq ('' + $x).Trim().ToLowerInvariant()) { return $true } }
+    return $false
+}
+
+function Add-AllowedOrigin {
+    param($Origin)
+    # -AllowOrigin 的落点：只接受完整 origin（协议+主机[:端口]），别的写法当场报错、拒绝启动。
+    # 名单只能变长：这里没有任何「运行时由响应加宽名单」的入口，网页自己更无权改它。
+    $o = ('' + $Origin).Trim().ToLowerInvariant().TrimEnd('/')
+    if ($o -notmatch '^https?://[a-z0-9.\-:\[\]]+$') {
+        return @{ ok = $false; error = ('来源写法不对（要 https://域名 或 http://127.0.0.1:端口）：' + (One-Line $Origin 60)) }
+    }
+    $script:CorsExtraOrigins = @($script:CorsExtraOrigins) + @($o)
+    return @{ ok = $true; added = $o }
+}
+
+function Get-RequestOrigin {
+    param($Ctx)
+    # 取不到就返回空串：空串等于「非浏览器客户端」，照常服务而不是拒绝（启动器探测走这条）。
+    try {
+        $h = $Ctx.Request.Headers['Origin']
+        if ($null -eq $h) { return '' }
+        return ('' + $h).Trim()
+    } catch { return '' }
+}
+
 # ---------------------------------------------------------------- 8. 响应输出
 function Send-BridgeResponse {
     param($Ctx, [int]$Code, $BodyBytes, [string]$ContentType, [bool]$IsApi, [bool]$HeadOnly, $Extra)
     # 静态资源不给 CORS：跨站页面不该能把本项目文件当免费 CDN 读取。
-    # /api/* 给 `*`：本服务没有任何鉴权与 Cookie，`*` 才能覆盖 file:// 页面的 Origin: null。
+    # /api/* 只给名单里的来源，并且**原样回显**而不是 `*`：`*` 等于让浏览器里开着的任意网页
+    # 都能读走本机响应，回显加名单才把这条边收紧到本项目自己的页面（见 Test-OriginAllowed）。
     $resp = $Ctx.Response
     $resp.StatusCode = $Code
     $resp.ContentType = $ContentType
     if ($BodyBytes) { $resp.ContentLength64 = $BodyBytes.Length } else { $resp.ContentLength64 = 0 }
     if ($IsApi) {
-        $resp.AddHeader('Access-Control-Allow-Origin', '*')
+        $origin = Get-RequestOrigin $Ctx
+        if ($origin -and (Test-OriginAllowed $origin)) {
+            $resp.AddHeader('Access-Control-Allow-Origin', $origin)
+            $resp.AddHeader('Vary', 'Origin')
+        }
         $resp.AddHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
         $resp.AddHeader('Access-Control-Allow-Headers', 'content-type')
         $resp.AddHeader('Access-Control-Max-Age', '600')
@@ -801,6 +923,14 @@ function Get-HealthPayload {
             banned_params = $banned
             lan_targets_allowed = $true
             note = '所有坐标类参数一律 400；GeoIP 代理只接受 IP 字面量或留空（查出口 IP）。traceroute/ping 可以打内网（追踪自家路由器是它的本职），响应里的 target_scope 会标明目标是内网还是公网'
+        }
+        cors_policy = @{
+            wildcard = $false
+            built_in = @($script:CorsBuiltInOrigins)
+            extra = @($script:CorsExtraOrigins)
+            loopback_origins_allowed = $true
+            no_origin_clients_allowed = $true
+            note = '名单外的浏览器来源一律 403 origin_not_allowed；回显具体来源而不是 *，所以任意网页读不到本机响应'
         }
         geoip_sources = @($script:GeoIpSources.Keys | Sort-Object)
         active_children = $(if ($script:Busy) { $script:Busy.Count } else { 0 })
@@ -1267,9 +1397,18 @@ function Invoke-BridgeRequest {
                 $code = 405; return
             }
             $resp = $Ctx.Response
+            $preOrigin = Get-RequestOrigin $Ctx
+            if ($preOrigin -and -not (Test-OriginAllowed $preOrigin)) {
+                # 不在名单里的站点连预检都不给它过：状态码 403 + 中文原因，界面会原样显示。
+                Write-BridgeFail -Ctx $Ctx -Code 403 -Error ('跨站来源 ' + (One-Line $preOrigin 80) + ' 不在白名单里，本桥只服务本机自己的页面（file://、回环地址与官方托管页；要加别的域名请用 -AllowOrigin）') -Kind 'origin_not_allowed' -IsApi $true -HeadOnly $headOnly
+                $code = 403; return
+            }
             $resp.StatusCode = 204
             $resp.ContentLength64 = 0
-            $resp.AddHeader('Access-Control-Allow-Origin', '*')
+            if ($preOrigin) {
+                $resp.AddHeader('Access-Control-Allow-Origin', $preOrigin)
+                $resp.AddHeader('Vary', 'Origin')
+            }
             $resp.AddHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
             $resp.AddHeader('Access-Control-Allow-Headers', 'content-type')
             # 托管页（https）访问本机回环属于「私有网络访问」，Chrome 会先发带
@@ -1298,6 +1437,12 @@ function Invoke-BridgeRequest {
             $code = 400; return
         }
         if ($isApi) {
+            # 第二道闸：跨站来源。名单外的网页既读不到响应，也借不到这台机器发包。
+            $reqOrigin = Get-RequestOrigin $Ctx
+            if ($reqOrigin -and -not (Test-OriginAllowed $reqOrigin)) {
+                Write-BridgeFail -Ctx $Ctx -Code 403 -Error ('跨站来源 ' + (One-Line $reqOrigin 80) + ' 不在白名单里，本桥只服务本机自己的页面（file://、回环地址与官方托管页；要加别的域名请用 -AllowOrigin）') -Kind 'origin_not_allowed' -IsApi $true -HeadOnly $headOnly
+                $code = 403; return
+            }
             $name = $path.TrimEnd('/')
             switch ($name) {
                 '/api/health' { $code = Invoke-ApiHealth $Ctx $q $headOnly; return }
@@ -1353,6 +1498,16 @@ function Initialize-BridgeRuntime {
     if ($script:Quiet) { $script:LogFile = $null }
     elseif ($lf.Length -gt 0) { $script:LogFile = [System.IO.Path]::GetFullPath($lf) }
     else { $script:LogFile = Join-Path $script:Root 'bridge-powershell.log' }
+    # 来源白名单在这里落地，且只在启动时落地：主线程与工作线程拿到的是同一份参数，
+    # 名单因此不可能被某个请求自己加宽（运行期没有任何入口能改它）。
+    $script:CorsExtraOrigins = @()
+    $script:CorsOriginErrors = @()
+    foreach ($ao in @($AllowOrigin)) {
+        if ($null -eq $ao) { continue }
+        if (('' + $ao).Trim().Length -eq 0) { continue }
+        $add = Add-AllowedOrigin $ao
+        if (-not $add.ok) { $script:CorsOriginErrors = @($script:CorsOriginErrors) + @($add.error) }
+    }
     # 工作线程的 runspace 没有人接收信息流，控制台只由主线程写。
     $script:ToConsole = [bool](-not $WorkerMode)
 }
@@ -1362,7 +1517,7 @@ Initialize-BridgeRuntime
 function Invoke-BridgeSelfTest {
     # 纪律与 server.py --selftest 一样：**不联网、不起子进程、不绑端口**。
     # 这里测的是「校验/解析/标注/契约」这些纯逻辑；PNA 预检回显那类必须由真实浏览器
-    # 才能证明的行为，写在 说明书.md 的实测记录里，不混进闸门。
+    # 才能证明的行为，写在 MANUAL.md 的实测记录里，不混进闸门。
     $s = @{ total = 0; bad = 0; fails = New-Object System.Collections.ArrayList }
     function CHK {
         param([string]$Name, $Cond, [string]$Detail = '')
@@ -1683,7 +1838,7 @@ function Invoke-BridgeSelfTest {
     CHK 'ConvertTo-Json 深度够用（第三层数组不塌成字符串）' ($tr.hops[3].rtt_bounds.Count -eq 3)
     $er = ConvertFrom-Json (To-Json @{ hops = @(); error_kind = $null })
     CHK '0 跳也如实给空数组、null 字段不乱码' ($er.hops.Count -eq 0 -and $null -eq $er.error_kind)
-    # /api/iface 的脱敏是隐私红线的一部分（CORS `*` 对任意本地页面开放）：
+    # /api/iface 的脱敏是隐私红线的一部分（白名单里的 file:// 与托管页照样读得到）：
     # 允许出现的键是白名单，主机名/网卡名/内网地址一个都不许出现在序列化结果里。
     $if1 = Get-IfaceSummary
     $ifJson = To-Json $if1
@@ -1744,6 +1899,70 @@ function Invoke-BridgeSelfTest {
     CHK '来源守卫排在方法判断与坐标校验之前（不是挂在某个端点上）' (
         $iGuard -ge 0 -and $iMethod -gt $iGuard -and $iPrivacy -gt $iGuard) ('' + $iGuard + '/' + $iMethod + '/' + $iPrivacy)
     CHK '非回环给的是 403 + not_loopback（不是 500，也不是静默断开）' ($raw.Contains("-Kind 'not_loopback'") -and $raw.Contains('-Code 403'))
+    # ---------- I2. 跨站来源白名单（与 server.py 的 G 段逐条同集） ----------
+    CHK '白名单：file:// 的 null 与官方托管页放行（大小写不敏感）' `
+        ((Test-OriginAllowed 'null') -and (Test-OriginAllowed 'https://iammezsh.github.io') -and (Test-OriginAllowed 'HTTPS://IAMMEZSH.GitHub.IO'))
+    $originOk = @('http://127.0.0.1:8765', 'http://127.0.0.1', 'https://127.0.0.1:8443',
+                  'http://localhost:9000', 'http://LOCALHOST:1', 'http://[::1]:8765',
+                  'http://[::ffff:127.0.0.1]:8765')
+    $originBad = @('https://evil.example', 'http://127.0.0.1.evil.com', 'https://iammezsh.github.io.evil.com',
+                   'https://not-iammezsh.github.io', 'http://10.0.0.5:8765', 'http://192.168.2.1:8765',
+                   'http://[::ffff:8.8.8.8]:8765', 'http://[2001:db8::1]', 'http://127.1:8765',
+                   'null.com', '//iammezsh.github.io', 'https://iammezsh.github.io:443.evil.cn',
+                   'http://localhost.evil.cn', 'http://evil@127.0.0.1:8765', 'http://127.0.0.1:8765/api/health',
+                   'http://127.0.0.1:8765?u=https://evil.example')
+    $leaked = @($originOk | Where-Object { -not (Test-OriginAllowed $_) })
+    CHK ('白名单：回环来源（含任意端口与 IPv6 方括号写法）全部放行（' + $originOk.Count + ' 例）') `
+        ($leaked.Count -eq 0) (($leaked -join ','))
+    $wrongly = @($originBad | Where-Object { Test-OriginAllowed $_ })
+    CHK ('白名单：任意网页与内网非回环来源一律拒绝（' + $originBad.Count + ' 例，含前缀伪装）') `
+        ($wrongly.Count -eq 0) ('误放：' + (($wrongly -join ',')))
+    CHK '没有 Origin 头时照常服务（启动器探测与 curl 不受 CORS 影响）' `
+        ((Test-OriginAllowed '') -and (Test-OriginAllowed $null) -and (Test-OriginAllowed '   '))
+    CHK '-AllowOrigin 只收完整 origin，写法不对就报错' `
+        ((Add-AllowedOrigin 'https://maps.example.com').ok -and (Test-OriginAllowed 'https://maps.example.com') `
+         -and -not (Add-AllowedOrigin 'maps.example.com').ok -and -not (Add-AllowedOrigin 'https://example.com/a?b=1').ok `
+         -and -not (Add-AllowedOrigin '').ok)
+    $script:CorsExtraOrigins = @()      # 别把这条临时项留给后面的判定
+    CHK '追加名单清空后不再放行（-AllowOrigin 只在启动时生效，运行期不会被网页自己加宽）' `
+        (-not (Test-OriginAllowed 'https://maps.example.com'))
+    CHK '回环 origin 的主机判定不被简写与伪装域名骗过' (
+        (-not (Test-LoopbackOriginHost '127.1')) -and (-not (Test-LoopbackOriginHost '127.0.0.1.evil.com')) -and
+        (Test-LoopbackOriginHost '127.5.6.7') -and (Test-LoopbackOriginHost 'localhost') -and
+        (Test-LoopbackOriginHost '[::1]') -and (-not (Test-LoopbackOriginHost '[::ffff:8.8.8.8]')) -and
+        (-not (Test-LoopbackOriginHost '[2001:db8::1]')) -and (-not (Test-LoopbackOriginHost 'localhost.evil.cn')))
+    CHK 'authority 拆分挡住伪装（端口必须纯数字、方括号必须成对）' (
+        ($null -eq (Split-OriginAuthority 'iammezsh.github.io:443.evil.cn')) -and
+        ($null -eq (Split-OriginAuthority 'a]b')) -and ($null -eq (Split-OriginAuthority '')) -and
+        ((Split-OriginAuthority '[::1]:8765').port -eq '8765') -and
+        ((Split-OriginAuthority '[::1]').host -eq '[::1]') -and ((Split-OriginAuthority 'x:80').port -eq '80'))
+    # needle 用拼接构造：把要禁的那行原样写进检查里，$raw 就会命中自己的检查文本（老坑）。
+    $dollar = [string][char]36
+    $wcBare = "AddHeader('Access-Control-Allow-" + 'Origin' + "', '*')"
+    $echoVar = "Allow-" + 'Origin' + "', " + $dollar + 'origin)'
+    $echoPre = "Allow-" + 'Origin' + "', " + $dollar + 'preOrigin)'
+    CHK '响应里不再出现通配 `Access-Control-Allow-Origin: *`（改成回显名单内的来源）' `
+        (-not $raw.Contains($wcBare))
+    CHK '两条 API 响应路径都把名单内的来源原样回显（实请求与预检各一处）' `
+        ($raw.IndexOf($echoVar) -ge 0 -and $raw.IndexOf($echoPre) -ge 0)
+    CHK '回显来源时一起给 Vary: Origin（否则共享缓存会把别人的响应喂给你）' (
+        (@([regex]::Matches($raw, [regex]::Escape("AddHeader('Vary', 'Origin" + "')"))).Count -ge 2)) (
+        '' + @([regex]::Matches($raw, [regex]::Escape("AddHeader('Vary', 'Origin" + "')"))).Count)
+    $kindNeedle = "-Kind 'origin_not_" + "allowed'"
+    CHK '预检与实请求走同一张名单（两处都有 403 分支）' (
+        (@([regex]::Matches($raw, [regex]::Escape($kindNeedle))).Count -ge 2)) (
+        '' + @([regex]::Matches($raw, [regex]::Escape($kindNeedle))).Count)
+    CHK '来源闸在坐标闸之后、端点路由之前（预检与实请求同一顺序）' `
+        ($raw.IndexOf('Get-PositionParamHits $keys') -lt $raw.IndexOf('$reqOrigin = Get-RequestOrigin $Ctx') -and
+         $raw.IndexOf('$reqOrigin = Get-RequestOrigin $Ctx') -lt $raw.IndexOf('switch ($name)'))
+    CHK '工作线程拿到同一份名单（dot-source 带上 -AllowOrigin，否则主线程放行、线程 403）' `
+        ($raw.Contains('$originTail') -and $raw.Contains("' -AllowOrigin '"))
+    $hCors = $h.cors_policy
+    CHK 'health 如实声明 CORS 策略（wildcard=false、内置名单两条、附加名单为空）' `
+        ($hCors.wildcard -eq $false -and @($hCors.built_in).Count -eq 2 -and ($hCors.built_in -contains 'null') `
+         -and ($hCors.built_in -contains 'https://iammezsh.github.io') -and @($hCors.extra).Count -eq 0 `
+         -and $hCors.loopback_origins_allowed -eq $true -and $hCors.no_origin_clients_allowed -eq $true) (
+        (To-Json $hCors))
     $stStart = $raw.IndexOf('function Invoke-BridgeSelfTest')
     # 取到文件末尾而不是固定 9000 字：截一段等于给后面的漏网之鱼留了位置。
     $stSlice = if ($stStart -ge 0) { $raw.Substring($stStart) } else { '' }
@@ -1816,6 +2035,12 @@ if (-not $bind.ok) {
     Write-Host ('[拒绝启动] ' + $bind.reason)
     exit 2
 }
+if (@($script:CorsOriginErrors).Count -gt 0) {
+    # 名单写歪了不许「忽略掉这一条继续跑」：那样用户以为自己加了内网镜像，实际每个请求都 403。
+    foreach ($e in @($script:CorsOriginErrors)) { Write-Host ('[拒绝启动] ' + $e) }
+    Write-Host '           正确写法：-AllowOrigin https://内网镜像域名 或 -AllowOrigin http://127.0.0.1:8765'
+    exit 2
+}
 if (-not (Test-Path -LiteralPath (Join-Path $script:Root 'index.html'))) {
     Write-Host ('[拒绝启动] 静态根目录里没有 index.html：' + $script:Root)
     exit 2
@@ -1871,7 +2096,13 @@ try {
         $qRoot = ('' + $script:Root).Replace("'", "''")
         $qBind = ('' + $script:BindHost).Replace("'", "''")
         $qLog = ('' + $script:LogFile).Replace("'", "''")
-        $text = ". '$dotPath' -WorkerMode -Port $script:Port -BindHost '$qBind' -Root '$qRoot' -Workers $script:Workers -LogFile '$qLog'" +
+        # -AllowOrigin 必须一起传：真正处理请求的是工作线程，漏了它主线程放行、工作线程 403，
+        # 现象是「同一个端点有时能用有时不能用」，取决于请求落到哪一边。
+        $originTail = ''
+        foreach ($ao in @($script:CorsExtraOrigins)) {
+            $originTail += $(if ($originTail.Length -gt 0) { ',' } else { ' -AllowOrigin ' }) + "'" + ('' + $ao).Replace("'", "''") + "'"
+        }
+        $text = ". '$dotPath' -WorkerMode -Port $script:Port -BindHost '$qBind' -Root '$qRoot' -Workers $script:Workers -LogFile '$qLog'" + $originTail +
                 $(if ($script:Quiet) { ' -Quiet' } else { '' }) + '; Start-BridgeWorkerLoop $args[0] $args[1]'
         [void]$psb.AddScript($text)
         [void]$psb.AddArgument($RequestQueue)

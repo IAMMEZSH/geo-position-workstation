@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="940" viewBox="0 0 1180 940" font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#0c1626"/>
+      <stop offset="0.45" stop-color="#070d18"/>
+      <stop offset="1" stop-color="#03060c"/>
+    </linearGradient>
+    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
+      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
+    </pattern>
+    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
+      <feGaussianBlur stdDeviation="2.1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
+    </filter>
+  </defs>
+  <defs>
+    <marker id="q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8fa8c2"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="940" fill="url(#hudbg)"/>
+  <rect x="0" y="0" width="1180" height="940" fill="url(#hudgrid)"/>
+  <rect x="0" y="0" width="1180" height="940" fill="url(#hudscan)"/>
+  <rect x="0" y="0" width="1180" height="940" fill="url(#hudbloom)"/>
+  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
+    <path d="M12 32V12h20"/>
+    <path d="M1148 12h20v20"/>
+    <path d="M1168 908v20h-20"/>
+    <path d="M32 928H12v-20"/>
+  </g>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Apple launch paths: macOS Terminal, iPhone/iPad in Safari, iPhone/iPad in iSH</text>
+  <text x="40" y="72" font-size="14" fill="#a2b5cb">Each box is what the shipped script really does. Where something can only be proven on your own device, the box says so instead of hiding it.</text>
+
+  <!-- macOS -->
+  <rect x="40" y="96" width="360" height="628" rx="10" fill="#0c1728" stroke="#6fd3ff" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="126" font-size="16" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">macOS: the Terminal you already have</text>
+  <g font-size="12" fill="#6fc0ff">
+    <text x="60" y="152" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">No Homebrew, no pip, no download needed to start.</text>
+    <text x="60" y="176">Launch Terminal (Spotlight, type "terminal"), then:</text>
+    <text x="60" y="196">  1  type cd and one space, then drag this folder</text>
+    <text x="60" y="212">     onto the window - it pastes its own path</text>
+    <text x="60" y="228">  2  press return, then run</text>
+    <text x="60" y="244">       sh 启动-macOS-Linux.sh</text>
+    <text x="60" y="260">  3  to move the port: PORT=9000 then the same</text>
+    <text x="60" y="276">     command; the page follows the port (§2.4)</text>
+
+    <text x="60" y="304" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">What the script decides, in order</text>
+    <text x="60" y="324">python3 present - bridge starts on 127.0.0.1,</text>
+    <text x="60" y="340">the same-origin page opens, ⑧ is complete.</text>
+    <text x="60" y="360">python3 absent - the offline page still opens,</text>
+    <text x="60" y="376">and only ⑧'s hop-by-hop trace is missing.</text>
+    <text x="60" y="392">The script then prints the single command that</text>
+    <text x="60" y="408">fixes it: xcode-select --install</text>
+    <text x="60" y="424">Command Line Tools ship /usr/bin/python3 -</text>
+    <text x="60" y="440">no third-party package manager involved.</text>
+
+    <text x="60" y="468" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Double-clicking 启动-macOS.command instead</text>
+    <text x="60" y="488">needs two one-time things: the execute bit</text>
+    <text x="60" y="504">(chmod +x 启动-macOS.command) and</text>
+    <text x="60" y="520">right-click - Open, because Gatekeeper stops a</text>
+    <text x="60" y="536">downloaded .command (xattr -dr</text>
+    <text x="60" y="552">com.apple.quarantine . clears the mark).</text>
+    <text x="60" y="568">Using the Terminal skips both of those.</text>
+
+    <text x="60" y="596" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Proven from here / proven only on your Mac</text>
+    <text x="60" y="616">Proven: shell logic, LF endings enforced by</text>
+    <text x="60" y="632">.gitattributes, and the identical file set the</text>
+    <text x="60" y="648">Linux CI job runs green (&#167;8.8).</text>
+    <text x="60" y="668">Author owns no Mac, so Gatekeeper's exact</text>
+    <text x="60" y="684">wording and your python3 are yours to see -</text>
+    <text x="60" y="700">the script prints which branch it took.</text>
+  </g>
+
+  <!-- Hosted Safari -->
+  <rect x="420" y="96" width="340" height="628" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="440" y="126" font-size="16" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Safari + hosted page</text>
+  <g font-size="12" fill="#7ff0bb">
+    <text x="440" y="152" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Zero install. This is the default answer.</text>
+    <text x="440" y="176">Open the Pages URL (top of README and</text>
+    <text x="440" y="192">MANUAL). Same bytes as the repository -</text>
+    <text x="440" y="208">not a trimmed online demo.</text>
+
+    <text x="440" y="236" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Runs on the phone as-is</text>
+    <text x="440" y="256">Seven kernels · offline city / land / country</text>
+    <text x="440" y="272">data · map with the centre crosshair ·</text>
+    <text x="440" y="288">⑪'s 623 gates · ①'s geolocation, because</text>
+    <text x="440" y="304">https is a secure context.</text>
+
+    <text x="440" y="332" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Then switch the network off</text>
+    <text x="440" y="352">Ten panels keep computing. The default map</text>
+    <text x="440" y="368">is offline vector land, so it asks for no</text>
+    <text x="440" y="384">tiles. Only the online-basemap switch and ⑧</text>
+    <text x="440" y="400">ever send a request (§7.1).</text>
+
+    <text x="440" y="428" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">The one thing a phone cannot do here</text>
+    <text x="440" y="448">Hop-by-hop tracing needs python3 on the</text>
+    <text x="440" y="464">device: a bridge bound to a LAN address is</text>
+    <text x="440" y="480">refused at start-up on every platform</text>
+    <text x="440" y="496">(§7.2.1), so "run the service on the laptop,</text>
+    <text x="440" y="512">open 192.168.x.x from the sofa" is not a</text>
+    <text x="440" y="528">path this tool will take - on purpose.</text>
+
+    <text x="440" y="556" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">⑧ without any bridge at all</text>
+    <text x="440" y="576">IP lookup against the six built-in sources</text>
+    <text x="440" y="592">and DNS-over-HTTPS resolution still run,</text>
+    <text x="440" y="608">straight from the browser; only the trace</text>
+    <text x="440" y="624">row says "bridge offline".</text>
+
+    <text x="440" y="660" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Next step up: iSH, in the right-hand box.</text>
+    <text x="440" y="684">Or on Android: Termux + pkg install python,</text>
+    <text x="440" y="700">same idea, one bridge on the device.</text>
+  </g>
+
+  <!-- iSH -->
+  <rect x="780" y="96" width="360" height="628" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="800" y="126" font-size="16" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">iPhone / iPad: iSH gives ⑧ a bridge</text>
+  <g font-size="12" fill="#ffb998">
+    <text x="800" y="152" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Four commands, then a printed Safari URL</text>
+    <text x="800" y="172">1  install iSH (free, user-mode x86 Alpine)</text>
+    <text x="800" y="188">2  apk add python3              (once)</text>
+    <text x="800" y="204">3  get the project in: git clone --depth 1</text>
+    <text x="800" y="220">   https://github.com/IAMMEZSH/</text>
+    <text x="800" y="236">   geo-position-workstation</text>
+    <text x="800" y="252">   - or copy the folder into the Files app;</text>
+    <text x="800" y="268">     iSH mounts it under /mnt/</text>
+    <text x="800" y="284">4  cd into it, then  sh 启动-iSH.sh</text>
+
+    <text x="800" y="312" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">The script prints four measured stages</text>
+    <text x="800" y="332">1  python3 server.py --selftest - the count</text>
+    <text x="800" y="348">   it prints is the bridge's own verdict</text>
+    <text x="800" y="364">2  start the bridge, poll /api/health for</text>
+    <text x="800" y="380">   15 s, and stop early if it dies</text>
+    <text x="800" y="396">3  print real API values: server, version,</text>
+    <text x="800" y="412">   runtime, bind address, loopback_only=true,</text>
+    <text x="800" y="428">   interface count and its redacted fields</text>
+    <text x="800" y="444">4  print the URL to tap, plus the diagnosis</text>
+    <text x="800" y="460">   list for "Safari shows nothing"</text>
+
+    <text x="800" y="488" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">The boundary, stated in the script itself</text>
+    <text x="800" y="508">iOS suspends iSH once iSH leaves the</text>
+    <text x="800" y="524">foreground, and the bridge sleeps with it.</text>
+    <text x="800" y="540">iPad: keep iSH in Split View or Slide Over</text>
+    <text x="800" y="556">beside Safari. iPhone: no Split View, so</text>
+    <text x="800" y="572">expect to re-tap and re-run the trace.</text>
+    <text x="800" y="592">Whether Safari reaches iSH's loopback port</text>
+    <text x="800" y="608">is printed by stages 2-4 on your device.</text>
+    <text x="800" y="628">The author owns no iOS hardware; community</text>
+    <text x="800" y="644">reports say it works while iSH keeps running.</text>
+    <text x="800" y="664">If it does not: the left-hand hosted page,</text>
+    <text x="800" y="680">with GeoIP and DoH, is still a full tool -</text>
+    <text x="800" y="696">and nothing here loosens the loopback rule.</text>
+  </g>
+
+  <!-- Two traps that look like broken software -->
+  <rect x="40" y="744" width="1100" height="148" rx="10" fill="#170f22" stroke="#c084fc" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="772" font-size="15" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">Two failures that look like broken software and are not</text>
+  <g font-size="12" fill="#cdb8f0">
+    <text x="60" y="796">&#183; Files app, double-tap the .html: Quick Look draws a preview and never executes JavaScript, so the page seems dead.</text>
+    <text x="74" y="812">Use Safari - or a browser on any other platform - never the Files preview. Nothing is wrong with the files themselves.</text>
+    <text x="60" y="836">&#183; "Let the phone reach the laptop's bridge" by binding 0.0.0.0: both bridges refuse a non-loopback bind at start-up</text>
+    <text x="74" y="852">and exit with the reason (&#167;7.2.1, &#167;9.2). Run the bridge on the device instead - Termux on Android, iSH on iOS.</text>
+    <text x="60" y="878" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">That is why the iSH script prints a banner for every stage: "Safari shows nothing" should come back as a named stage that failed, not a mystery.</text>
+  </g>
+
+  <text x="40" y="920" font-size="12" fill="#93a8bd">Cross-references: &#167;2.2 platform table &#183; &#167;2.7 macOS in depth &#183; &#167;2.8 the iSH walkthrough &#183; &#167;9.1 the per-platform matrix &#183; &#167;7.2 the red lines a launcher cannot cross.</text>
+</svg>

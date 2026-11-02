@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="880" viewBox="0 0 1180 880" font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#0c1626"/>
+      <stop offset="0.45" stop-color="#070d18"/>
+      <stop offset="1" stop-color="#03060c"/>
+    </linearGradient>
+    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
+      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
+    </pattern>
+    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
+      <feGaussianBlur stdDeviation="2.1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
+    </filter>
+  </defs>
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8fa8c2"/>
+    </marker>
+    <marker id="kr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff9f6e"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="880" fill="url(#hudbg)"/>
+  <rect x="0" y="0" width="1180" height="880" fill="url(#hudgrid)"/>
+  <rect x="0" y="0" width="1180" height="880" fill="url(#hudscan)"/>
+  <rect x="0" y="0" width="1180" height="880" fill="url(#hudbloom)"/>
+  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
+    <path d="M12 32V12h20"/>
+    <path d="M1148 12h20v20"/>
+    <path d="M1168 848v20h-20"/>
+    <path d="M32 868H12v-20"/>
+  </g>
+  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Per-platform packs: what travels, what stays in the repository</text>
+  <text x="40" y="72" font-size="14" fill="#a2b5cb">A pack is a subset of the repository, chosen by an explicit list. Sizes and counts live only in the table in MANUAL §1.1.</text>
+
+  <!-- 仓库 -->
+  <rect x="40" y="96" width="300" height="312" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="126" font-size="16" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">The repository</text>
+  <g font-size="12" fill="#a6b8cc">
+    <text x="60" y="150">application ......... index.html, app/,</text>
+    <text x="74" y="166">                             vendor/, 示例数据/</text>
+    <text x="60" y="186">figures ............. docs/img/*.svg</text>
+    <text x="60" y="206">bridges ............. server.py and</text>
+    <text x="74" y="222">                             bridge-powershell.ps1</text>
+    <text x="60" y="242">launchers ........... 启动-Windows.bat,</text>
+    <text x="74" y="258">                             启动-macOS.command,</text>
+    <text x="74" y="274">                             启动-macOS-Linux.sh,</text>
+    <text x="74" y="290">                             启动-Android.sh,</text>
+    <text x="74" y="306">                             启动-iSH.sh</text>
+    <text x="60" y="326">dev surface ......... tests/, 工具/,</text>
+    <text x="74" y="342">                             .github/, images/</text>
+  </g>
+
+  <path d="M340,246 L390,246" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#k)"/>
+
+  <!-- 选择规则 -->
+  <rect x="392" y="96" width="320" height="312" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="412" y="126" font-size="16" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">The selection rule</text>
+  <g font-size="12" fill="#7ff0bb">
+    <text x="412" y="152" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">CORE - in all seven archives</text>
+    <text x="412" y="172">the whole application, the three data files,</text>
+    <text x="412" y="188">the samples, LICENSE, README.md, MANUAL.md.</text>
+    <text x="412" y="196">No pack is a demo: open it and every kernel,</text>
+    <text x="412" y="212">panel and gate behaves as in the repository.</text>
+    <text x="412" y="238" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">FIGURES - in all seven archives</text>
+    <text x="412" y="258">Five figures, in every pack. "Why loopback" has</text>
+    <text x="412" y="274">to be answerable with a picture on any device.</text>
+    <text x="412" y="300" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">PLATFORM - only its own archive</text>
+    <text x="412" y="320">its launcher + the bridge it can execute.</text>
+    <text x="412" y="336">Windows is the only platform with a bridge that</text>
+    <text x="412" y="352">needs no interpreter at all (PowerShell 5.1).</text>
+    <text x="412" y="376">Wildcards are not used anywhere in a manifest,</text>
+    <text x="412" y="392">a stray file in app/ cannot ride into a release.</text>
+  </g>
+
+  <path d="M712,246 L762,246" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#k)"/>
+
+  <!-- 七个包 -->
+  <rect x="764" y="96" width="376" height="312" rx="10" fill="#0c1728" stroke="#6fd3ff" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="784" y="126" font-size="16" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Seven archives, one per audience</text>
+  <g font-size="12" fill="#6fc0ff">
+    <text x="784" y="152">geo-browser.zip ... any device, no bridge:</text>
+    <text x="800" y="168">                         the hosted page or a double-click</text>
+    <text x="784" y="188">geo-windows.zip ... 启动-Windows.bat + both bridges</text>
+    <text x="800" y="204">                         python first, PowerShell 5.1 if not</text>
+    <text x="784" y="224">geo-macos.zip ..... .command + .sh + server.py</text>
+    <text x="784" y="244">geo-linux.zip .... 启动-Linux.sh + .sh engine + server.py</text>
+    <text x="784" y="264">geo-android.zip ... 启动-Android.sh + server.py (Termux)</text>
+    <text x="784" y="284">geo-ios-ish.zip ... 启动-iSH.sh + server.py (iSH, a-Shell)</text>
+    <text x="784" y="312" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">geo-full.zip .......... everything, developers only</text>
+    <text x="800" y="332">                     adds the three gate runners, the data</text>
+    <text x="800" y="348">                     builder, the CI config, the screenshots</text>
+    <text x="784" y="376">Non-full packs carry no images/. Inside them the</text>
+    <text x="784" y="392">manual's image links are rewritten to the Pages URL.</text>
+  </g>
+
+  <!-- 三条闸门 -->
+  <rect x="40" y="420" width="540" height="244" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="450" font-size="15" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">--check makes the manifest a gate: three ways it can fail</text>
+  <g font-size="12" fill="#ffb998">
+    <text x="60" y="478" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">1 · a listed file is not on disk</text>
+    <text x="60" y="498">Caught before release, not after: the two figures</text>
+    <text x="60" y="514">named in §1.1 were reported missing here until</text>
+    <text x="60" y="530">this file existed. A pack that lies is not built.</text>
+    <text x="60" y="558" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">2 · another platform's entry point smuggled in</text>
+    <text x="60" y="578">A .bat inside geo-macos.zip, a .command inside</text>
+    <text x="60" y="594">geo-windows.zip, a foreign launcher on a phone.</text>
+    <text x="60" y="616" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">3 · a deliverable no manifest classifies</text>
+    <text x="60" y="636">Every tracked file must be CORE, FIGURES, a</text>
+    <text x="60" y="652">platform file, DEV or IMAGES - or the check fails.</text>
+  </g>
+
+  <path d="M580,528 L620,528" stroke="#ff9f6e" stroke-width="2" fill="none" marker-end="url(#kr)"/>
+
+  <!-- 确定性 -->
+  <rect x="622" y="420" width="518" height="244" rx="10" fill="#1c1608" stroke="#f2d488" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="642" y="450" font-size="15" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">Two properties that keep the document honest</text>
+  <g font-size="12" fill="#e3c987">
+    <text x="642" y="478" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">Byte-deterministic archives</text>
+    <text x="642" y="498">Every ZIP entry timestamp is pinned to</text>
+    <text x="642" y="514">1980-01-01, so repacking the same source gives</text>
+    <text x="642" y="530">the same bytes - and the sizes printed in §1.1</text>
+    <text x="642" y="546">cannot drift because somebody re-zipped once.</text>
+    <text x="642" y="574" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">Executable bits preserved</text>
+    <text x="642" y="594">.sh, .command and .py are stored with mode</text>
+    <text x="642" y="610">0755, so unzipping on macOS, Linux, Termux or</text>
+    <text x="642" y="626">iSH gives a launcher that runs; Windows ignores</text>
+    <text x="642" y="642">the bits, so the .bat path is unaffected.</text>
+  </g>
+
+  <!-- 命令 -->
+  <rect x="40" y="676" width="1100" height="120" rx="10" fill="#170f22" stroke="#c084fc" stroke-width="2" filter="url(#hudlift)"/>
+  <text x="60" y="690" font-size="15" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">Four commands, standard library only - no npm, no pip</text>
+  <g font-size="13" fill="#d3bcff" font-family="Menlo, Consolas, monospace">
+    <text x="60" y="716">python 工具/pack-platform.py --list</text>
+    <text x="400" y="716" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#cdb8f0">print every manifest, file by file</text>
+    <text x="60" y="738">python 工具/pack-platform.py --check</text>
+    <text x="400" y="738" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#cdb8f0">the three failures above, exit code non-zero</text>
+    <text x="60" y="760">python 工具/pack-platform.py macos</text>
+    <text x="400" y="760" font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#cdb8f0">one archive - dist/geo-macos.zip</text>
+    <text x="820" y="716" font-family="Menlo, Consolas, monospace">python 工具/pack-platform.py --all</text>
+    <text x="820" y="738" font-family="Menlo, Consolas, monospace">       --json dist/manifest.json</text>
+    <text x="820" y="760" font-size="12" font-family="Helvetica, Arial, sans-serif" fill="#cdb8f0">all seven at once, plus the machine-readable list</text>
+  </g>
+
+  <text x="40" y="812" font-size="12" fill="#a2b5cb">Reading order: §1.1 (this split with measured sizes) · §2.1 (what a launcher does) · §2.2 (per-platform table) · §9.5 (what a fresh clone was checked to contain).</text>
+  <text x="40" y="838" font-size="12" fill="#93a8bd">The packager never copies a file it has not been told about, never deletes anything, and writes only into dist/, which .gitignore keeps out of the repository.</text>
+</svg>

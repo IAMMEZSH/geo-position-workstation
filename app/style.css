@@ -1,45 +1,85 @@
-/* 经纬度定位工作站 — 界面样式（深色/浅色双主题，移动/桌面自适应） */
+/* 经纬度定位工作站 — 界面样式（HUD 深色 / 白昼双主题，移动与桌面自适应）
+   皮肤层只动颜色、光效与装饰（伪元素 content 一律为空，避免混进界面第 18 节的 innerText 扫描）；
+   准星 ch-* 的每一条偏移、以及 .map 的 62vh/380px 都按实测断言过，数值原样保留。
+   唯一有意修正的是吸顶三件套的偏移：旧版写死 57px/108px，实测宽屏顶栏是 65px，
+   差出来的 8px 从前被不透明顶栏盖住，换成玻璃层就会露缝——现在顶栏高度由 --topbar-h 强制，
+   下游全部用 calc() 引用它。 */
 
 :root,
 body[data-theme="dark"] {
-  --bg: #0b1220;
-  --bg-2: #111a2e;
-  --bg-3: #16223a;
-  --fg: #e8eefc;
-  --fg-dim: #9fb0cf;
-  --line: #24334f;
-  --accent: #4da3ff;
-  --accent-2: #35e0b0;
-  --warn: #ffb648;
-  --bad: #ff6b6b;
-  --ok: #35e0b0;
-  --map-bg: #06101f;
-  --land: #21406b;
-  --land-stroke: #3d76b8;
-  --grid: #1d2c46;
-  --shadow: 0 6px 24px rgba(0, 0, 0, .45);
-  --chip-bg: #17233c;
+  /* 底色：深空蓝黑，不是纯黑——纯黑上的霓虹会发灰 */
+  --bg: #03070f;
+  --bg-2: #08131f;
+  --bg-3: #0c1b2c;
+  --fg: #dcebff;
+  --fg-dim: #85a2c7;
+  --line: #16324f;
+  --accent: #2fe0ff;
+  --accent-2: #37ffbe;
+  --warn: #ffc043;
+  --bad: #ff5d73;
+  --ok: #37ffbe;
+  /* 地图：海是黑的，陆是青蓝的，经纬网压到刚好看得见 */
+  --map-bg: #02060d;
+  --land: #123a5c;
+  --land-stroke: #2fb0dc;
+  --grid: #143353;
+  --shadow: 0 10px 34px rgba(0, 0, 0, .62);
+  --chip-bg: #0b1b2e;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  /* 皮肤专用：霓虹描边、玻璃层、扫描线 */
+  --edge: rgba(47, 224, 255, .85);
+  --edge-2: rgba(55, 255, 190, .75);
+  --glow: 0 0 12px rgba(47, 224, 255, .28);
+  --glow-2: 0 0 14px rgba(55, 255, 190, .30);
+  --glass: rgba(8, 19, 31, .82);
+  --glass-2: rgba(6, 14, 24, .92);
+  --hairline: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  --panel-fill: linear-gradient(168deg, rgba(11, 25, 42, .93), rgba(5, 12, 21, .95));
+  --inset-ring: inset 0 0 0 1px rgba(47, 224, 255, .07);
 }
 
 body[data-theme="light"] {
-  --bg: #eef2f9;
+  /* 白昼 HUD：同样的结构，霓虹换成冷墨蓝，光晕收成影 */
+  --bg: #e9f0fa;
   --bg-2: #ffffff;
-  --bg-3: #f4f7fc;
-  --fg: #16233a;
-  --fg-dim: #5b6c86;
-  --line: #d3dcec;
-  --accent: #1668d8;
-  --accent-2: #0f8f6f;
-  --warn: #b8730a;
-  --bad: #c0392b;
-  --ok: #0f8f6f;
-  --map-bg: #dfeaf6;
-  --land: #b9cfe6;
-  --land-stroke: #7ba3cd;
-  --grid: #c9d7ea;
-  --shadow: 0 6px 20px rgba(20, 40, 80, .12);
-  --chip-bg: #e7eefb;
+  --bg-3: #f2f7fd;
+  --fg: #10233c;
+  --fg-dim: #556f92;
+  --line: #c3d6ec;
+  --accent: #0b6fc4;
+  --accent-2: #0a8f6d;
+  --warn: #a96807;
+  --bad: #bf3548;
+  --ok: #0a8f6d;
+  --map-bg: #d8e8f6;
+  --land: #b3cfe8;
+  --land-stroke: #5b9fce;
+  --grid: #c2d7ec;
+  --shadow: 0 8px 24px rgba(20, 46, 84, .14);
+  --chip-bg: #eaf2fc;
+  --edge: rgba(11, 111, 196, .55);
+  --edge-2: rgba(10, 143, 109, .45);
+  --glow: 0 0 0 1px rgba(11, 111, 196, .10);
+  --glow-2: 0 0 0 1px rgba(10, 143, 109, .10);
+  --glass: rgba(255, 255, 255, .86);
+  --glass-2: rgba(255, 255, 255, .93);
+  --hairline: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  --panel-fill: linear-gradient(168deg, #ffffff, #f4f8fe);
+  --inset-ring: inset 0 0 0 1px rgba(11, 111, 196, .06);
+}
+
+/* 布局尺寸的唯一来源：吸顶三件套必须首尾相接，写死数字改一处就错位。
+   两个高度都由 CSS 强制（.topbar/.tabs 各写死 height），所以下游的 top 值就是精确值，
+   不再随字号、行高或标签栏是否出现横向滚动条而漂移——旧版写死 57px，实测宽屏是 65px，
+   差的那 8px 一直被不透明顶栏盖住，换成玻璃顶栏就会露出一道模糊接缝。 */
+:root {
+  --topbar-h: 58px;
+  /* 标签栏高度取「出现横向滚动条」那一档（实测约 54 / 64px）：地图的吸顶位置只许偏大，
+     偏小的话 Leaflet 左上角的缩放控件会被标签栏压住而点不动。 */
+  --tabs-h: 64px;
+  --map-h: 62vh;
+  --map-min-h: 380px;
 }
 
 * { box-sizing: border-box; }
@@ -47,11 +87,39 @@ body[data-theme="light"] {
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
   color: var(--fg);
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   -webkit-text-size-adjust: 100%;
+  /* 背景 = 两团辉光 + 一层坐标网格 + 底色。网格是画在 body 上的，
+     所以面板一旦半透明，底下露出的是「经纬网」而不是随机噪点。 */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 620px at 10% -10%, rgba(47, 224, 255, .10), transparent 62%),
+    radial-gradient(900px 520px at 92% 2%, rgba(55, 255, 190, .07), transparent 62%),
+    linear-gradient(rgba(47, 224, 255, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 224, 255, .030) 1px, transparent 1px);
+  background-size: auto, auto, 100% 46px, 46px 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-attachment: fixed, fixed, fixed, fixed;
 }
+
+body[data-theme="light"] {
+  background-image:
+    radial-gradient(1000px 560px at 8% -10%, rgba(11, 111, 196, .10), transparent 60%),
+    radial-gradient(820px 480px at 94% 0%, rgba(10, 143, 109, .08), transparent 60%),
+    linear-gradient(rgba(11, 111, 196, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 111, 196, .045) 1px, transparent 1px);
+}
+
+::selection { background: rgba(47, 224, 255, .28); }
+body[data-theme="light"] ::selection { background: rgba(11, 111, 196, .20); }
+
+/* 滚动条也归入皮肤：默认条在深色面板上像一道白疤 */
+* { scrollbar-color: var(--line) transparent; scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: content-box; }
 
 /* ---------- 顶栏 ---------- */
 .topbar {
@@ -60,22 +128,61 @@ html, body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  background: linear-gradient(180deg, var(--glass-2), var(--glass));
+  backdrop-filter: blur(14px) saturate(165%);
+  -webkit-backdrop-filter: blur(14px) saturate(165%);
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(47, 224, 255, .22), var(--shadow);
   position: sticky;
   top: 0;
+  height: var(--topbar-h);
   /* Leaflet 内部（画布/控件）用的是 400~1000 这一档 z-index，吸顶栏必须压过它，
      否则页面一滚，标题行和标签页就被地图“盖住”而点不动。 */
   z-index: 1300;
 }
+/* 光轨：一条沿顶栏底边巡游的高光线。content 一律为空——
+   界面第 18 节用 innerText 扫「标记源码」漏出，伪元素写了字就会混进那段文字。 */
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--hairline);
+  opacity: .8;
+  pointer-events: none;
+}
+.topbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 1px;
+  background-image: linear-gradient(90deg, transparent, var(--accent-2), transparent);
+  background-size: 46% 100%;
+  background-repeat: no-repeat;
+  animation: hud-rail 9s linear infinite;
+  pointer-events: none;
+}
 
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.logo { font-size: 24px; color: var(--accent); }
+.logo {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(47, 224, 255, .8), 0 0 28px rgba(47, 224, 255, .3);
+  animation: hud-pulse 3.6s ease-in-out infinite;
+}
+/* 品牌两行的行高被压到能塞进 --topbar-h 的内容框（58 - 20 padding - 1 border = 37px），
+   顶栏才是精确高度；行高若按默认 1.55，宽屏会把顶栏撑到 65px。 */
 .brand-text { display: flex; flex-direction: column; min-width: 0; }
-.brand-text b { font-size: 17px; letter-spacing: .5px; white-space: nowrap; }
+.brand-text b { font-size: 17px; line-height: 1.3; letter-spacing: .5px; white-space: nowrap; color: var(--fg); text-shadow: 0 0 16px rgba(47, 224, 255, .25); }
 .brand-text em {
   font-style: normal;
   font-size: 11.5px;
+  line-height: 1.25;
   color: var(--fg-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -85,29 +192,48 @@ html, body {
 .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 .badge {
-  font-size: 12px;
-  padding: 3px 9px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: .4px;
+  padding: 3px 9px 3px 20px;
   border-radius: 999px;
   background: var(--chip-bg);
   border: 1px solid var(--line);
   color: var(--fg-dim);
   white-space: nowrap;
+  position: relative;
 }
-.badge-ok { color: var(--ok); border-color: var(--ok); }
-.badge-bad { color: var(--bad); border-color: var(--bad); }
-.badge-off { color: var(--warn); }
+/* 状态灯：颜色跟 currentColor 走，badge-ok/bad/off 换色时灯自己跟着换 */
+.badge::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.badge-ok { color: var(--ok); border-color: var(--ok); box-shadow: var(--glow-2); }
+.badge-bad { color: var(--bad); border-color: var(--bad); box-shadow: 0 0 12px rgba(255, 93, 115, .35); }
+.badge-off { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); }
 
 /* ---------- 标签栏 ---------- */
 .tabs {
   display: flex;
+  align-items: center;
   gap: 4px;
   padding: 8px 12px;
   overflow-x: auto;
-  background: var(--bg-2);
+  background: linear-gradient(180deg, var(--glass), color-mix(in srgb, var(--bg) 78%, transparent));
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   border-bottom: 1px solid var(--line);
   scrollbar-width: thin;
   position: sticky;
-  top: 57px;
+  top: var(--topbar-h);
   z-index: 1200;
 }
 
@@ -121,14 +247,28 @@ html, body {
   font-size: 13.5px;
   cursor: pointer;
   white-space: nowrap;
+  position: relative;
 }
 .tab:hover { color: var(--fg); background: var(--bg-3); }
 .tab.active {
-  color: var(--fg);
-  background: var(--bg);
+  color: var(--accent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
   border-color: var(--line);
-  border-bottom-color: var(--bg);
+  border-bottom-color: transparent;
   font-weight: 600;
+  text-shadow: 0 0 12px rgba(47, 224, 255, .55);
+}
+/* 选中页的霓虹下闸：高度与边框都不占位（绝对定位），所以 tab 尺寸与旧版逐像素相同 */
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px var(--accent);
 }
 
 /* ---------- 主布局 ---------- */
@@ -143,22 +283,62 @@ html, body {
 /* isolation: Leaflet 的画布与控件自带 400~1000 的 z-index。窄屏断点下 .mapwrap 会退成
    position:static（不再形成层叠上下文），那些数字就会跑到整页最前面，把吸顶的标题行/标签页
    盖到点不动。用 isolation 把这一档锁在地图这一块里，与定位方式无关。 */
-.mapwrap { position: sticky; top: 108px; isolation: isolate; }
+.mapwrap {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--tabs-h));
+  isolation: isolate;
+}
 .map {
-  height: 62vh;
-  min-height: 380px;
+  height: var(--map-h);
+  min-height: var(--map-min-h);
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--map-bg);
   overflow: hidden;
-  box-shadow: var(--shadow);
+  position: relative;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(47, 224, 255, .10), inset 0 0 60px rgba(0, 0, 0, .5);
 }
+/* 取景框四角的直角括号 + 一道缓慢下扫的扫描线。两者都 pointer-events:none，
+   点地图任意处仍然落到地图本身（准星靠这个把点中的位置转到正中）。
+   z-index 落在 1100：压过 Leaflet 图层面板(400)与控件(800~1000)，但仍在 .mapwrap 的隔离上下文里。 */
+.map::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: 1100;
+  pointer-events: none;
+  border-radius: 8px;
+  background-image:
+    linear-gradient(var(--edge), var(--edge)), linear-gradient(var(--edge), var(--edge)),
+    linear-gradient(var(--edge), var(--edge)), linear-gradient(var(--edge), var(--edge)),
+    linear-gradient(var(--edge-2), var(--edge-2)), linear-gradient(var(--edge-2), var(--edge-2)),
+    linear-gradient(var(--edge-2), var(--edge-2)), linear-gradient(var(--edge-2), var(--edge-2));
+  background-size: 20px 2px, 2px 20px, 20px 2px, 2px 20px, 20px 2px, 2px 20px, 20px 2px, 2px 20px;
+  background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom;
+  background-repeat: no-repeat;
+  opacity: .85;
+}
+.map::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 70px;
+  z-index: 1090;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(47, 224, 255, .035) 55%, rgba(47, 224, 255, .13) 92%, transparent);
+  animation: hud-scan 9s linear infinite;
+}
+body[data-theme="light"] .map::before { opacity: .55; }
+body[data-theme="light"] .map::after { background: linear-gradient(180deg, transparent, rgba(11, 111, 196, .04) 70%, rgba(11, 111, 196, .10) 96%, transparent); }
 
 /* 准星：钉在容器正中的叠层，永远严格等于 map.getCenter()。
-   pointer-events:none 让点击穿透回地图（点哪儿就把哪儿转到正中）。 */
+   pointer-events:none 让点击穿透回地图（点哪儿就把哪儿转到正中）。
+   下面这几组的偏移量是界面闸门逐像素比对的依据，一个数都不能动；只加了发光。 */
 .crosshair { position: absolute; inset: 0; z-index: 640; pointer-events: none; }
-.crosshair i { position: absolute; display: block; background: var(--accent-2); opacity: .92; }
+.crosshair i { position: absolute; display: block; background: var(--accent-2); opacity: .92; filter: drop-shadow(0 0 4px var(--accent-2)); }
 .crosshair .ch-up, .crosshair .ch-down { left: 50%; width: 2px; margin-left: -1px; height: 20px; }
 .crosshair .ch-up { bottom: 50%; margin-bottom: 12px; }
 .crosshair .ch-down { top: 50%; margin-top: 12px; }
@@ -170,31 +350,64 @@ html, body {
   border: 2px solid var(--accent-2); border-radius: 50%; background: transparent;
 }
 
-.map-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }.map-readout {
+.map-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.map-readout {
   margin-top: 6px;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--fg-dim);
   padding: 5px 8px;
-  background: var(--bg-2);
+  background: var(--glass-2);
   border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
   border-radius: 8px;
+  letter-spacing: .2px;
 }
 
 /* ---------- 面板 ---------- */
 .panels { min-width: 0; }
 .panel {
   display: none;
-  background: var(--bg-2);
+  background: var(--panel-fill);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px 16px 18px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), var(--inset-ring);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  position: relative;
 }
 .panel.active { display: block; }
+/* 面板四角的括号：与地图取景框同一套语言，但更短更淡，免得抢注意力 */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--edge), var(--edge)), linear-gradient(var(--edge), var(--edge)),
+    linear-gradient(var(--edge), var(--edge)), linear-gradient(var(--edge), var(--edge));
+  background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+  background-position: left top, left top, right top, right top;
+  background-repeat: no-repeat;
+  opacity: .5;
+}
 
-.panel h2 { margin: 2px 0 6px; font-size: 18px; }
-.panel h3 { margin: 18px 0 8px; font-size: 14.5px; color: var(--accent); }
+.panel h2 {
+  margin: 2px 0 6px;
+  font-size: 18px;
+  letter-spacing: .4px;
+  color: var(--fg);
+  text-shadow: 0 0 18px rgba(47, 224, 255, .3);
+}
+.panel h3 {
+  margin: 18px 0 8px;
+  font-size: 14.5px;
+  color: var(--accent);
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  letter-spacing: .3px;
+}
 .hint { margin: 0 0 12px; color: var(--fg-dim); font-size: 12.5px; }
 
 label { display: block; margin: 7px 0; font-size: 13px; color: var(--fg-dim); }
@@ -220,23 +433,40 @@ textarea {
   white-space: pre;
   overflow: auto;
 }
+/* 输入框换成等宽字体，但字号留给继承——改字号会连带改控件高度，行内排版就得重排 */
+input, select { font-family: var(--mono); }
 input:focus, select:focus, textarea:focus, button:focus {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 1px;
+  border-color: var(--accent);
+  box-shadow: var(--glow);
 }
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--fg-dim) 72%, transparent); }
 
 .row { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: nowrap; }
 .row.wrap { flex-wrap: wrap; }
 .row .grow { flex: 1 1 auto; min-width: 0; }
 .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
-hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+hr { border: 0; height: 1px; margin: 14px 0; background: linear-gradient(90deg, var(--line), transparent); }
 
-button { cursor: pointer; background: var(--chip-bg); }
-button:hover { border-color: var(--accent); }
+button {
+  cursor: pointer;
+  background: var(--chip-bg);
+  transition: border-color .16s, box-shadow .16s, transform .08s, color .16s;
+}
+button:hover { border-color: var(--accent); color: var(--fg); box-shadow: var(--glow); }
 button:active { transform: translateY(1px); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #04101f; font-weight: 700; }
-body[data-theme="light"] button.primary { color: #fff; }
+button.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+  border-color: var(--accent);
+  color: #02141d;
+  font-weight: 700;
+  letter-spacing: .3px;
+  box-shadow: var(--glow), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+body[data-theme="light"] button.primary { color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #fff), var(--accent)); }
 button.ghost { background: transparent; }
+button.ghost:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
 .chip {
   font-size: 12.5px;
@@ -248,8 +478,16 @@ button.ghost { background: transparent; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  cursor: pointer;
+  transition: border-color .16s, color .16s, box-shadow .16s;
 }
-.chip.active { color: var(--fg); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--chip-bg)); }
+.chip:hover { color: var(--fg); border-color: var(--accent); }
+.chip.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--chip-bg));
+  box-shadow: var(--glow), inset 0 0 12px color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* ---------- 结果块 ---------- */
 .resultbox {
@@ -260,14 +498,21 @@ button.ghost { background: transparent; }
   font-size: 13px;
   overflow: auto;
   max-height: 62vh;
+  box-shadow: var(--inset-ring);
 }
 .resultbox:empty { display: none; }
 .resultbox .k { color: var(--fg-dim); }
 .resultbox .v { font-family: var(--mono); color: var(--fg); }
-.resultbox .good { color: var(--ok); }
+.resultbox .good { color: var(--ok); text-shadow: 0 0 12px color-mix(in srgb, var(--ok) 40%, transparent); }
 .resultbox .warn { color: var(--warn); }
-.resultbox .bad { color: var(--bad); }
-.resultbox h4 { margin: 12px 0 4px; font-size: 13px; color: var(--accent); }
+.resultbox .bad { color: var(--bad); text-shadow: 0 0 12px color-mix(in srgb, var(--bad) 35%, transparent); }
+.resultbox h4 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: .4px;
+  text-transform: none;
+}
 .resultbox table.kv { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .resultbox table.kv td { padding: 3px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
 .resultbox table.kv td:first-child { color: var(--fg-dim); white-space: nowrap; width: 1%; }
@@ -275,26 +520,49 @@ button.ghost { background: transparent; }
 .resultbox .note { color: var(--fg-dim); font-size: 12px; margin-top: 8px; }
 
 /* ---------- 表格 ---------- */
-.tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.tablewrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--inset-ring);
+}
 table.grid {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
   font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   background: var(--bg-3);
 }
 table.grid th, table.grid td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
-table.grid th { position: sticky; top: 0; background: var(--bg-2); color: var(--fg-dim); font-weight: 600; z-index: 2; }
-table.grid tbody tr:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+table.grid th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, var(--bg-2), color-mix(in srgb, var(--bg-2) 82%, var(--accent)));
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: .4px;
+  z-index: 2;
+}
+table.grid tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-2) 45%, transparent); }
+table.grid tbody tr:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 table.grid td.num { text-align: right; }
 table.grid button { padding: 3px 8px; font-size: 11.5px; }
 
 /* ---------- 天空图 / 二维码 ---------- */
 .qrbox { display: flex; justify-content: center; padding: 8px; }
-.qrbox canvas, .qrbox img { border-radius: 8px; background: #fff; padding: 6px; }
+.qrbox canvas, .qrbox img { border-radius: 8px; background: #fff; padding: 6px; box-shadow: var(--glow); }
 .qrbox:empty { display: none; }
 
-.sky { display: block; margin: 8px auto; max-width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; }
+.sky {
+  display: block;
+  margin: 8px auto;
+  max-width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--inset-ring), var(--glow);
+}
 
 /* ---------- 状态栏 ---------- */
 .statusbar {
@@ -303,29 +571,39 @@ table.grid button { padding: 3px 8px; font-size: 11.5px; }
   gap: 12px;
   padding: 8px 16px;
   border-top: 1px solid var(--line);
-  background: var(--bg-2);
+  background: linear-gradient(180deg, var(--glass), var(--bg-2));
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  font-family: var(--mono);
   font-size: 12px;
+  letter-spacing: .2px;
   color: var(--fg-dim);
   flex-wrap: wrap;
 }
-#statusText.ok { color: var(--ok); }
-#statusText.bad { color: var(--bad); }
-#statusText.busy { color: var(--warn); }
+#statusText.ok { color: var(--ok); text-shadow: 0 0 10px color-mix(in srgb, var(--ok) 45%, transparent); }
+#statusText.bad { color: var(--bad); text-shadow: 0 0 10px color-mix(in srgb, var(--bad) 40%, transparent); }
+#statusText.busy { color: var(--warn); animation: hud-blink 1.6s ease-in-out infinite; }
 
 /* ---------- Leaflet 适配 ---------- */
-.leaflet-container { background: var(--map-bg); font: inherit; }
-.leaflet-control-attribution { background: rgba(0, 0, 0, .45); color: #cfd8ea; }
-.leaflet-control-attribution a { color: #9fc4ff; }
-.leaflet-bar a { background: var(--bg-2); color: var(--fg); border-color: var(--line); }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg-2); color: var(--fg); }
+.leaflet-container {
+  background: var(--map-bg);
+  font: inherit;
+}
+.leaflet-control-attribution { background: rgba(2, 8, 16, .62) !important; color: #8fb6d8 !important; font-family: var(--mono); font-size: 10.5px; }
+.leaflet-control-attribution a { color: var(--accent); }
+.leaflet-bar { border: 1px solid var(--line); box-shadow: var(--glow); }
+.leaflet-bar a { background: var(--bg-2); color: var(--accent); border-color: var(--line); }
+.leaflet-bar a:hover { background: var(--bg-3); color: var(--accent-2); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg-2); color: var(--fg); box-shadow: 0 0 0 1px var(--line), var(--shadow); }
 .leaflet-popup-content { margin: 8px 10px; font-size: 12.5px; }
+body[data-theme="light"] .leaflet-control-attribution { background: rgba(255, 255, 255, .78) !important; color: #46688c !important; }
 
 .pin {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .35), 0 0 12px currentColor;
 }
 .pin-me { background: var(--accent); }
 .pin-cell { background: #ff9f43; }
@@ -342,18 +620,38 @@ table.grid button { padding: 3px 8px; font-size: 11.5px; }
   font-size: 11.5px;
   padding: 4px 8px;
   border-radius: 8px;
-  background: var(--bg-2);
+  background: var(--glass-2);
   border: 1px solid var(--line);
   color: var(--fg-dim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ---------- 动效 ---------- */
+@keyframes hud-rail {
+  from { background-position: -46% 0; }
+  to { background-position: 146% 0; }
+}
+@keyframes hud-scan {
+  from { transform: translateY(-72px); }
+  to { transform: translateY(var(--map-h)); }
+}
+@keyframes hud-pulse {
+  0%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(47, 224, 255, .8), 0 0 28px rgba(47, 224, 255, .3); }
+  50% { opacity: .78; text-shadow: 0 0 6px rgba(55, 255, 190, .7), 0 0 18px rgba(55, 255, 190, .25); }
+}
+@keyframes hud-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
 }
 
 /* ---------- 窄屏 ---------- */
 @media (max-width: 1080px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .mapwrap { position: static; }
-  .map { height: 46vh; min-height: 300px; }
+  :root { --map-h: 46vh; --map-min-h: 300px; }
   .grid2 { grid-template-columns: minmax(0, 1fr); }
-  .tabs { top: 55px; }
+  /* 顶栏高度由 --topbar-h 强制，与断点无关，所以这里不再重抄一遍 top */
 }
 
 @media (max-width: 640px) {
@@ -364,6 +662,8 @@ table.grid button { padding: 3px 8px; font-size: 11.5px; }
   .row { flex-wrap: wrap; }
   .resultbox { max-height: none; }
   #statusRight { display: none; }
+  /* 手机上扫描线与巡游光轨是纯耗电项，直接撤掉，取景括号留着 */
+  .map::after, .topbar::before { animation: none; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -372,6 +672,7 @@ table.grid button { padding: 3px 8px; font-size: 11.5px; }
 
 @media print {
   .topbar, .tabs, .mapwrap, .statusbar, button, .map-toolbar { display: none !important; }
-  .panel { display: block !important; border: none; }
+  .panel { display: block !important; border: none; box-shadow: none; }
+  .panel::before, .map::before, .map::after { display: none !important; }
   body { background: #fff; color: #000; }
 }

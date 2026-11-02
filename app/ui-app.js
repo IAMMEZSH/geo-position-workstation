@@ -1,5 +1,6 @@
 /* 经纬度定位工作站 — 应用外壳（GEOUI）
- * 职责边界：只把六个内核的输出组织成可读的结果，并驱动地图/历史/导出。
+ * 职责边界：只把七个内核的输出组织成可读的结果，并驱动地图/历史/导出。
+ * 存储这一层不碰 localStorage：一切经 GEOVAULT（app/core-vault.js）加密后落盘，锁着就读不到也不写。
  * 这里不做任何定位计算：所有数值都来自 GEOGEO / GEODATUM / GEOCELL / GEOGNSS /
  * GEOASTRO / GEONET；本页找不到内核时显示「内核缺失」，绝不自己凑一个数。
  */
@@ -106,20 +107,36 @@
     quick: false
   };
 
-  var LS = { hist: 'llgz.history.v1', fav: 'llgz.fav.v1', prefs: 'llgz.prefs.v1' };
+  /* 本机存储：界面只认逻辑键（hist/fav/prefs），磁盘上永远只有一个 AES-256-GCM 信封。
+     以前这里是 JSON.stringify 直接进 localStorage —— 同一台机器上的任何进程、F12 的
+     Application 面板都能把你的坐标读走。现在全部经 GEOVAULT（app/core-vault.js）：
+     锁着的时候读不到任何记录、也不许写（宁可当场说「锁着」，也不装作已经存好了）。 */
+  var LS = { hist: 'hist', fav: 'fav', prefs: 'prefs' };
+  function vault() { return eng('GEOVAULT'); }
   function lsGet(key, dflt) {
-    try {
-      var raw = global.localStorage ? global.localStorage.getItem(key) : null;
-      if (raw == null) return dflt;
-      var v = JSON.parse(raw);
-      return v == null ? dflt : v;
-    } catch (e) { return dflt; }
+    var v = vault();
+    if (!v) return dflt;              // 内核没加载：当作「没有记录」，绝不退回到明文存储
+    var got;
+    try { got = v.get(key, dflt); } catch (e) { return dflt; }
+    return got === undefined || got === null ? dflt : got;
   }
   function lsSet(key, val) {
-    try {
-      if (global.localStorage) { global.localStorage.setItem(key, JSON.stringify(val)); return { ok: true }; }
-    } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
-    return { ok: false, error: 'localStorage 不可用（隐私模式或 file:// 限制）' };
+    var v = vault();
+    if (!v) return { ok: false, error: '加密内核 app/core-vault.js 没加载：为了不写成明文，本页拒绝存储' };
+    if (!v.unlocked()) return { ok: false, locked: true, error: '保险柜锁着：解锁之后才谈得上保存' };
+    var r;
+    try { r = v.put(key, val); } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+    if (!r || r.ok !== true) return { ok: false, error: (r && r.reason) || '写入被内核拒绝' };
+    var cap = v.capability();
+    if (!cap.ok) return { ok: true, volatile: true, error: '改动只在本次会话的内存里（这台浏览器做不到加密落盘：' + cap.reason + '）' };
+    return { ok: true };
+  }
+  function pw(id) {    // 口令不能走 V()：那个函数会 trim，尾部的空格也是口令的一部分
+    var el = $(id);
+    return el && el.value != null ? String(el.value) : '';
+  }
+  function clearPw() {
+    ['vaultPass', 'vaultPass2'].forEach(function (id) { var el = $(id); if (el) el.value = ''; });
   }
 
   /* ============================================================ 2. 地图同步 */
@@ -2087,17 +2104,32 @@
     var ids = n.sourceIds();
     var base = n.networkPolicy().bridge_base;
     return Promise.all(ids.map(function (id) {
+      // 走桥接也一样过内核的缓存与健康度：以前这里直接 parseIpSource，于是 ⑧ 的
+      // 「源健康度/缓存」两块在最主要的那条路径上永远是空的，页面却写着「都在内存里」。
+      var c = n.cacheGet(id, ip, {});
+      if (c.hit && c.value && c.value.ok === true) {
+        return Promise.resolve(Object.assign({}, c.value, { from_cache: true, latency_ms: 0, cache_age_ms: c.age_ms }));
+      }
       var params = { source: id };
       if (ip) params.ip = ip;
       var built = n.buildBridgeUrl('/api/geoip', params, { bridge_base: base });
       if (built.error) return Promise.resolve(n.errorResult(id, 'bad_input', built.error));
       return n.httpGetJson(built.url, { fetch_timeout_ms: toMs }).then(function (got) {
-        if (!got.ok) return n.errorResult(id, got.error_kind, got.detail || errKindText(n, got.error_kind));
+        var lat = isNum(got.latency_ms) ? got.latency_ms : null;
+        if (!got.ok) return n.consumeResponse(id, null, { error_kind: got.error_kind, detail: got.detail, latency_ms: lat }).result;
         var j = got.json || {};
         if (j.ok !== true) {
-          return n.errorResult(id, j.error_kind || 'http_error', String(j.error || ('桥接返回 ok=false，HTTP ' + j.http_status)));
+          return n.consumeResponse(id, null, {
+            error_kind: j.error_kind || 'http_error',
+            detail: String(j.error || ('桥接返回 ok=false，HTTP ' + j.http_status)),
+            latency_ms: lat
+          }).result;
         }
-        return n.parseIpSource(id, j.upstream, { latency_ms: isNum(j.elapsed_ms) ? j.elapsed_ms : got.latency_ms });
+        // consumeResponse 而不是 parseIpSource：它顺手把成败记进健康度，选源才有的可挑
+        var out = n.consumeResponse(id, j.upstream, { status: 200, latency_ms: isNum(j.elapsed_ms) ? j.elapsed_ms : lat });
+        var res = out.result;
+        if (res && res.ok === true) n.cacheSet(id, ip, Object.assign({}, res, { latency_ms: null }), {});
+        return res;
       });
     }));
   }
@@ -2114,12 +2146,30 @@
       });
     });
   }
+  function corsReadBlock(b) {
+    // 把桥的 CORS 策略说人话：用户想知道的不是「Access-Control-Allow-Origin 怎么写」，
+    // 而是「除了我，还有谁读得到这台机器上的桥接」。名单来自 /api/health 的 cors_policy，
+    // 两份桥都给同一个字段（tests/bridge-parity.py 逐条对账），所以这里不必猜是哪一份。
+    var c = (b && b.cors_policy) || null;
+    if (!b || b.ok !== true) return '—（桥接不在线，谈不上谁能读它）';
+    if (!c) return warn('这份桥没有声明 cors_policy（桥版本过旧，或响应被中间层改写过）');
+    var built = Array.isArray(c.built_in) ? c.built_in : [];
+    var named = built.map(function (o) {
+      return o === 'null' ? 'null（file:// 双击打开的页面）' : o;
+    });
+    var extra = Array.isArray(c.extra) ? c.extra.length : 0;
+    var txt = '名单 ' + built.length + ' 条' + (extra ? ' + 启动时追加 ' + extra + ' 条' : '') +
+      '：' + esc(named.join(' / ')) + '，外加本机回环来源（127.x / localhost / ::1，端口随便）';
+    if (c.wildcard === true) return bad('这份桥在发通配 `*`：你浏览器里开着的任意网页都能读它 · ' + txt);
+    return good('不是通配 `*`：名单外的网页既读不到响应，也借不到这台机器发包（一律 403）· ' + txt);
+  }
   function viaBlock(c) {
     var b = c.bridge || {};
     return kv([
       ['通道', c.via === 'bridge' ? good('本机桥接服务（server.py 或 bridge-powershell.ps1，绕开浏览器 CORS/混合内容限制）') : warn('浏览器直连（桥接不可用，可能被 CORS、混合内容或网络策略拦截）')],
       ['桥接状态', b.ok ? good('在线 ' + String(b.server) + ' ' + String(b.version) + '，' + fmt(b.latency_ms, 0) + ' ms') : bad(errKindText(eng('GEONET'), b.error_kind) + '：' + (b.error || ''))],
-      ['桥接能力', ((b.capabilities || []).join(' / ')) || '—']
+      ['桥接能力', ((b.capabilities || []).join(' / ')) || '—'],
+      ['谁能读这台桥', corsReadBlock(b)]
     ]) + (c.via === 'direct' ? note('如果桥接其实已经启动，请把页面用 ' + esc(String(eng('GEONET').networkPolicy().bridge_base)) + '/ 打开（同源），file:// 页面访问回环端口会被浏览器的私有网络策略拦下。') : '');
   }
 
@@ -2280,7 +2330,7 @@
       ]);
       html += note(r.ok
         ? '桥接在回环上，只执行 traceroute/ping/dns/geoip 白名单命令；非回环绑定在启动阶段就被桥接自身拒绝。'
-        : '桥接不可达时：路由追踪只能降级为 DoH（拿不到跳数），GeoIP 走浏览器直连，可能被 CORS 或混合内容拦截。说明书里有两份桥的启动命令（Python 与 PowerShell）。');
+        : '桥接不可达时：路由追踪只能降级为 DoH（拿不到跳数），GeoIP 走浏览器直连，可能被 CORS 或混合内容拦截。MANUAL.md（英文说明书）第 2 节有两份桥的启动命令（Python 与 PowerShell）。');
       put('netResult', html);
     });
   }
@@ -2308,7 +2358,7 @@
       ['存储', esc(cs.storage) + '（前缀 ' + esc(cs.prefix) + '）'],
       ['条目', cs.count + ' 条' + ((cs.entries || []).length ? '：' + cs.entries.slice(0, 8).map(function (e) { return esc(e.key) + '（' + (e.age_ms == null ? '损坏' : e.age_ms + ' ms 前') + '）'; }).join('、') : '')]
     ]);
-    html += note('健康度与缓存都在本机（localStorage），清空只影响本页；缓存 TTL ' + (n.DEFAULTS.cache_ttl_ms / 1000) + ' s。');
+    html += note('多源健康度与 GeoIP 缓存都只在本次页面内存里（不写磁盘、不跨标签页共享），关掉页面即消失；缓存 TTL ' + (n.DEFAULTS.cache_ttl_ms / 1000) + ' s。');
     put('netMisc', html);
   }
   function runResetNet() {
@@ -2745,6 +2795,192 @@
     on('batchFmt', 'change', function () { put('batchStats', h4('导出格式已选为 ' + esc(V('batchFmt'))) + note('点「导出文件」或「复制到剪贴板」生效。')); });
   }
 
+  /* ============================================================ 16b. 本机保险柜（⑩ 的上半）
+   * 这一层只做三件事：把锁的状态如实说出来、把口令交给内核（自己一份都不留）、
+   * 锁上之后把屏幕上显示的本机记录清掉。加解密、派生、落盘全在 app/core-vault.js。
+   */
+  var vaultTimer = null;
+  var vaultArm = {};          // 「再点一次才生效」的武装标记：建锁覆盖与擦除都不可逆
+
+  function vaultLockText(reason) {
+    var m = { cold: '还没解锁', locked: '手动上锁', auto: '空闲自动上锁', wiped: '刚擦除', unsupported: '这台浏览器不给加密', unlocked: '已解锁' };
+    return m[reason] || String(reason || '—');
+  }
+
+  function renderVault() {
+    var v = vault();
+    if (!v || !$('vaultNote')) return;
+    var st = v.status(), cap = st.capability, em = st.envelope_meta || {};
+    var legacy = st.legacy_plaintext_keys || [];
+    var rows = [
+      ['锁', st.unlocked
+        ? good('已解锁 · 明文只在这个标签页的内存里（' + st.key_count + ' 组 / ' + st.mirror_bytes + ' 字节）')
+        : bad('锁着（' + vaultLockText(st.lock_reason) + '）· 屏幕上不显示任何本机记录')],
+      ['磁盘上', st.has_vault
+        ? esc(String(em.alg || '?')) + ' · ' + esc(String(em.kdf || '?')) + ' ' + (Number(em.iters || 0) / 10000) + ' 万次 · 信封 ' + st.envelope_bytes + ' 字节（一串 base64，看不出内容）'
+        : warn('还没有信封 —— 没建锁就什么都存不下')],
+      ['记录', st.unlocked ? ('历史 ' + storeGet(LS.hist).length + ' 条、收藏 ' + storeGet(LS.fav).length + ' 条（各上限 200 条，超出丢最旧的）') : '—（锁着，读不到也不显示）'],
+      ['上次落盘', st.last_write && st.last_write.ok ? good(st.last_write.reason) : warn((st.last_write && st.last_write.reason) || '还没写过')],
+      ['自动上锁', (st.auto_lock_ms / 60000) + ' 分钟不动就锁' + (st.unlocked ? '，这一次还剩 ' + fmt(Math.max(0, (st.auto_lock_in_ms || 0) / 1000), 0) + ' 秒' : '')],
+      ['这台浏览器', cap.ok ? good('WebCrypto ✓ · 安全上下文 ✓（' + cap.secure_context_kind + '）· 可写存储 ✓') : bad('做不到加密落盘：' + cap.reason)],
+      ['旧版明文键', legacy.length ? bad('还有 ' + legacy.length + ' 个：' + legacy.join('、')) : good('无（磁盘上不存在未加密的旧记录）')]
+    ];
+    var html = h4('保险柜') + kv(rows);
+    var typed = pw('vaultPass');
+    if (typed) {
+      var s = v.strength(typed);
+      html += note('口令强度（只算你刚敲进输入框的这段文字，不保存、不上送、不参与任何网络请求）：' +
+        (s.acceptable ? good(s.label) : warn(s.label)) + '，约 ' + s.bits + ' bit · 长度 ' + s.length +
+        (s.hints.length ? ' · 建议：' + s.hints.join('；') : ''));
+    }
+    if (!st.has_vault) {
+      html += note('第一次用：填一条口令再点「建锁」。口令只用来派生密钥（PBKDF2-SHA256 ' +
+        (v.MIN_ITERATIONS / 10000) + ' 万次 → AES-256-GCM），任何地方都不存它本身；忘了没有后门，只能重建。');
+    }
+    if (legacy.length) {
+      html += note(warn('检测到旧版本留在磁盘上的明文记录。建锁/解锁后会把它们收进同一个信封并删除原键；' +
+        '不建锁它们就一直摊在那里，同一台机器上的任何程序都读得到。'));
+    }
+    if (!cap.ok) {
+      html += note(bad('当前环境拿不到 WebCrypto 或可用的存储：本页照常计算，但拒绝把任何位置写成明文（fail closed），改动只留在本次会话。'));
+    }
+    html += note('锁的粒度是「明文镜像 + 派生出来的密钥句柄」：上锁即丢弃，重开页面必须重新输入口令；' +
+      '试错口令不会弄坏信封，也不会给出「差多少」的反馈。');
+    put('vaultNote', html);
+    var sel = $('vaultAutoLock');
+    if (sel) {
+      var want = st.auto_lock_ms >= v.AUTO_LOCK_MAX_MS ? '0' : String(st.auto_lock_ms);
+      if (Array.prototype.some.call(sel.options, function (o) { return o.value === want; })) sel.value = want;
+    }
+  }
+
+  function onVaultLocked(info) {
+    renderHistory();          // 屏幕上的历史/收藏表当场清空（镜像已经丢了，本来也无从显示）
+    renderVault();
+    var why = info && info.auto ? '空闲到点，自动上锁' : '上锁';
+    status('保险柜已' + why + '：内存镜像与密钥句柄都已丢弃，屏幕上的本机记录已清掉', 'busy');
+  }
+
+  function bindVault() {
+    on('btnVaultUnlock', 'click', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      var p = pw('vaultPass');
+      if (!p) { status('先输入口令', 'bad'); return; }
+      v.unlock(p).then(function (r) {
+        if (r.ok) {
+          clearPw();
+          status('已解锁：读到 ' + r.keys + ' 组本机记录', 'ok');
+          return v.absorbLegacy().then(function (ab) {
+            if (ab.ok && ab.moved && ab.moved.length) status('已把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除原键', 'ok');
+            applyPrefs(); renderHistory(); renderVault();
+          });
+        }
+        status('解锁失败：' + (r.reason === 'wrong_passphrase' ? '口令不对（猜错不会弄坏信封，也不会提示差多少）'
+          : (r.detail || r.reason || '未知原因')), 'bad');
+        renderVault();
+      });
+    });
+    on('btnVaultCreate', 'click', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      var p = pw('vaultPass'), s = v.strength(p);
+      if (!s.acceptable) {
+        status('这条口令不够用：' + (s.too_short ? ('短于 ' + v.MIN_PASSPHRASE + ' 位') : s.label) +
+          (s.hints.length ? '（' + s.hints[0] + '）' : ''), 'bad');
+        renderVault(); return;
+      }
+      if (v.status().has_vault && !vaultArm.create) {
+        vaultArm.create = true;
+        status('这台机器上已经有一个信封：再点一次「建锁」会覆盖它，旧记录从此解不开（没有回收站）', 'busy');
+        return;
+      }
+      vaultArm.create = false;
+      v.createNew(p, {}).then(function (r) {
+        if (r.ok) {
+          clearPw();
+          status('已建锁：磁盘上从此只有一个 AES-256-GCM 信封', 'ok');
+          return v.absorbLegacy().then(function (ab) {
+            if (ab.ok && ab.moved && ab.moved.length) status('顺手把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除', 'ok');
+            applyPrefs(); renderHistory(); renderVault();
+          });
+        }
+        status('建锁失败：' + (r.reason === 'no_envelope_storage' || r.reason === 'storage_write_failed'
+          ? ('这个浏览器写不进去（' + (r.detail || r.reason) + '），为了不写成明文，已停止存储') : (r.reason || '未知原因')), 'bad');
+        renderVault();
+      });
+    });
+    on('btnVaultLock', 'click', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      clearPw();
+      var r = v.lock('manual');
+      onVaultLocked(r);
+    });
+    on('btnVaultChange', 'click', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      var oldP = pw('vaultPass'), newP = pw('vaultPass2');
+      if (!v.status().unlocked) { status('锁着的时候改不了口令：先用旧口令解锁', 'bad'); return; }
+      v.changePassphrase(oldP, newP).then(function (r) {
+        if (r.ok) {
+          clearPw();
+          status('口令已更换：新信封只有新口令解得开，旧口令当场失效', 'ok');
+        } else {
+          status('改口令失败：' + (r.reason === 'wrong_passphrase' ? '旧口令验证没过，什么都没改'
+            : (r.reason === 'weak_passphrase' || r.reason === 'too_short' ? '新口令不够用（' + ((r.detail && r.detail.label) || r.reason) + '）' : (r.reason || '未知原因'))), 'bad');
+        }
+        renderVault();
+      });
+    });
+    on('btnVaultWipe', 'click', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      if (!vaultArm.wipe) {
+        vaultArm.wipe = true;
+        status('「擦除」会删掉信封和所有旧明文键，历史与收藏从此解不开：确认就再点一次', 'busy');
+        return;
+      }
+      vaultArm.wipe = false;
+      clearPw();
+      var r = v.wipe();
+      status('已擦除：带走 ' + (r.removed || []).length + ' 个键（' + (r.removed || []).join('、') + '），没有回收站', 'busy');
+      renderHistory(); renderVault();
+    });
+    on('vaultAutoLock', 'change', function () {
+      var v = need('GEOVAULT'); if (!v) return;
+      var ms = N('vaultAutoLock');
+      var r = v.setAutoLock(ms === null ? 0 : ms);
+      var mins = v.status().auto_lock_ms / 60000;
+      status(r.ok ? ('自动上锁：' + (ms === 0 ? '只手动（不再自动锁）' : mins + ' 分钟不动就锁'))
+        : ('这个值设不了：' + r.reason), r.ok ? 'ok' : 'bad');
+      renderVault();
+    });
+    on('vaultPass', 'input', function () { renderVault(); });
+    // 空闲判定只认真实操作（键盘/鼠标/滚轮），而且直接把这份确认交给内核：
+    // 不能用「有没有调过存储 API」推断活跃度——界面每 2 秒就要读一遍镜像刷新倒计时，
+    // 若读也算活跃，自动上锁永远不会发生（这条曾在真浏览器里实测到：idle 一直停在 1 秒内）。
+    ['pointerdown', 'keydown', 'wheel'].forEach(function (ev) {
+      if (DOC && DOC.addEventListener) DOC.addEventListener(ev, function () {
+        var vv = vault(); if (vv) vv.activity();
+      }, { passive: true, capture: true });
+    });
+    if (typeof global.addEventListener === 'function') {
+      global.addEventListener('pagehide', function () { var v = vault(); if (v && v.status().unlocked) v.flush(); });
+    }
+    renderVault();
+  }
+
+  function initVault() {
+    var v = vault();
+    if (!v) {
+      put('vaultNote', note(bad('加密内核 app/core-vault.js 未加载：为了不把你的位置写成明文，本页不存储任何记录。历史、收藏、偏好在本次会话内仍然可算可用。')));
+      return;
+    }
+    v.onLock(function (info) { onVaultLocked(info); });
+    if (vaultTimer !== null) return;
+    vaultTimer = global.setInterval(function () {
+      var vv = vault(); if (!vv) return;
+      vv.checkAutoLock();
+      if ($('vaultNote') && $('vaultNote').innerHTML) renderVault();   // 只在面板已经画过时刷新倒计时
+    }, 2000);
+  }
+
   /* ============================================================ 17. ⑩ 历史与收藏 */
   function storeGet(key) {
     var v = lsGet(key, []);
@@ -2785,7 +3021,7 @@
       var dup = fav.some(function (f) { return f.ts === x.ts && f.lat === x.lat && f.lon === x.lon; });
       if (!dup) html += row(x, false, i);
     });
-    if (tb) tb.innerHTML = html || '<tr><td colspan="6">还没有记录。勾选「每次解算自动记历史」后，任何面板的解都会写进本机 localStorage（收藏则始终保留）。</td></tr>';
+    if (tb) tb.innerHTML = html || '<tr><td colspan="6">还没有记录。保险柜解锁后，勾选「每次解算自动记历史」，任何面板的解都会加密写进本机信封（收藏则始终保留）。</td></tr>';
     if (tb) Array.prototype.forEach.call(tb.querySelectorAll('button[data-act]'), function (btn) {
       btn.addEventListener('click', function () {
         var kind = btn.getAttribute('data-kind'), idx = Number(btn.getAttribute('data-idx'));
@@ -2809,13 +3045,15 @@
         }
       });
     });
-    var probe = lsSet('llgz.probe.v1', 1);
-    if (probe.ok) { try { global.localStorage.removeItem('llgz.probe.v1'); } catch (e) { } }
+    var vs = vault() ? vault().status() : null;
+    var em = (vs && vs.envelope_meta) || {};
     put('histNote', h4('本机存储') + kv([
-      ['写入能力', probe.ok ? good('可用') : bad('不可写：' + (probe.error || ''))],
-      ['键名', esc(LS.hist) + ' / ' + esc(LS.fav) + ' / ' + esc(LS.prefs)],
+      ['写盘', !vs ? bad('缺 GEOVAULT 内核：为免写成明文，本页不存储')
+        : (vs.capability.ok ? good('加密后写入（' + vs.capability.storage + '）') : warn('写不了：' + vs.capability.reason + '（改动只留在本次会话）'))],
+      ['磁盘上的形态', vs && vs.has_vault ? (esc(String(em.alg)) + ' · ' + esc(String(em.kdf)) + ' ' + (Number(em.iters) / 10000) + ' 万次 · ' + vs.envelope_bytes + ' 字节密文') : warn('还没有信封')],
+      ['逻辑键', esc(LS.hist) + ' / ' + esc(LS.fav) + ' / ' + esc(LS.prefs) + ' 三组，全在同一个信封 ' + esc(vault() ? vault().ENVELOPE_KEY : '?') + ' 里'],
       ['条数', '历史 ' + hist.length + ' 条、收藏 ' + fav.length + ' 条（各上限 200 条，超出丢弃最旧的）']
-    ]) + note('数据只存在这台机器的这个浏览器里：清缓存、换浏览器、换电脑都不会带过去；本页不会把历史发往任何服务器。'));
+    ]) + note('这些只存在这台机器的这个浏览器里，而且存的是密文：清缓存、换浏览器、换电脑都不会带过去，本页也不会把历史发往任何服务器。锁上之后连本页自己都读不到。'));
   }
 
   function saveCur() {
@@ -2850,7 +3088,8 @@
     { ns: 'GEOASTRO', name: '天象', quick: true },
     { ns: 'GEOCELL', name: '基站/信号', quick: false },
     { ns: 'GEOGNSS', name: 'GNSS', quick: false },
-    { ns: 'GEONET', name: '联网与路由', quick: false }
+    { ns: 'GEONET', name: '联网与路由', quick: false },
+    { ns: 'GEOVAULT', name: '本机存储加密', quick: false }
   ];
 
   function runSelfTest(quick) {
@@ -2883,28 +3122,66 @@
           }).join('') + '</tbody></table></div>' : note(good('全部通过（勾「展开通过项明细」看每一门的实测值）')));
     });
     var env = envReport();
-    var okAll = failed === 0 && env.bad === 0;
-    var skipped = ENGINES.filter(function (e) { return quick && !e.quick; }).map(function (e) { return e.ns; });
-    put('stSummary', h4('总览') + kv([
-      ['本次范围', quick ? '快速：' + picked.map(function (e) { return e.ns; }).join('、') : '全量 6 个内核'],
-      ['闸门总数', String(total)],
-      ['失败', failed ? bad(String(failed)) : good('0')],
-      ['耗时', fmt((Date.now() - t0) / 1000, 2) + ' s'],
-      ['界面元素缺失', env.miss ? warn(env.miss + ' 个 id 找不到') : good('0')],
-      ['结论', okAll ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细')]
-    ]) + env.html + (skipped.length ? note(warn('快速模式跳过了 ' + skipped.join('、') + '；出具验收结论请跑全量。')) : ''));
+    var asyncAdd = { gates: 0, bad: 0 };
+    function summaryHtml() {
+      var g = total + asyncAdd.gates, f = failed + asyncAdd.bad;
+      var ok = f === 0 && env.bad === 0;
+      var skipped = ENGINES.filter(function (e) { return quick && !e.quick; }).map(function (e) { return e.ns; });
+      return h4('总览') + kv([
+        ['本次范围', quick ? '快速：' + picked.map(function (e) { return e.ns; }).join('、') : '全量 ' + ENGINES.length + ' 个内核'],
+        ['闸门总数', String(g) + (asyncAdd.gates ? '（其中异步 ' + asyncAdd.gates + ' 门）' : '')],
+        ['失败', f ? bad(String(f)) : good('0')],
+        ['耗时', fmt((Date.now() - t0) / 1000, 2) + ' s'],
+        ['界面元素缺失', env.miss ? warn(env.miss + ' 个 id 找不到') : good('0')],
+        ['结论', ok ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细')]
+      ]) + env.html + (skipped.length ? note(warn('快速模式跳过了 ' + skipped.join('、') + '；出具验收结论请跑全量。')) : '');
+    }
+    function finalStatus() {
+      var f = failed + asyncAdd.bad;
+      var ok = f === 0 && env.bad === 0;
+      status(ok ? '自检通过：' + (total + asyncAdd.gates) + ' 门 0 失败' : '自检失败 ' + f + ' 门', ok ? 'ok' : 'bad');
+    }
+    put('stSummary', summaryHtml());
     put('stDetail', html);
-    status(okAll ? '自检通过：' + total + ' 门 0 失败' : '自检失败 ' + failed + ' 门', okAll ? 'ok' : 'bad');
-    if (!quick && eng('GEONET') && typeof eng('GEONET').selfTestAsync === 'function' && !netRunning) {
-      guardAsync('内核自检（异步）', function () {
-        return eng('GEONET').selfTestAsync().then(function (list) {
-          var b = (list || []).filter(function (x) { return !x.pass; });
-          var el = $('stDetail');
-          if (el) el.innerHTML += '<h4>' + esc('GEONET 异步门（含并发/超时/缓存/隐私策略）：' + (list || []).length + ' 门，') + (b.length ? bad(b.length + ' 失败') : good('0 失败')) + '</h4>' +
-            (b.length ? '<div class="tablewrap"><table class="grid"><thead><tr><th>门</th><th>实测值</th></tr></thead><tbody>' +
-              b.map(function (x) { return '<tr><td>' + esc(x.name) + '</td><td class="num">' + esc(x.detail) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '');
+    finalStatus();
+
+    // 异步门：GEONET 那份要真的等并发/超时/缓存，GEOVAULT 那份要真的跑 PBKDF2 + AES-GCM 往返。
+    // 它们都不走真实网络（GEONET 自己把 fetch 换成永久挂起的陷阱并关掉 allow_real_network），
+    // 所以这里不占用 netRunning；但如果有联网任务正在跑，就跳过 GEONET，免得两边互相踩 fetch。
+    if (!quick) {
+      var vIter = vault() ? (vault().MIN_ITERATIONS / 10000) : '?';
+      var jobs = [];
+      if (!netRunning && eng('GEONET') && typeof eng('GEONET').selfTestAsync === 'function') {
+        jobs.push({ ns: 'GEONET', title: 'GEONET 异步门（含并发/超时/缓存/隐私策略）' });
+      }
+      if (eng('GEOVAULT') && typeof eng('GEOVAULT').selfTestAsync === 'function') {
+        jobs.push({ ns: 'GEOVAULT', title: 'GEOVAULT 加密门（浏览器自己的 WebCrypto：PBKDF2-SHA256 ' + vIter + ' 万次 → AES-256-GCM 认证往返）' });
+      }
+      if (jobs.length) {
+        status('内核异步闸门进行中（' + jobs.map(function (j) { return j.ns; }).join('、') + '）…', 'busy');
+        var chain = Promise.resolve();
+        jobs.forEach(function (j) {
+          chain = chain.then(function () {
+            var run;
+            try { run = eng(j.ns).selfTestAsync(); } catch (err) { run = Promise.reject(err); }
+            return run.then(function (list) { return list; }, function (err) {
+              return [{ name: 'selfTestAsync 抛出异常', pass: false, detail: String(err && err.message || err) }];
+            }).then(function (list) {
+              var arr = list || [];
+              var b = arr.filter(function (x) { return !x.pass; });
+              asyncAdd.gates += arr.length; asyncAdd.bad += b.length;
+              var el = $('stDetail');
+              if (el) el.innerHTML += '<h4>' + esc(j.title + '：' + arr.length + ' 门，') +
+                (b.length ? bad(b.length + ' 失败') : good('0 失败')) + '</h4>' +
+                (b.length ? '<div class="tablewrap"><table class="grid"><thead><tr><th>门</th><th>实测值</th></tr></thead><tbody>' +
+                  b.map(function (x) { return '<tr><td>' + esc(x.name) + '</td><td class="num">' + esc(x.detail) + '</td></tr>'; }).join('') + '</tbody></table></div>'
+                  : note(good('全部通过（这一节的明细只在失败时列出，异步门跑完约需数秒）')));
+              put('stSummary', summaryHtml());
+              finalStatus();
+            });
+          });
         });
-      });
+      }
     }
   }
 
@@ -2913,7 +3190,8 @@
     var hasL = typeof G.L !== 'undefined', hasQ = typeof global.qrcode === 'function';
     var gd = eng('GEODATA');
     var gdKeys = gd ? Object.keys(gd).join('、') : '—';
-    var ls = lsSet('llgz.probe.v2', 1);
+    var vv = vault();
+    var vcap = vv ? vv.capability() : null;
     // 「GEODATA 已加载」和「地图上真的画出了陆域」是两件事：数据结构与渲染代码一旦不一致，
     // 地图就变成一块空白底，而旧报告照样全绿。这里直接数挂在 base 图层上的多边形块数。
     var mp = (hasL && typeof G.GEOUI_MAP !== 'undefined' && G.GEOUI_MAP.layerStats) ? G.GEOUI_MAP.layerStats() : null;
@@ -2926,7 +3204,7 @@
     miss.forEach(function (id) { if (missU.indexOf(id) < 0) missU.push(id); });
     // 画面里出现「标记源码」是肉眼直接看得见的坏：渲染 helper 一旦被双重转义，
     // 用户就会在面板上看到 <span class="good">…</span> 或 &lt;h4&gt; 这样一行字，
-    // 而 515 道数字闸门全绿也照不出来。所以这里扫的是真正显示出来的文字（innerText）。
+    // 而几百道数字闸门全绿也照不出来。所以这里扫的是真正显示出来的文字（innerText）。
     // 判据只认本界面 helper 的指纹（带 good/bad/warn/note 的 span、h4 标签、被转义掉一个 `<` 的标签头），
     // 用户在批处理里粘贴的普通尖括号文本不算漏——那种字本来就该照原样显示。
     // 报告里把尖括号与 & 换成点，免得这条说明自己变成下一轮的命中。
@@ -2934,18 +3212,19 @@
     var leakText = ((DOC.querySelector('main') || DOC.body || {}).innerText) || '';
     var leakHit = leakText.match(leakRe);
     var html = h4('运行环境') + kv([
-      ['内核', k + ' / 6 已加载' + (k === 6 ? ' ' + good('齐') : ' ' + bad(ENGINES.filter(function (e) { return !eng(e.ns); }).map(function (e) { return e.ns; }).join('、')))],
+      ['内核', k + ' / ' + ENGINES.length + ' 已加载' + (k === ENGINES.length ? ' ' + good('齐') : ' ' + bad(ENGINES.filter(function (e) { return !eng(e.ns); }).map(function (e) { return e.ns; }).join('、')))],
       ['地图组件', hasL ? good('Leaflet 已加载') : warn('未加载：矢量陆域与底图不可用，数值功能不受影响')],
       ['二维码', hasQ ? good('vendor/qrcode.js 已加载') : bad('未加载：二维码不可用')],
       ['离线数据', gd ? good('GEODATA：' + gdKeys) : bad('未加载 GEODATA（app/data/ 三个文件）')],
       ['矢量陆域', landRow],
-      ['localStorage', ls.ok ? good('可写') : bad('不可写：' + (ls.error || ''))],
+      ['本机存储', !vv ? bad('GEOVAULT 未加载：为免明文落盘，本页拒绝存储任何记录')
+        : (vcap.ok ? good('加密落盘可用（' + vcap.storage + ' · 写前 AES-256-GCM）')
+          : warn('做不到加密落盘：' + vcap.reason + ' —— 改动只留在本次会话，绝不写成明文'))],
       ['协议', esc(location.protocol) + (location.protocol === 'file:' ? '（路由追踪需要本机桥接：server.py 或 bridge-powershell.ps1）' : '')],
       ['界面缺失 id', missU.length ? warn(missU.join('、')) : good('0 个')],
       ['画面标记源码', leakHit ? bad('漏出 ' + leakHit[0].replace(/[<>&";]/g, '·') + '（多半是渲染时多转义了一次；若这段字来自你粘贴的内容，可忽略）') : good('0 处（面板文字里没有转义失败的标签）')]
     ]);
-    if (ls.ok) { try { global.localStorage.removeItem('llgz.probe.v2'); } catch (e) { } }
-    return { html: html, bad: (k === 6 ? 0 : 1) + missU.length + (landBad ? 1 : 0) + (leakHit ? 1 : 0), miss: missU.length };
+    return { html: html, bad: (k === ENGINES.length ? 0 : 1) + missU.length + (landBad ? 1 : 0) + (leakHit ? 1 : 0), miss: missU.length };
   }
 
   /* ============================================================ 19. 启动 */
@@ -3025,7 +3304,7 @@
         Array.prototype.forEach.call(panels, function (p) { p.classList.toggle('active', p.getAttribute('data-panel') === name); });
         savePrefs();
         if (name === 'history') renderHistory();
-        if (name === 'selftest' && !V('stSummary')) put('stSummary', note('点「运行全部自检」跑一遍六个内核。'));
+        if (name === 'selftest' && !V('stSummary')) put('stSummary', note('点「运行全部自检」跑一遍七个内核。'));
       });
     });
     on('btnTheme', 'click', function () {
@@ -3115,8 +3394,8 @@
     var kb = $('kernelBadge');
     if (kb) {
       var ok = ENGINES.filter(function (e) { return !!eng(e.ns); });
-      kb.textContent = '内核 ' + ok.length + '/6';
-      kb.title = ok.length === 6 ? ok.map(function (e) { return e.ns + ' v' + (eng(e.ns).VERSION || '?'); }).join('、') : '缺失：' + ENGINES.filter(function (e) { return !eng(e.ns); }).map(function (e) { return e.ns; }).join('、');
+      kb.textContent = '内核 ' + ok.length + '/' + ENGINES.length;
+      kb.title = ok.length === ENGINES.length ? ok.map(function (e) { return e.ns + ' v' + (eng(e.ns).VERSION || '?'); }).join('、') : '缺失：' + ENGINES.filter(function (e) { return !eng(e.ns); }).map(function (e) { return e.ns; }).join('、');
     }
   }
 
@@ -3193,6 +3472,7 @@
       if (r && r.error === 'no_leaflet') put('mapReadout', '地图不可用（缺 vendor/leaflet.js）：所有计算仍可用');
     }
     bindOverview(); bindCoords(); bindCell(); bindTri(); bindSignal(); bindGnss(); bindAstro(); bindNet(); bindBatch(); bindHistory();
+    bindVault(); initVault();
     on('btnRunAll', 'click', function () { runSelfTest(false); });
     on('btnRunQuick', 'click', function () { runSelfTest(true); });
     bindShell();
@@ -3201,10 +3481,15 @@
     syncMap();
     if (!applyHash()) centerOn(31.2304, 121.4737, 5);
     put('precisionResult', precisionBlock());
-    Array.prototype.forEach.call(DOC.querySelectorAll('input,select,textarea'), function (el) {
+    Array.prototype.forEach.call(DOC.querySelectorAll('input:not([type=password]),select,textarea'), function (el) {
       el.addEventListener('change', savePrefs);
     });
-    status('就绪：六个内核全部本地计算。第一个建议——⑪ 跑一次全量自检。', 'ok');
+    var vs = vault() ? vault().status() : null;
+    status('就绪：' + ENGINES.length + ' 个内核全部本地计算。' +
+      (!vs ? '保险柜内核缺失，本页不存储任何记录。'
+        : (vs.has_vault && !vs.unlocked ? '保险柜锁着——到 ⑩ 输入口令才读得回本机记录。'
+          : vs.has_vault ? '保险柜已解锁。' : '还没建锁：⑩ 里填口令点「建锁」才谈得上保存。')) +
+      '第一个建议——⑪ 跑一次全量自检。', 'ok');
   }
 
   if (DOC && DOC.readyState === 'complete') boot();

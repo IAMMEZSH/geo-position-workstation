@@ -45,6 +45,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUDGET_S = 8.0          # 一份桥从启动到能答 health 的上限
 RESULT = []             # [(case, verdict, detail)]
 
+LOOPBACK_ORIGIN = "http://127.0.0.1"          # 默认带去打两份桥的来源（同源页面等价物）
+HOSTED_ORIGIN = "https://iammezsh.github.io"  # 白名单里那条：托管页跨协议打本机回环
+FILE_ORIGIN = "null"                          # 白名单里那条：file:// 双击打开的页面
+EVIL_ORIGINS = ["https://evil.example", "http://127.0.0.1.evil.com",
+                "https://iammezsh.github.io.evil.com", "http://10.0.0.5:8765"]
+
 
 def record(case, ok, detail):
     RESULT.append((case, ok, detail))
@@ -61,7 +67,18 @@ def free_port():
 
 def http_get(url, timeout=20.0):
     """返回 (status, body_bytes, headers_lower)。4xx/5xx 也算答到了，不抛出去——两份桥的拒绝路径就是要对比的。"""
-    req = urllib.request.Request(url, headers={"Accept": "*/*", "Origin": "http://127.0.0.1"})
+    return http_request(url, origin=LOOPBACK_ORIGIN, timeout=timeout)
+
+
+def http_request(url, origin=None, method="GET", extra_headers=None, timeout=20.0):
+    """指定 Origin 与方法打一次。origin=None 是「根本不发这个头」（非浏览器客户端），
+    和 origin="" 不是一回事，所以这里用 None 而不是空串表达。"""
+    hdrs = {"Accept": "*/*"}
+    if origin is not None:
+        hdrs["Origin"] = origin
+    for k, v in (extra_headers or {}).items():
+        hdrs[k] = v
+    req = urllib.request.Request(url, headers=hdrs, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.read(), {str(k).lower(): v for k, v in resp.headers.items()}
@@ -278,6 +295,113 @@ def compare_health(py_base, ps_base):
     return bad
 
 
+def compare_origin_policy(py_base, ps_base):
+    """跨站来源白名单的实机对账。
+
+    离线自检测的是判定函数（origin_allowed / Test-OriginAllowed）；这里测的是另一件事：
+    响应头到底有没有发出去、发的是不是那个来源本身、拒绝是不是 403 而不是「悄悄不给头」。
+    两份桥必须给同一个答案——页面不知道自己连上的是哪一个，白名单不能成为例外。
+    """
+    bad = 0
+    stars = []
+
+    def acao_of(hdr):
+        v = hdr.get("access-control-allow-origin")
+        if v == "*":
+            stars.append(v)
+        return v
+
+    allowed = [FILE_ORIGIN, HOSTED_ORIGIN, py_base, ps_base, "http://localhost:1"]
+    miss = []
+    for origin in allowed:
+        for label, base in (("server.py", py_base), ("ps1", ps_base)):
+            st, body, hdr = http_request(base + "/api/health", origin=origin)
+            got = acao_of(hdr)
+            if st != 200 or got != origin:
+                miss.append("%s ← %s：状态 %s，回显 %r" % (label, origin, st, got))
+    record("白名单内来源两份桥都放行并原样回显（%d 例）" % len(allowed), not miss, "；".join(miss[:3]))
+    bad += 0 if not miss else 1
+
+    reject = []
+    for origin in EVIL_ORIGINS:
+        for label, base in (("server.py", py_base), ("ps1", ps_base)):
+            st, body, hdr = http_request(base + "/api/health", origin=origin)
+            data, _err = json_keys(body)
+            kind = data.get("error_kind") if isinstance(data, dict) else None
+            got = acao_of(hdr)
+            if st != 403 or kind != "origin_not_allowed" or got:
+                reject.append("%s ← %s：状态 %s，error_kind %r，回显 %r" % (label, origin, st, kind, got))
+    record("白名单外来源两份桥都 403 origin_not_allowed（%d 例）" % len(EVIL_ORIGINS), not reject, "；".join(reject[:3]))
+    bad += 0 if not reject else 1
+
+    pre = []
+    for origin, want in ((FILE_ORIGIN, 204), (HOSTED_ORIGIN, 204), (py_base, 204), (EVIL_ORIGINS[0], 403)):
+        for label, base in (("server.py", py_base), ("ps1", ps_base)):
+            st, body, hdr = http_request(
+                base + "/api/health", origin=origin, method="OPTIONS",
+                extra_headers={"Access-Control-Request-Method": "GET",
+                               "Access-Control-Request-Private-Network": "true"})
+            got = acao_of(hdr)
+            pna = (hdr.get("access-control-allow-private-network") or "") if want == 204 else ""
+            if st != want or (want == 204 and (got != origin or pna.lower() != "true")) or (want == 403 and got):
+                pre.append("%s 预检 ← %s：状态 %s，回显 %r，PNA %r" % (label, origin, st, got, pna))
+    record("预检（OPTIONS）走同一张名单，并按请求回显私有网络许可", not pre, "；".join(pre[:3]))
+    bad += 0 if not pre else 1
+
+    silent = []
+    for label, base in (("server.py", py_base), ("ps1", ps_base)):
+        st, body, hdr = http_request(base + "/api/health", origin=None)
+        got = acao_of(hdr)
+        if st != 200 or got or hdr.get("vary"):
+            silent.append("%s 无 Origin：状态 %s，回显 %r，Vary %r" % (label, st, got, hdr.get("vary")))
+    record("没有 Origin 头时两份都照常 200 且不发 CORS 头（启动器/curl）", not silent, "；".join(silent[:2]))
+    bad += 0 if not silent else 1
+
+    stat = []
+    for label, base in (("server.py", py_base), ("ps1", ps_base)):
+        for origin in (HOSTED_ORIGIN, EVIL_ORIGINS[0]):
+            st, body, hdr = http_request(base + "/index.html", origin=origin)
+            got = acao_of(hdr)
+            if st != 200 or got:
+                stat.append("%s 静态 ← %s：状态 %s，回显 %r" % (label, origin, st, got))
+    record("静态资源永远不带 CORS 头（名单内也不例外：跨站页面读不到项目文件）", not stat, "；".join(stat[:2]))
+    bad += 0 if not stat else 1
+
+    record("通配 `Access-Control-Allow-Origin: *` 在两份桥的任何响应里都没出现", not stars, repr(stars[:2]))
+    bad += 0 if not stars else 1
+
+    sem = []
+    for label, base in (("server.py", py_base), ("ps1", ps_base)):
+        data, err = json_keys(http_request(base + "/api/health", origin=None)[1])
+        cp = (data or {}).get("cors_policy") if isinstance(data, dict) else None
+        if not isinstance(cp, dict):
+            sem.append("%s 的 health 没有 cors_policy：%s" % (label, err))
+            continue
+        if cp.get("wildcard") is not False or FILE_ORIGIN not in (cp.get("built_in") or []) \
+                or HOSTED_ORIGIN not in (cp.get("built_in") or []):
+            sem.append("%s 的 cors_policy 说得不对：%s" % (label, cp))
+    py_cp = ps_cp = None
+    for label, base in (("server.py", py_base), ("ps1", ps_base)):
+        data, _err = json_keys(http_request(base + "/api/health", origin=None)[1])
+        cp = (data or {}).get("cors_policy") if isinstance(data, dict) else None
+        if isinstance(cp, dict):
+            if label == "server.py":
+                py_cp = cp
+            else:
+                ps_cp = cp
+    if py_cp is not None and ps_cp is not None:
+        same = (sorted(py_cp.keys()) == sorted(ps_cp.keys())
+                and sorted(py_cp.get("built_in") or []) == sorted(ps_cp.get("built_in") or [])
+                and py_cp.get("wildcard") == ps_cp.get("wildcard"))
+        if not same:
+            sem.append("两份桥的 cors_policy 形状/名单不一致：%s / %s" % (
+                {k: py_cp.get(k) for k in ("wildcard", "built_in")},
+                {k: ps_cp.get(k) for k in ("wildcard", "built_in")}))
+    record("health.cors_policy 两份都如实声明且互相一致", not sem, "；".join(sem[:2]))
+    bad += 0 if not sem else 1
+    return bad
+
+
 def _src_id(item):
     return item["id"] if isinstance(item, dict) else item
 
@@ -353,7 +477,8 @@ def main(argv):
         bad = (compare_cases(py_base, ps_base)
                + compare_static_assets(py_base, ps_base)
                + compare_traversal(py_base, ps_base)
-               + compare_health(py_base, ps_base))
+               + compare_health(py_base, ps_base)
+               + compare_origin_policy(py_base, ps_base))
         print("\n  用例 %d / 失败 %d" % (len(RESULT), bad))
         if bad:
             print("结论：两份桥的回答不一致（页面会在其中一份上少东西）。")
