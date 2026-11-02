@@ -41,6 +41,7 @@ PAGES_BASE = "https://iammezsh.github.io/geo-position-workstation/"
 # 通配符会在有人往 app/ 里丢临时文件时悄悄把它打包发出去。
 CORE = [
     "index.html",
+    "favicon.svg",
     "LICENSE",
     "README.md",
     "MANUAL.md",

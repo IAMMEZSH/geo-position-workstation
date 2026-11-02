@@ -13,7 +13,7 @@ tracing) needs an extra local bridge, and on **Windows that bridge needs nothing
   (71 of them asynchronous); Node `tests/run-all.mjs` **623 gates** — the same files reaching the same
   number in both environments, which is itself part of the check (§8.1); `server.py --selftest` **110 items**
   (1 skipped because this machine forbids the symlink); `bridge-powershell.ps1 -SelfTest` **202 items**;
-  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **70 items**;
+  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **71 items**;
   `工具/pack-platform.py --check` **0 problems**. Composition and commands: §8. Screenshots and
   per-panel numbers: §3 and §9.
 - **This file is the only usage document.** Platform boundaries, architecture conventions,
@@ -68,14 +68,15 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 
 ## 1. What is in the package
 
-The complete package is **67 files, 10.06 MB (9.60 MiB)** — including 15 real
+The complete package is **68 files, 10.07 MB (9.60 MiB)** — including 15 real
 run screenshots (5.04 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts, and
 `tests/check-package.py` verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 
 | Path | Purpose |
 |---|---|
-| `index.html` | The only entry point; eleven panels; references **16 local resources**; no bundler, no CDN |
+| `index.html` | The only entry point; eleven panels; references **17 local resources**; no bundler, no CDN |
+| `favicon.svg` | The tab icon, **declared** by the entry page. Without a declaration every browser asks the *site root* for `/favicon.ico`, and on GitHub Pages that unasked-for request answers 404 (§11.27). Same palette as the dark skin: deep-space panel, neon crosshair over a meridian ring |
 | `app/core-geodetic.js` | GEOGEO (701 lines): ellipsoid, geodesic direct/inverse, ECEF/ENU, area and convex hull, compass |
 | `app/core-datums.js` | GEODATUM (1276 lines): projections and encodings, datum transforms, GCJ-02/BD-09, `parseAny` |
 | `app/core-cell.js` | GEOCELL (2410 lines): cellular channel ↔ frequency, TA/RSRP ranges, lateration, TDOA, fingerprinting |
@@ -99,7 +100,7 @@ directories. That is exactly what `git ls-files -co --exclude-standard` counts, 
 | `docs/img/` | Five English diagrams: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
 | `images/` | Fifteen real screenshots (referenced by README and this manual — not decoration) |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
-| `tests/check-package.py` | 70 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, and the order of the self-test panel's own verdict |
+| `tests/check-package.py` | 71 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
 | `工具/pack-platform.py` | Builds the per-platform archives listed below (`--list`, `--check`, `--all`) |
 | `.github/workflows/ci.yml` | Runs the three groups above on Ubuntu and Windows on every push |
@@ -124,13 +125,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 35 | 4 584 555 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 38 | 4 873 638 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 38 | 4 743 164 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 38 | 4 746 459 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 37 | 4 729 550 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 739 661 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 67 | 10 065 015 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 589 963 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 879 046 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 748 572 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 751 867 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 734 958 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 745 069 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 10 071 933 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -997,7 +998,7 @@ exactly this kind of second-entry recomputation using these samples.
 
 ### 6.1 One-paragraph structure
 
-`index.html` is the only entry point and the only assembly list: **16 local `<script>`/`<link>`
+`index.html` is the only entry point and the only assembly list: **17 local `<script>`/`<link>`
 references** hang the data, the seven kernels, the map wrapper and the UI shell onto `globalThis`, in
 order. There is no bundler, no module loader, no runtime dependency.
 
@@ -1505,14 +1506,14 @@ substitutes for another; if any one is red, do not use the build.
 | Python bridge gates | `python server.py --selftest` | **110 items / 0 failures + 1 skipped locally, 111 on CI** (§8.8) | whitelist, origin allowlist, loopback bind, port pre-probe, path traversal, upstream URL rules, contract keys, parsers that cannot invent hops |
 | PowerShell bridge gates | `powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -SelfTest` | **202 items / 0 failures** | the same list, plus PS-specific evaluation, redirection, `-eq` casing, source guard, cross-origin allowlist, concurrency |
 | Live cross-check | `python tests/bridge-parity.py` | **41 cases / 0 failures** (exit code 3 = honestly skipped on non-Windows) | both bridges started at once and fed identical requests: status, key set, byte count, Content-Type, and the origin allowlist's verdict for five allowed and four hostile origins (§8.5) |
-| Package inspection | `python tests/check-package.py` | **70 items / 0 failures** | the 16 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, §1.1's pack sizes rebuilt in a temporary directory, and the branch order that keeps ⑪ from announcing a verdict while its async gates are still running (§11.26) |
+| Package inspection | `python tests/check-package.py` | **71 items / 0 failures** | the 17 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, §1.1's pack sizes rebuilt in a temporary directory, the branch order that keeps ⑪ from announcing a verdict while its async gates are still running (§11.26), and the icon declaration that keeps the hosted page's console clean (§11.27) |
 
 All of it in four commands:
 
 ```bash
 node tests/run-all.mjs --with-server --with-bridge   # 623 kernel + 110 Python + 202 PowerShell
 python tests/bridge-parity.py                        # 41 live cases against both bridges
-python tests/check-package.py                        # 70 package checks (Python only)
+python tests/check-package.py                        # 71 package checks (Python only)
 npm run test:all                                     # kernels + Python bridge only
 ```
 
@@ -1650,10 +1651,10 @@ case still passes on key-set equality and prints the differing `ok` flag as refe
 of hiding it — a parity test that reports "identical" about things that are not identical is worse than no
 test.
 
-### 8.6 Package inspection: 70 items, and how a scanner proves it is not blind
+### 8.6 Package inspection: 71 items, and how a scanner proves it is not blind
 
 `tests/check-package.py` is the layer that looks at the **files**, not at the running code. Pure Python,
-no browser, no network, no subprocess: 70 items over the entry page's 16 local resources (§1), the
+no browser, no network, no subprocess: 71 items over the entry page's 17 local resources (§1), the
 launchers' encoding, line endings and skin invariants (`.bat` pure ASCII + CRLF + zero ESC bytes + a
 widest-line bound + no `timeout`, `.sh`/`.command` LF, `.ps1` BOM + CRLF, and each face's own colour
 discipline — the rules are in §2.10, the assertions that they did not drift are here), both bridges' red
@@ -1670,7 +1671,7 @@ lines, and the docs themselves.
   (preflight and real request). Each bridge's contract literals must be parseable by the other's regex,
   which is what catches "the pattern silently matched nothing" (§11.14).
 - **The front-end exfiltration scan** (§7.2 item 13) bans nine constructs across ten files and asserts
-  `localStorage` is named by exactly two keepers. Two of the 70 items exist to keep that scan honest:
+  `localStorage` is named by exactly two keepers. Two of the 71 items exist to keep that scan honest:
   a four-line `_probe` in which it must find **exactly one** `sendBeacon(` — the two mentions inside
   comments must not count, and `http://127.0.0.1:8765` must survive comment-stripping — and a *witness*
   string per scanned file that exists only in real code (`allow_ambient_storage`, `AES-GCM`,
@@ -1737,6 +1738,17 @@ lines, and the docs themselves.
   What it deliberately cannot do is prove behaviour: that is §9.3's sampled timeline, and it is why the
   item asserts an **order** rather than the presence of a word — a gate that only greps for `pendingAsync`
   would still be green after someone moved the verdict back above the guard, which is the bug itself.
+- **The entry page declares its own icon, and the extension scan had to be widened to notice.** The 71st
+  item requires a `<link rel="icon">` whose target is a local file that exists on disk. Two things came out
+  of adding it. The visible one: with no declaration a browser does not give up, it asks the **site root**
+  for `/favicon.ico`, which on GitHub Pages is a 404 nobody requested (§11.27). The quieter one: the gate
+  that already checks "every local extension the entry page uses is in the bridge's `Content-Type` table"
+  collected its references from five directory prefixes (`app/`, `vendor/`, `images/`, `docs/`,
+  `示例数据/`) — a file sitting at the repository root was invisible to it, so `.svg` would have joined the
+  list without ever being looked up. The prefix filter is gone; the scan now takes every non-remote,
+  non-anchor reference, which is what the sentence in that item has always claimed. Both bridges already
+  served `.svg` as `image/svg+xml`, so the widened scan found nothing broken — it found a checker that had
+  stopped looking.
 
 ### 8.7 UI-level verification — the class kernels cannot see
 
@@ -1760,7 +1772,7 @@ deliberately **not** a gate: only a real browser can prove it works, so its evid
 | `server.py --selftest` | **111 items / 0 failed** (the symlink gate executes there) | **111 items / 0 failed** |
 | `bridge-powershell.ps1 -SelfTest` | skipped, with one explanatory line from the workflow (this bridge needs PowerShell 5.1 + `http.sys`) | **202 items / 0 failed** |
 | `bridge-parity.py` | exit code **3**, which the workflow turns into a `::notice::` skip — **not a fake pass** | 41 cases / 0 failed |
-| `check-package.py` | 70 items / 0 failed | 70 items / 0 failed |
+| `check-package.py` | 71 items / 0 failed | 71 items / 0 failed |
 
 The counts in that table are what **this** tree produces locally, and CI is what promotes them from
 "my machine" to "verified" — and the promotion has teeth. The first run of this build (`00895aa`, run
@@ -1851,6 +1863,7 @@ Network Access both have to pass, and both were tested rather than assumed:
 | Test | Result |
 | --- | --- |
 | ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), 1 374 land polygons attached, missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:` — measured 2026-11-03 against the build Pages is serving. That is the same 623 the offline paths report (§9.3, §9.5): the hosted page differs only in where the files came from |
+| the whole hosted session's console and its resource ledger | before this build: **one** error line, `Failed to load resource: 404`, and Resource-Timing named the URL as `https://iammezsh.github.io/favicon.ico` — the browser's own fallback for a document that declares no icon, aimed at the site root and asked for by nobody in the repository (§11.27). The entry page now declares `favicon.svg`; the re-measured run reports **0** console errors and 200 for all 17 declared resources, and `GET /favicon.svg` answers `image/svg+xml` from both bridges — the extension the widened §8.6 scan now checks |
 | ⑧ `traceroute 192.168.1.1` from the hosted URL, **browser defaults** | channel `browser-fallback`, `bridge_unavailable：Failed to fetch` — and the bridge's own access log proves why: the request never arrived. This is Chromium's client-side local-network policy (Edge/Chromium 156 here), not the bridge refusing: the same bridge answers ⑧'s health call from that very machine in 7 ms when the page is opened from `http://127.0.0.1:8765/` (§9.3's ⑧ row) |
 | the same click with that policy switched off (`--disable-features=LocalNetworkAccessChecks,LocalNetworkAccess,BlockInsecurePrivateNetworkRequests`) | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, **3 hops, all honestly `*`**, not reached within 20 hops, 8 010 ms, `伪造跳数：否` — this is the row that proves the https→loopback path itself works once the browser lets the request leave |
 | same-origin control: `traceroute 192.168.2.1` on `http://127.0.0.1:8765/` | channel `bridge`, 1 hop, target reached, 24 ms, scope "private/LAN (192.168.2.1)" |
@@ -1875,7 +1888,7 @@ instead of being fixed by weakening the bridge: a red row here is the privacy bo
 
 | How you get it | Result |
 | --- | --- |
-| `git clone --depth 1` | **67 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 70, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
+| `git clone --depth 1` | **68 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 71, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
 | **double-click `index.html`** (`file://`, no bridge) | `isSecureContext=true`, all 11 tabs present, the map canvas has real pixels, ⑪ **623 gates / 0 failures** (1.53 s), 1 374 polygons, missing ids 0, leaked markup 0, console silent, and ⑩'s capability row reads `WebCrypto ✓ · 安全上下文 ✓（file:）· 可写存储 ✓` — measured 2026-11-03 on this machine, after §11.26's guard landed; sampled every 200 ms this page shows the same three states the loopback origin does (§9.3): two progress lines, then one verdict. The previous build measured 515 gates / 0.80 s here. If a PowerShell bridge is running, the page gets `ok=true`, `python=null` in 8 ms — full function without Python. The same page is also where the migration from the older build was verified end to end (§3 ⑩) |
 | bridge started from the clone (`--port 8799` / `-Port 8799`) | `/api/health` `ok=true` with `bind.loopback_only=true`; the bytes served at `/index.html` have the **same SHA-256** (`1df29aaa…`) as the file on disk |
 | GitHub "Download ZIP" | byte-identical to the repository; inside the zip `.bat`/`.ps1` carry CRLF and `.command`/`.sh`/`.js` carry LF |
@@ -2224,6 +2237,27 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     General form: **a progress indicator that prints a conclusion is worse than no indicator** — a partial
     number wearing the formatting of a final one is exactly the shape of a false green — and an empty
     result from a probe is a question about the probe before it is a finding about the product.
+
+27. **The hosted page had one console error, and no file in the repository caused it.** The §9.4 run came
+    back with ⑪ green and exactly one console line, `Failed to load resource: the server responded with a
+    status of 404`. Resource-Timing named it: `https://iammezsh.github.io/favicon.ico` → 404, while all
+    **17** resources the page actually declares came back clean. Nothing in this project asks for that
+    path — it is the browser's own fallback for a document that declares no icon, and it goes to the
+    **site root**, not to `/geo-position-workstation/`, so it isn't even a file Pages could have deployed
+    beside the others. Why this survived every earlier "console silent" claim: on `file://` the fallback
+    request is never made, and on the loopback origin the answer comes from a bridge the author is
+    watching, so a missing root file looks like a local detail rather than a defect. The fix is one line
+    in the head — `<link rel="icon" type="image/svg+xml" href="favicon.svg">` — plus the icon itself, drawn
+    from the dark skin's own palette (§6.9) so the tab, the launcher faces and the figures are one family.
+    Writing the item that pins the declaration (§8.6's 71st) is what exposed a second, quieter thing: the
+    neighbouring scan that promises "every local extension the entry page uses is in the bridge's
+    `Content-Type` table" gathered its references from five directory prefixes, so a root-level file was
+    outside its field of view — the promise was true only for the paths it looked at. Both bridges turned
+    out to serve `.svg` correctly, so the widened scan found no broken artefact; it found a checker that
+    had stopped looking.
+    General form: **a request the browser makes by itself is invisible to every check that walks the page's
+    own reference list** — the entry-resource gate can only promise what the HTML declares, and the
+    unpromised request is precisely where a green report can still leave a red console.
 
 ---
 

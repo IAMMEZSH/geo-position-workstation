@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Geo Position Workstation">
+  <defs>
+    <linearGradient id="vpnl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c1b2c"/>
+      <stop offset="1" stop-color="#03070f"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fe0ff"/>
+      <stop offset="1" stop-color="#37ffbe"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#vpnl)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#neon)" stroke-opacity=".5" stroke-width="2"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#16324f" stroke-width="3"/>
+  <ellipse cx="32" cy="32" rx="8" ry="18" fill="none" stroke="#16324f" stroke-width="2.4"/>
+  <path d="M6 32h52M32 6v52" stroke="url(#neon)" stroke-width="2.4" stroke-linecap="round" stroke-opacity=".9"/>
+  <circle cx="32" cy="32" r="5.6" fill="#03070f" stroke="#37ffbe" stroke-width="2.6"/>
+  <circle cx="32" cy="32" r="1.9" fill="#2fe0ff"/>
+</svg>

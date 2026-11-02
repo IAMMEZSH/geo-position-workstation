@@ -271,8 +271,12 @@ check("server.py 不再回落到平台的 mime 库（iSH/Termux/macOS 的 mime.t
           "而 PowerShell 那份桥又没有这个库", ""),
       "import 或 guess_type 调用还在")
 index_html = read_bytes("index.html").decode("utf-8", "replace")
+# 原来只扫 app/ vendor/ images/ docs/ 示例数据/ 这五个前缀，于是根目录那个 favicon.svg
+# 根本不在延长名单里——「每种本地扩展名都在表里」这句话就悄悄少算了一个文件。
+# 现在按「除远端与锚点之外的一切引用」收，根目录资源同样要过这张表。
 local_ext = sorted({os.path.splitext(m)[1].lower() for m in re.findall(
-    r'(?:src|href)="((?:app|vendor|images|docs|示例数据)/[^"]+)"', index_html)})
+    r'(?:src|href)="([^"]+)"', index_html)
+    if not re.match(r'^(?:https?:|data:|mailto:|#|/)', m)})
 unmapped = [e for e in local_ext if e and e not in py_types]
 check("index.html 用到的每种本地扩展名都在表里（%s）" % (" ".join(local_ext) or "无"),
       bool(local_ext) and not unmapped, "表里没有：" + (", ".join(unmapped) or "无"))
@@ -734,6 +738,20 @@ check("⑪ 异步门未落地前不宣布「自检通过」，且守卫自己会
       "finalStatus 取到 %d 字符；守卫在第 %d 字符、「自检通过」在第 %d 字符（要前者更小）；"
       "置位在第 %d 递减在第 %d（要前者更小）；结论行守卫 %s"
       % (len(_fs), _guard_at, _pass_at, _set_at, _dec_at, "有" if _conc_at >= 0 else "无"))
+
+# 本机一切正常，托管页的控制台却会多一条 404：页面不声明图标时，浏览器自己去站点根要
+# /favicon.ico，GitHub Pages 答 404。file:// 与 http://127.0.0.1:8765/ 都不会有这一条，
+# 所以它只有在部署后的页面上才看得见（§11.27）。这一条要求入口页声明一个本机的、磁盘上真的存在的图标。
+_icon = re.search(r'<link\s+rel="icon"[^>]*href="([^"]+)"', html)
+_icon_rel = _icon.group(1) if _icon else None
+_icon_ok = bool(_icon_rel) and not re.match(r'^(https?:|data:|mailto:|#)', _icon_rel or "") \
+    and os.path.isfile(os.path.join(ROOT, (_icon_rel or "").replace("/", os.sep))) \
+    and os.path.getsize(os.path.join(ROOT, (_icon_rel or "").replace("/", os.sep))) > 0
+check("index.html 声明了本机图标（浏览器就不会自己去站点根要 /favicon.ico）",
+      _icon_ok,
+      "声明 → %s；磁盘 → %s" % (_icon_rel or "没有 <link rel=\"icon\">",
+                                "存在 %d B" % os.path.getsize(os.path.join(ROOT, _icon_rel.replace("/", os.sep)))
+                                if _icon_ok else "不存在或非本地"))
 
 _pp_rows = {}
 for _line in manual.split("\n"):
