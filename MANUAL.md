@@ -125,13 +125,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 589 963 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 879 046 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 748 572 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 751 867 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 734 958 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 745 069 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 10 071 933 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 592 622 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 881 705 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 751 231 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 754 526 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 737 617 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 747 728 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 10 074 592 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -915,8 +915,9 @@ The asynchronous groups are what spend the seconds, so the panel reports its own
 in flight (`内核异步闸门进行中：已跑 581 门，还剩 1 组，失败 0`) and is not allowed to print a verdict until
 the last group has landed — the sampled timeline behind that rule is §9.3, the defect it closes is §11.26.
 
-Measured: 623 gates / 0 failures / 1.54 s, of which 71 asynchronous (the duration varies with the machine,
-the gate count and the failure count do not); 1374 land
+Measured: 623 gates / 0 failures / 1.54 s on the loopback origin (§9.3; the hosted URL measures the same
+623 in 2.96 s, §9.4), of which 71 asynchronous (the duration varies with the machine and with where the
+bytes come from, the gate count and the failure count do not); 1374 land
 blocks attached; 0 missing UI ids; 0 pieces of markup visible in rendered text; environment row
 `加密落盘可用（localStorage · 写前 AES-256-GCM）`. The same 623 is what Node reports on the same files,
 which is the point: the verdict must not depend on which container ran it (§8.1).
@@ -1862,8 +1863,8 @@ Network Access both have to pass, and both were tested rather than assumed:
 
 | Test | Result |
 | --- | --- |
-| ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), 1 374 land polygons attached, missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:` — measured 2026-11-03 against the build Pages is serving. That is the same 623 the offline paths report (§9.3, §9.5): the hosted page differs only in where the files came from |
-| the whole hosted session's console and its resource ledger | before this build: **one** error line, `Failed to load resource: 404`, and Resource-Timing named the URL as `https://iammezsh.github.io/favicon.ico` — the browser's own fallback for a document that declares no icon, aimed at the site root and asked for by nobody in the repository (§11.27). The entry page now declares `favicon.svg`; the re-measured run reports **0** console errors and 200 for all 17 declared resources, and `GET /favicon.svg` answers `image/svg+xml` from both bridges — the extension the widened §8.6 scan now checks |
+| ⑪ full self-test run on the hosted URL | **623 gates / 0 failures** in 2.96 s (71 of them asynchronous), 1 374 land blocks attached — counted by `GEOUI_MAP.layerStats().land_blocks`, **not** by `#map path`, because the land layer is drawn on a canvas and the DOM therefore holds no `path` elements to count (§11.28); missing ids 0, leaked markup 0, `isSecureContext=true`, 11 tabs, protocol row `https:`. Measured 2026-11-03 against the build Pages is serving. Sampled every 200 ms the hosted page tells the same three-state story as the local one: `已跑 552 门，还剩 2 组` → `已跑 581 门（其中异步 29），还剩 1 组` → `自检通过：623 门 0 失败`, and the state where the status line already said `自检通过` while the verdict row still said `还剩` occurred **0** times (§11.26). The seconds differ from §9.3's 1.54 s because the files cross a network; the gate count and the failure count do not. That is the point: the hosted page differs from the offline paths only in where the bytes came from (§9.5) |
+| the whole hosted session's console and its resource ledger | before this build: **one** error line, `Failed to load resource: 404`, and Resource-Timing named the URL as `https://iammezsh.github.io/favicon.ico` — the browser's own fallback for a document that declares no icon, aimed at the site root and asked for by nobody in the repository (§11.27). The entry page now declares `favicon.svg`, and the run against the deployed build is clean: **0** console errors for the whole session, and every one of the **17** local references the page declares answers 200 when fetched from inside that page — `favicon.svg` included (`200`, `image/svg+xml`, 1 114 B). Pages itself serves `/geo-position-workstation/favicon.svg` the same way, while `/favicon.ico` at the site root is still 404 — correctly, because nothing asks for it any more. Both bridges answer the same path with the same type, which is the extension §8.6's widened scan now covers |
 | ⑧ `traceroute 192.168.1.1` from the hosted URL, **browser defaults** | channel `browser-fallback`, `bridge_unavailable：Failed to fetch` — and the bridge's own access log proves why: the request never arrived. This is Chromium's client-side local-network policy (Edge/Chromium 156 here), not the bridge refusing: the same bridge answers ⑧'s health call from that very machine in 7 ms when the page is opened from `http://127.0.0.1:8765/` (§9.3's ⑧ row) |
 | the same click with that policy switched off (`--disable-features=LocalNetworkAccessChecks,LocalNetworkAccess,BlockInsecurePrivateNetworkRequests`) | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, **3 hops, all honestly `*`**, not reached within 20 hops, 8 010 ms, `伪造跳数：否` — this is the row that proves the https→loopback path itself works once the browser lets the request leave |
 | same-origin control: `traceroute 192.168.2.1` on `http://127.0.0.1:8765/` | channel `bridge`, 1 hop, target reached, 24 ms, scope "private/LAN (192.168.2.1)" |
@@ -2258,6 +2259,22 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     General form: **a request the browser makes by itself is invisible to every check that walks the page's
     own reference list** — the entry-resource gate can only promise what the HTML declares, and the
     unpromised request is precisely where a green report can still leave a red console.
+
+28. **A map probe reported "0 polygons" on a map that was drawing 1 374 of them.** Re-verifying §9.4 meant
+    re-checking the offline vector layer, and the selector that looks obvious — count the `path` elements
+    inside `#map` — came back **0**, on the hosted page and on the loopback page alike, while the panel's
+    own summary still said the land layer was attached. The reason is that Leaflet renders this layer with
+    its canvas renderer: the polygons are painted into one `<canvas>`, so there is no DOM node per polygon
+    and a DOM count is not measuring the thing it appears to measure. The number had always come from
+    `GEOUI_MAP.layerStats()` — `{ready: true, land_blocks: 1374, layers: {base: 1, grid: 71, …}}` — which
+    exists precisely so that ⑪ can assert "the vector really hung on the map" rather than "GEODATA loaded"
+    (§3's ⑪ row, §8.6's map-attachment gate). What kept this from becoming a false alarm is the comparison:
+    the same wrong selector returned the same 0 on both origins, and a real regression would not have
+    agreed between them; the screenshot then showed the coastline it was supposed to show. Two rules fall
+    out of it. **Count with the program's own counter, not with a selector that happens to be available** —
+    a selector can be silently blind, and blindness reads exactly like absence. And when a probe contradicts
+    the product, reproduce it on a second origin before believing it: agreement across origins is evidence
+    about the probe, not about the map.
 
 ---
 
