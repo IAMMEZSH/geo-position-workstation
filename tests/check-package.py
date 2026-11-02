@@ -482,6 +482,33 @@ for d in ("docs",):
         doc_files += [os.path.join(d, f) for f in sorted(os.listdir(dd)) if f.endswith(".md")]
 
 broken, link_total = [], 0
+
+
+def md_link_targets(text):
+    """[(行号, 目标, 是否占位符)]：只取 GitHub 真会渲染成链接的那些。
+
+    两件事必须排除，否则检查会在某一台机器上骗人：
+    · 围栏代码块与行内代码里的 `![](...)` 是讲解，GitHub 原样显示，不产生链接；
+    · 目标是一串点（`...`）或空的，永远是占位符——Windows 上 os.path.exists("...")
+      返回 True（尾部点被当分隔符吃掉），Linux 上返回 False，于是同一份文档
+      一边绿一边红。占位符在查磁盘之前先判死，两台机器的结论才一样。
+    """
+    found, fence = [], False
+    for lineno, raw in enumerate(text.split("\n"), 1):
+        if raw.strip().startswith("```"):
+            fence = not fence
+            continue
+        if fence:
+            continue
+        line = re.sub(r'`[^`\n]*`', " ", re.sub(r'<code>.*?</code>', " ", raw, flags=re.S))
+        for m in re.finditer(r'!?\[[^\]]*\]\(([^)\s]*)(?:\s+"[^"]*")?\)', line):
+            t = m.group(1)
+            if re.match(r'^(https?:|mailto:|data:|#)', t):
+                continue
+            found.append((lineno, t, not t or bool(re.fullmatch(r'[.\u2026]+', t))))
+    return found
+
+
 for rel in doc_files:
     p = os.path.join(ROOT, rel)
     if not os.path.isfile(p):
@@ -489,14 +516,14 @@ for rel in doc_files:
         continue
     text = open(p, encoding="utf-8").read()
     base = os.path.dirname(p)
-    for m in re.finditer(r'!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)', text):
-        t = m.group(1)
-        if re.match(r'^(https?:|mailto:|data:|#)', t):
-            continue
+    for lineno, t, placeholder in md_link_targets(text):
         link_total += 1
+        if placeholder:
+            broken.append("%s:%d → %s（占位符，未查磁盘）" % (rel, lineno, t or "空目标"))
+            continue
         target = os.path.normpath(os.path.join(base, t.split("#", 1)[0]))
         if not os.path.exists(target):
-            broken.append("%s → %s" % (rel, t))
+            broken.append("%s:%d → %s" % (rel, lineno, t))
 # 五张机制图和链接属于同一件事：说明书说「看图就能明白」，图就得真的在、且是同一套皮。
 # 皮是钉死的：深色画布 + 霓虹描边 + 发光标题。改色可以，改回浅色不行——那会让下面这条
 # 「不许残留浅色底」的断言变红，而这是唯一能发现「有人手动重存了一遍图」的信号。
@@ -522,6 +549,20 @@ check("文档里的本地链接（图/文件）全部指得到实体，且五张
       "%d 条本地链接，断链 %s；图 %s" % (
           link_total, ("；".join(broken[:6])) if broken else "无",
           ("；".join(fig_bad)) if fig_bad else "%d 张齐全" % len(figs)))
+
+# 上一条规则自己也要被咬一口。占位符 `...` 在 Windows 上 os.path.exists 返回真（尾部点被
+# 文件系统当分隔符吃掉），Linux 上返回假：同一份坏文档，本机绿、CI 红。也就是说这台机器上
+# 「断链检查」根本查不出占位符，只有先判死再不看磁盘才两台机器一致。这里拿一段合成文档喂给
+# 检查器，要求它把两种占位符认出来、把行内代码与围栏代码块里的示例丢掉。
+_link_probe = ("![占位](...)\n![空]()\n`![讲解](images/nope.png)`\n"
+          "```\n![示例](images/nope.png)\n```\n![好](images/01-map-crosshair.png)\n")
+_ph = md_link_targets(_link_probe)
+check("文档链接检查器咬得住：占位符判死（Windows 的 exists 不作数）、代码里的示例不计",
+      len(_ph) == 3 and _ph[0][1] == "..." and _ph[0][2] is True
+      and _ph[1][1] == "" and _ph[1][2] is True
+      and _ph[2][1] == "images/01-map-crosshair.png" and _ph[2][2] is False,
+      "探针取到 %d 条（应为 3）：占位符 %d 条、代码块/行内各丢 1 条（实丢 %d 条）、正常 1 条" % (
+          len(_ph), sum(1 for _, _, p in _ph if p), 5 - len(_ph)))
 
 # .gitignore 写成 *.log 会把「示例数据/NMEA语句示例.log」这份要分发的样例静默吞掉，
 # 页面上看不出任何异常，clone 下来才发现少文件。所以：任何忽略规则都不许命中交付文件。
@@ -656,6 +697,25 @@ _pp_spec = _ilu.spec_from_file_location("packplatform", os.path.join(ROOT, "工�
 _pp = _ilu.module_from_spec(_pp_spec)
 _pp_spec.loader.exec_module(_pp)
 
+# 上面那三行在本机从来不打架，在 CI 的 windows runner 上却崩过：runner 把仓库放在 D:、
+# TEMP 放在 C:，而 os.path.relpath 跨盘符是直接抛 ValueError——打包打到临时目录，
+# 闸门就死在展示路径上，报出来的是一句 traceback，不是一条红门。这里两种路径都要走到字符串。
+_show = getattr(_pp, "show_path", None)
+_same = _cross = None
+if _show is not None:
+    try:
+        _same = _show(os.path.join(ROOT, "dist", "geo-full.zip"))
+    except Exception as _e:
+        _same = "抛了 " + type(_e).__name__
+    try:
+        _cross = _show(os.path.sep.join(["Z:", "geo-pack", "geo-full.zip"]))
+    except Exception as _e:
+        _cross = "抛了 " + type(_e).__name__
+check("打包工具的展示路径同盘与跨盘都只出字符串（CI windows：仓库 D: + TEMP C:）",
+      _same is not None and _cross is not None and "抛了" not in _same + _cross
+      and _same.endswith("geo-full.zip") and "\\" not in _same,
+      "仓库内 → %s；异盘符 → %s" % (_same, _cross))
+
 _pp_rows = {}
 for _line in manual.split("\n"):
     _c = [x.strip() for x in _line.split("|")]
@@ -687,12 +747,24 @@ check("MANUAL §1.1 的分包尺寸就是本次实打出来的",
 
 # 这一条把自己也算进去：文档里写的包闸门数必须等于本次实跑的总数，
 # 否则「加一道门、说明书继续写旧数」就会静默发生（§11 记过一次同类事故）。
-declared = len(results) + 1
-check("文档写的包闸门数就是本次实跑数",
-      ("**%d items / 0 failures**" % declared) in manual and
-      ("### 8.6 Package inspection: %d items" % declared) in manual and
-      ("package inspection, %d items" % declared) in readme,
-      "文档声明 %d 项 == 实跑 %d 项（MANUAL §8 表 + §8.6 标题 + README 命令行注释）" % (declared, declared))
+# 明细必须报「文档那几处各自写的是几」——原来打印的是「声明 N == 实跑 N」，
+# 两个 N 都来自同一个变量，绿和红长一模一样，这道门坏了也查不出（§11.23 的同款毛病）。
+total_gates = len(results) + 1
+
+
+def _doc_num(pattern, text):
+    m = re.search(pattern, text)
+    return m.group(1) if m else "缺失"
+
+
+doc_counts = (_doc_num(r'\| Package inspection \| `python tests/check-package\.py` \| \*\*(\d+) items / 0 failures\*\*', manual),
+              _doc_num(r'### 8\.6 Package inspection: (\d+) items', manual),
+              _doc_num(r'package inspection, (\d+) items', readme),
+              _doc_num(r'`tests/check-package\.py` \| (\d+) packaging gates', manual))
+check("文档写的包闸门数就是本次实跑数（四处：§1 表、§8 表、§8.6 标题、README 注释）",
+      all(c == str(total_gates) for c in doc_counts),
+      "实跑 %d 项；文档 §8 表=%s / §8.6 标题=%s / README=%s / §1 表=%s"
+      % ((total_gates,) + doc_counts))
 
 # ---------------------------------------------------------------- 汇总
 width = max(len(n) for n, _, _ in results)

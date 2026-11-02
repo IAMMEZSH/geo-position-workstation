@@ -147,6 +147,15 @@ def toposix(rel):
     return rel.replace(os.sep, "/")
 
 
+def show_path(p):
+    """相对仓库根的展示路径。relpath 在 Windows 上跨盘符直接抛 ValueError——
+    CI 的 windows runner 工作区在 D:、TEMP 在 C:，打包到临时目录就崩在这里。"""
+    try:
+        return toposix(os.path.relpath(p, ROOT))
+    except ValueError:
+        return toposix(os.path.abspath(p))
+
+
 def abs_of(rel):
     return os.path.join(ROOT, *rel.split("/"))
 
@@ -230,9 +239,9 @@ def build(platform, outdir, verbose=True):
     zsize = os.path.getsize(zpath)
     if verbose:
         print("%-9s %2d files  raw %9d B  zip %9d B  -> %s"
-              % (platform, n, total, zsize, toposix(os.path.relpath(zpath, ROOT))))
+              % (platform, n, total, zsize, show_path(zpath)))
     return {"platform": platform, "files": n, "raw_bytes": total,
-            "zip_bytes": zsize, "zip": toposix(os.path.relpath(zpath, ROOT)),
+            "zip_bytes": zsize, "zip": show_path(zpath),
             "list": files}
 
 
@@ -337,7 +346,7 @@ def main(argv=None):
             os.makedirs(args.outdir)
         with open(args.json, "wb") as fh:
             fh.write(buf.getvalue())
-        print("清单 JSON -> %s" % toposix(os.path.relpath(args.json, ROOT)))
+        print("清单 JSON -> %s" % show_path(args.json))
     return 0
 
 
