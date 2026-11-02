@@ -44,6 +44,21 @@
 | 准星 | 中心 `28.000000, 122.000000` → 一次给出 DD / DMS / UTM 51R / MGRS 51R WL / Plus Code / Geohash / 最近城市 温岭 73.4 km / 缩放 |
 | 浏览器定位 | 本机的受控测试浏览器被自动化策略直接拒绝授权（`code=1`，1 ms 返回）→ 界面如实显示「你拒绝了定位授权」，**没有**拿 IP 结果或城市中心冒充。这一条只能由你在自己的浏览器里点「允许」来验证 |
 
+## 从 GitHub 拿到之后（2026-11-02 当场跑的数）
+
+| 拿法 | 实测结果 |
+|---|---|
+| `git clone --depth 1` | 63 个文件；在 clone 里 `node tests/run-all.mjs --with-server` → **537 门 / 0 失败** + 桥接 **80 项 / 0 失败**；`python tests/check-package.py` → **19 项 / 0 失败**；clone 里的 `启动-macOS.command` / `.sh` / `启动-Android.sh` 均为 **CRLF=0** 且带 `#!/bin/sh`，`启动-Windows.bat` 为 65 行 CRLF、**非 ASCII 字节=0** |
+| clone 后**直接双击 `index.html`**（`file://`，不起桥接） | `isSecureContext=true`，11 个标签页齐，地图画布 586×358 有 113,338 个非透明像素，⑪ **515 门 / 0 失败**（1.87 s）、陆域 1374 块挂图、界面缺失 id=0，浏览器控制台 **0 条报错**；② 输入 `31.2304, 121.4737` → 十进制度候选（置信 0.90）+ DMS/度分/有效位；④ 距离交会 → `31.239988, 121.480015`，RMS 2.9 m、不确定半径 25.1 m、GDOP 1.19 |
+| 桥接从 clone 起（`python server.py --port 8799`） | `/api/health` `ok=true`、`bind.loopback_only=true`，`/index.html` 返回的字节与 clone 磁盘上的 `index.html` **SHA-256 相同** |
+| GitHub「Download ZIP」 | 4,178,540 B / 63 条目，与仓库逐字节相同；zip 内 `.bat` 存 CRLF、`.command`/`.js` 存 LF |
+
+一处**没在本机复现、但你会遇到**的：浏览器下载 ZIP 时 Windows 会给文件打「来自网络」标记
+（MOTW，用资源管理器解压会传给解出来的文件），双击 `启动-Windows.bat` 可能被 SmartScreen 拦一次——
+「Windows 已保护你的电脑 → 更多信息 → 仍要运行」。macOS 的 Gatekeeper 对 `.command` 同理（右键 → 打开，
+或 `xattr -d com.apple.quarantine 启动-macOS.command`）。`git clone` 下来的文件不带这个标记。
+规避办法很省事：**直接双击 `index.html`**，网页与数据文件不需要执行权限，六个内核全跑，只是 ⑧ 没有路由追踪。
+
 ## 关于「一台设备的定位精度」
 
 浏览器定位给的是系统混合定位（Wi-Fi/蜂窝/IP），几十到几百米是常态；本工具只转述它的精度圈，
