@@ -68,7 +68,7 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 
 ## 1. What is in the package
 
-The complete package is **67 files, 9.97 MB (9.51 MiB)** — including 15 real
+The complete package is **67 files, 10.06 MB (9.59 MiB)** — including 15 real
 run screenshots (5.05 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts, and
 `tests/check-package.py` verifies in reverse that no deliverable file is swallowed by `.gitignore`.
@@ -124,13 +124,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 35 | 4 570 581 B | 1.61 MB |
-| Windows 10/11 | `geo-windows.zip` | 38 | 4 859 664 B | 1.71 MB |
-| macOS 12+ | `geo-macos.zip` | 38 | 4 729 190 B | 1.67 MB |
-| Linux (any distro) | `geo-linux.zip` | 38 | 4 732 485 B | 1.67 MB |
-| Android · Termux | `geo-android.zip` | 37 | 4 715 576 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 725 687 B | 1.67 MB |
-| Everything (developers) | `geo-full.zip` | 67 | 10 055 277 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 35 | 4 570 709 B | 1.61 MB |
+| Windows 10/11 | `geo-windows.zip` | 38 | 4 859 792 B | 1.71 MB |
+| macOS 12+ | `geo-macos.zip` | 38 | 4 729 318 B | 1.67 MB |
+| Linux (any distro) | `geo-linux.zip` | 38 | 4 732 613 B | 1.67 MB |
+| Android · Termux | `geo-android.zip` | 37 | 4 715 704 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 37 | 4 725 815 B | 1.67 MB |
+| Everything (developers) | `geo-full.zip` | 67 | 10 055 405 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -1826,7 +1826,7 @@ reason; open the same-origin page at `http://127.0.0.1:8765/` instead and everyt
 
 | How you get it | Result |
 | --- | --- |
-| `git clone --depth 1` | **67 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; running §8's commands *inside the clone* gave 541 kernel / Python 101 (+1 skipped) / PowerShell 187 / package 40, all with 0 failures, for that build — and the same commands are what CI runs inside its own fresh checkout every push, so the current tree's 623 / 110 (+1) / 202 / 67 get verified on a clone rather than on my working directory (§8.8). In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
+| `git clone --depth 1` | **67 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside the clone* of the release build (`6066e6d`) came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 67, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
 | **double-click `index.html`** (`file://`, no bridge) | `isSecureContext=true`, all 11 tabs present, the map canvas has real pixels, ⑪ **623 gates / 0 failures** (1.59 s), 1 374 polygons, missing ids 0, leaked markup 0, console silent, and ⑩'s capability row reads `WebCrypto ✓ · 安全上下文 ✓（file:）· 可写存储 ✓` — measured 2026-11-03 on this machine; the previous build measured 515 gates / 0.80 s here. If a PowerShell bridge is running, the page gets `ok=true`, `python=null` in 8 ms — full function without Python. The same page is also where the migration from the older build was verified end to end (§3 ⑩) |
 | bridge started from the clone (`--port 8799` / `-Port 8799`) | `/api/health` `ok=true` with `bind.loopback_only=true`; the bytes served at `/index.html` have the **same SHA-256** (`1df29aaa…`) as the file on disk |
 | GitHub "Download ZIP" | byte-identical to the repository; inside the zip `.bat`/`.ps1` carry CRLF and `.command`/`.sh`/`.js` carry LF |
