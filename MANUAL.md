@@ -86,7 +86,7 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `app/core-astro.js` | GEOASTRO (2338 lines): sun/moon/star apparent places, sub-points, terminator, Polaris compass |
 | `app/core-net.js` | GEONET (2838 lines): network policy, URL audit, multi-source fusion, trace parsing, cache/health |
 | `app/core-vault.js` | GEOVAULT (1042 lines): AES-256-GCM envelope, PBKDF2-SHA256 key derivation, auto-lock, wipe (§6.8) |
-| `app/ui-app.js` `app/ui-map.js` `app/style.css` | Shell (3498 lines), map wrapper (514 lines, incl. crosshair), skin (678 lines: one variable set, two themes, the sticky chain — §6.9) |
+| `app/ui-app.js` `app/ui-map.js` `app/style.css` | Shell (3520 lines), map wrapper (514 lines, incl. crosshair), skin (678 lines: one variable set, two themes, the sticky chain — §6.9) |
 | `app/data/` | Offline data: cities 2.08 MB, land 763 KB, country codes 9.4 KB (source and rebuild: §10) |
 | `vendor/` | Third-party: Leaflet 1.9.4 (BSD-2), qrcode.js (MIT). Both shipped, never downloaded |
 | `示例数据/` | Ten sample inputs that close on each other — §4 |
@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 593 377 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 882 460 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 751 986 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 755 281 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 738 372 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 748 483 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 10 075 347 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 594 170 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 883 253 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 752 779 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 756 074 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 739 165 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 749 276 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 10 076 366 B | 6.73 MB |
 
 Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -1643,8 +1643,8 @@ The four case families, with what each one actually asserts:
 
 | Family | Cases | What is compared |
 | --- | --- | --- |
-| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (35 662 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
-| Static assets | 16 | every local file `index.html` references, fetched from both bridges: status, **byte count**, and `Content-Type` must match — 2 084 466 bytes of `data-cities.js` and 224 661 of `ui-app.js` included. A Content-Type table that drifted between the two implementations would silently hand the browser a `text/plain` module and the page would die at `import` time on one channel only |
+| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (35 967 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
+| Static assets | 16 | every local file `index.html` references, fetched from both bridges: status, **byte count**, and `Content-Type` must match — 2 084 466 bytes of `data-cities.js` and 226 222 of `ui-app.js` included. A Content-Type table that drifted between the two implementations would silently hand the browser a `text/plain` module and the page would die at `import` time on one channel only |
 | Traversal attempts | 5 | `/%2e%2e/%2e%2e/C:/Windows/win.ini`, `/..%5cwindows%5cwin.ini`, `/app/../server.py`, `/%2e%2e/app/data/data-countries.js`, `/%c0%af%x`. Deliberately **not** a same-status assertion: `http.sys` normalises `/app/../server.py` before the handler ever sees it, so the PowerShell bridge answers 200 with a file *inside the root* while `server.py` answers 403. The case is "refused, or served from inside the root — and never the contents of `win.ini`", which is the property that matters; the previous version asserted equal status and was wrong about the platform (§11.11) |
 | `health` semantics + origin policy | 9 | 14 semantic fields must be identical (server name, version, capability list, endpoint list, GeoIP source list — the bridge's **five**, the sixth being browser-only (§3 ⑧) — banned parameter list, the three "always false" privacy booleans, the hop/ping ceilings, `bind.loopback_only`, the bind address), while `python` and `runtime` are asserted to be **honestly different** (`'3.13.14'` vs `null`, `Python 3.13.14` vs `PowerShell 5.1.28000.2113`). Then the origin allowlist (§7.3) is replayed over real HTTP: 5 listed origins (the `file://` `null`, the hosted page, both bridges' own loopback origins, `http://localhost:1`) get 200 with their own origin echoed on both bridges; 4 hostile origins get `403 origin_not_allowed` with **no** `Access-Control-Allow-Origin` header at all — a silent "no header" instead of a 403 would be invisible to `curl` and is treated as a failure; `OPTIONS` preflight runs the same list (204 + PNA echo for listed, 403 for unlisted); a request with **no** `Origin` header gets 200 and no CORS headers and no `Vary`; a static file gets no CORS header even for a listed origin; and a wildcard collector inspects **every header of every response this run produced** and asserts the list stayed empty — which is the claim §7.3 rests on, verified by observation rather than by grep |
 

@@ -40,8 +40,10 @@ import sys
 # 输出编码兜底：stdout 被重定向或接到管道里时（CI、`| tee`、被别的程序调用），
 # Windows 上的 Python 会退回 locale 编码（常见 cp1252），中文一打印就 UnicodeEncodeError，
 # 整个闸门直接崩在第一条 print 上。真控制台不受影响，所以只在「当前编码打不出中文」时才换。
+# 探针必须带上一个中文之外的字：GBK 打得出「中文」，却打不出门名里的 ⑪（U+246A），
+# 于是守卫放行、71 项全过，最后打印摘要时才 UnicodeEncodeError——检查是绿的，退出码是 1。
 try:
-    "中文".encode(sys.stdout.encoding or "ascii")
+    "中文⑪".encode(sys.stdout.encoding or "ascii")
 except (LookupError, UnicodeEncodeError):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")

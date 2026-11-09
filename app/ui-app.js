@@ -3123,6 +3123,7 @@
     });
     var env = envReport();
     var asyncAdd = { gates: 0, bad: 0 };
+    var asyncSkipped = [];
     // 异步门是一组一组回来的。在全部回来之前，这一屏不许说「自检通过」：
     // 托管页实测 2.3 s 时 GEONET 的 29 门已落地、GEOVAULT 的 42 门还在 WebCrypto 里跑，
     // 而状态条已经写成「自检通过：581 门 0 失败」——一个看起来是终态、其实是半程的数字。
@@ -3139,7 +3140,8 @@
         ['耗时', fmt((Date.now() - t0) / 1000, 2) + ' s'],
         ['界面元素缺失', env.miss ? warn(env.miss + ' 个 id 找不到') : good('0')],
         ['结论', pendingAsync ? warn('异步闸门还剩 ' + pendingAsync + ' 组在跑，现在还不是终局——跑完这一行会自己改口')
-          : (ok ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细'))]
+          : (asyncSkipped.length ? warn('跳过了 ' + asyncSkipped.join('、') + ' 的异步门（有联网任务在跑），这不是完整结论')
+            : (ok ? good('所有闸门 0 失败，依赖与界面齐备') : bad('存在失败项，见下方明细')))]
       ]) + env.html + (skipped.length ? note(warn('快速模式跳过了 ' + skipped.join('、') + '；出具验收结论请跑全量。')) : '');
     }
     function finalStatus() {
@@ -3147,6 +3149,12 @@
       var ok = f === 0 && env.bad === 0;
       if (pendingAsync) {
         status('内核异步闸门进行中：已跑 ' + (total + asyncAdd.gates) + ' 门，还剩 ' + pendingAsync + ' 组，失败 ' + f, 'busy');
+        return;
+      }
+      // 联网任务在跑时 GEONET 的 29 道异步门会被跳过。跳过不是通过：这里必须改口，
+      // 否则状态条会拿 594 门（552 同步 + 42 保险库）冒充 623 门的终态。
+      if (ok && asyncSkipped.length) {
+        status('自检未完整：' + (total + asyncAdd.gates) + ' 门 0 失败，但跳过了 ' + asyncSkipped.join('、') + ' 的异步门（联网任务在跑）；空闲后重跑全量', 'busy');
         return;
       }
       status(ok ? '自检通过：' + (total + asyncAdd.gates) + ' 门 0 失败' : '自检失败 ' + f + ' 门', ok ? 'ok' : 'bad');
@@ -3161,8 +3169,9 @@
     if (!quick) {
       var vIter = vault() ? (vault().MIN_ITERATIONS / 10000) : '?';
       var jobs = [];
-      if (!netRunning && eng('GEONET') && typeof eng('GEONET').selfTestAsync === 'function') {
-        jobs.push({ ns: 'GEONET', title: 'GEONET 异步门（含并发/超时/缓存/隐私策略）' });
+      if (eng('GEONET') && typeof eng('GEONET').selfTestAsync === 'function') {
+        if (!netRunning) jobs.push({ ns: 'GEONET', title: 'GEONET 异步门（含并发/超时/缓存/隐私策略）' });
+        else asyncSkipped.push('GEONET');
       }
       if (eng('GEOVAULT') && typeof eng('GEOVAULT').selfTestAsync === 'function') {
         jobs.push({ ns: 'GEOVAULT', title: 'GEOVAULT 加密门（浏览器自己的 WebCrypto：PBKDF2-SHA256 ' + vIter + ' 万次 → AES-256-GCM 认证往返）' });
