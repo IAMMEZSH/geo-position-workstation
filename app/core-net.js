@@ -989,7 +989,7 @@
       var pVal = chiSquareSurvival(chi, 2);
       var dist = greatCircleKm(offLat, offLon, online.lat, online.lon);
       var zEff = Math.sqrt(chi);
-      var detail = '离线-联网偏差 ' + (dist == null ? 'NA' : rnd(dist / 1000, 2) + ' km') +
+      var detail = '离线-联网偏差 ' + (dist == null ? 'NA' : rnd(dist, 2) + ' km') +
         '，合并 σ=' + rnd(Math.sqrt(ve + vn) / 1000, 2) + ' km，χ²=' + rnd(chi, 3) + '（dof=2，p=' + (pVal == null ? 'NA' : rnd(pVal, 6)) + '）';
       var fire = (pVal != null && pVal < th.alpha) || zEff > th.z_hard;
       checks.push({ name: 'offline_vs_online', severity: pVal == null ? null : rnd(clamp(1 - pVal, 0, 1), 6), fired: fire, detail: detail });
@@ -1001,7 +1001,12 @@
       checks.push({ name: 'online_unavailable', severity: 0, fired: false, detail: '联网侧没有可用融合点，一致性判据缺席（不因此升级，也不据此否定离线解）' });
     }
 
-    var escalate = checks.some(function (c) { return c.severity != null && c.severity >= 0.4 || c.fired === true; });
+    // 只有「已触发」的证据才算升级依据：offline_vs_online 永远在 checks 里，
+    // 若把未触发的 severity（1−p）也当证据，任何 p<0.6 的健康解都会被判成需要升级
+    var escalate = checks.some(function (c) {
+      if (c.fired === true) return true;
+      return c.fired === undefined && c.severity != null && c.severity >= 0.4;
+    });
     // confidence 是启发式取「最强证据的强度」，不是概率（写清依据，避免被读成贝叶斯后验）
     return {
       escalate: !!escalate,
@@ -2232,7 +2237,9 @@
     var netNear = { ok: true, lat: 31.2310, lon: 121.4740, accuracy_km: 30 };
     push('健康离线解 + 范围内的联网点 → 不升级（IP 定位不该纠正 GNSS）', (function () {
       var d = shouldEscalate(goodFix, netNear, {});
-      return d.escalate === false && d.confidence >= 0 && d.reason.indexOf('无需升级') > 0 && !hasBad(d);
+      // 未过 α 但 p 已 <0.6 的情形也不许升级：offline_vs_online 的 severity 只是强度，不是结论
+      var d2 = shouldEscalate(goodFix, { ok: true, lat: 29.984383, lon: 121.301054, accuracy_km: 100 }, {});
+      return d.escalate === false && d2.escalate === false && d.confidence >= 0 && d.reason.indexOf('无需升级') > 0 && !hasBad(d);
     })(), 'χ² 归一化后 p=' + (function () { var c = shouldEscalate(goodFix, netNear, {}).checks.filter(function (x) { return x.name === 'offline_vs_online'; })[0]; return c ? c.detail : 'NA'; })());
     push('HDOP 超限 → 升级并给出阈值依据', (function () {
       var d = shouldEscalate(Object.assign({}, goodFix, { hdop: 12 }), null, {});
@@ -2244,7 +2251,9 @@
     push('离线解内部已判不一致 → 升级', shouldEscalate({ lat: 31.23, lon: 121.47, sigma_m: 2, consistency: { inconsistent: true, p_value: 1e-9 } }, null, {}).escalate === true, '内部矛盾');
     push('离线解与联网点真矛盾（差 300 km、σ 都是米级）→ 升级', (function () {
       var d = shouldEscalate({ lat: 31.2304, lon: 121.4737, sigma_e_m: 5, sigma_n_m: 5, hdop: 1, rms_residual_m: 1, sats_used: 10 }, { ok: true, lat: 34.05, lon: -118.25, accuracy_km: 20 }, {});
-      return d.escalate === true && d.confidence > 0.5 && d.checks.some(function (x) { return x.name === 'offline_vs_online' && x.fired === true; });
+      var c = d.checks.filter(function (x) { return x.name === 'offline_vs_online' && x.fired === true; })[0];
+      var mm = c && c.detail.match(/偏差 ([0-9.]+) km/);
+      return d.escalate === true && d.confidence > 0.5 && !!c && !!mm && Number(mm[1]) > 100;
     })(), shouldEscalate({ lat: 31.2304, lon: 121.4737, sigma_e_m: 5, sigma_n_m: 5 }, { ok: true, lat: 34.05, lon: -118.25, accuracy_km: 20 }, {}).checks.filter(function (x) { return x.name === 'offline_vs_online'; })[0].detail);
     push('联网点精度本身很差（±100 km）时不误判矛盾', (function () {
       var d = shouldEscalate({ lat: 31.2304, lon: 121.4737, sigma_e_m: 5, sigma_n_m: 5, hdop: 1, rms_residual_m: 1, sats_used: 10 }, { ok: true, lat: 31.6, lon: 121.8, accuracy_km: 100 }, {});

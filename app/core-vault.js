@@ -29,7 +29,8 @@
 
   /* ============================================================== 0. 常量 */
   var VERSION = '1.0.0';
-  var ENVELOPE_KEY = 'llgz.vault.v1';     // 磁盘上唯一的一个键
+  var ENVELOPE_KEY = 'llgz.vault.v1';     // 记录只住这一个键；另有 BUILD_KEY 只存构建号
+  var BUILD_KEY = 'llgz.build.v1';        // 只存一个构建号：界面向「这一版提示过没有」，不含任何记录
   var SCHEMA = 1;                          // 信封格式版本；改格式要能识别旧信封
   var KDF_NAME = 'PBKDF2-SHA256';
   var KDF_HASH = 'SHA-256';
@@ -531,6 +532,7 @@
     var removed = [];
     if (st) {
       try { st.removeItem(ENVELOPE_KEY); removed.push(ENVELOPE_KEY); } catch (e) { }
+      try { if (st.getItem(BUILD_KEY) !== null) { st.removeItem(BUILD_KEY); removed.push(BUILD_KEY); } } catch (e) { }
       LEGACY_KEYS.forEach(function (k) {
         try { if (st.getItem(k) !== null) { st.removeItem(k); removed.push(k); } } catch (e) { }
       });
@@ -607,6 +609,23 @@
       try { if (st.getItem(k) != null) found.push(k); } catch (e) { }
     });
     return found;
+  }
+
+  // 构建号确认: 更新提示只针对「本机有数据、且这一版还没提示过」的本地副本。
+  // 磁盘上只多一个非敏感的版本字符串; 它不进信封, 也不含任何位置/记录。
+  function seenBuild(id) {
+    if (!id) return false;
+    var st = storageHandle();
+    if (!st) return false;
+    try { return st.getItem(BUILD_KEY) === String(id); } catch (e) { return false; }
+  }
+
+  function markBuild(id) {
+    if (!id) return { ok: false, reason: 'no_build_id' };
+    var st = storageHandle();
+    if (!st) return { ok: false, reason: 'storage_unavailable' };
+    try { st.setItem(BUILD_KEY, String(id)); return { ok: true }; }
+    catch (e) { return { ok: false, reason: 'storage_write_failed', detail: cut(e && e.message || e, 120) }; }
   }
 
   function status() {
@@ -1022,7 +1041,7 @@
 
   var api = {
     VERSION: VERSION,
-    ENVELOPE_KEY: ENVELOPE_KEY, SCHEMA: SCHEMA, KDF: KDF_NAME, HASH: KDF_HASH, CIPHER: CIPHER + '-' + KEY_BITS,
+    ENVELOPE_KEY: ENVELOPE_KEY, BUILD_KEY: BUILD_KEY, SCHEMA: SCHEMA, KDF: KDF_NAME, HASH: KDF_HASH, CIPHER: CIPHER + '-' + KEY_BITS,
     MIN_ITERATIONS: MIN_ITERATIONS, IV_BYTES: IV_BYTES, SALT_BYTES: SALT_BYTES,
     MIN_PASSPHRASE: MIN_PASSPHRASE, MAX_PASSPHRASE: MAX_PASSPHRASE,
     AUTO_LOCK_DEFAULT_MS: AUTO_LOCK_DEFAULT_MS, AUTO_LOCK_MIN_MS: AUTO_LOCK_MIN_MS, AUTO_LOCK_MAX_MS: AUTO_LOCK_MAX_MS,
@@ -1033,6 +1052,7 @@
     unlock: unlock, createNew: createNew, lock: lock, changePassphrase: changePassphrase, wipe: wipe,
     setAutoLock: setAutoLock, checkAutoLock: checkAutoLock, onLock: onLock,
     flush: flush, absorbLegacy: absorbLegacy, legacyPlaintextPresent: legacyPlaintextPresent,
+    seenBuild: seenBuild, markBuild: markBuild,
     strength: strength, b64encode: b64encode, b64decode: b64decode,
     seal: seal, open: open, setStorageHandle: setStorageHandle,
     selfTest: selfTest, selfTestAsync: selfTestAsync

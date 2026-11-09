@@ -62,14 +62,14 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 4. **Not sure what a panel eats?** Every panel has a grey hint line at the top and a button that
    loads a working example. §3 documents inputs, outputs and the numbers measured today.
 
-![Light theme, whole page (the toggle sits at the top right)](images/13-theme-light.png)
+![Light theme: the same eleven panels and the same measured values, only the colour variables change](images/13-theme-light.png)
 
 ---
 
 ## 1. What is in the package
 
-The complete package is **68 files, a little over 10 MB (9.6 MiB)** — including 15 real
-run screenshots (5.04 MB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
+The complete package is **68 files, about 7.6 MB (7.2 MiB)** — including 15 English explainer
+figures (2.62 MB), five SVG mechanism diagrams (48 KB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts (the byte-for-byte sum of
 those 68 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
 so the exact figure is kept where it can go stale and the prose here is kept where it cannot); the same
@@ -85,8 +85,8 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `app/core-gnss.js` | GEOGNSS (3021 lines): NMEA, ephemeris, pseudorange LSQ, DOP, RAIM, atmosphere, PPP messages |
 | `app/core-astro.js` | GEOASTRO (2338 lines): sun/moon/star apparent places, sub-points, terminator, Polaris compass |
 | `app/core-net.js` | GEONET (2838 lines): network policy, URL audit, multi-source fusion, trace parsing, cache/health |
-| `app/core-vault.js` | GEOVAULT (1042 lines): AES-256-GCM envelope, PBKDF2-SHA256 key derivation, auto-lock, wipe (§6.8) |
-| `app/ui-app.js` `app/ui-map.js` `app/style.css` | Shell (3520 lines), map wrapper (514 lines, incl. crosshair), skin (678 lines: one variable set, two themes, the sticky chain — §6.9) |
+| `app/core-vault.js` | GEOVAULT (1062 lines): AES-256-GCM envelope, PBKDF2-SHA256 key derivation, auto-lock, wipe (§6.8) |
+| `app/ui-app.js` `app/ui-map.js` `app/style.css` | Shell (3567 lines), map wrapper (514 lines, incl. crosshair), skin (699 lines: one variable set, two themes, the sticky chain — §6.9) |
 | `app/data/` | Offline data: cities 2.08 MB, land 763 KB, country codes 9.4 KB (source and rebuild: §10) |
 | `vendor/` | Third-party: Leaflet 1.9.4 (BSD-2), qrcode.js (MIT). Both shipped, never downloaded |
 | `示例数据/` | Ten sample inputs that close on each other — §4 |
@@ -99,8 +99,8 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `启动-iSH.sh` | iPhone / iPad: runs the Python bridge inside iSH — self-test, start, probe, then print the Safari URL, on the 16-colour ASCII face (§2.8, §2.10) |
 | `README.md` | Repository front page: index only (what this is / how to open it / which section answers which question / where the pictures are) |
 | `MANUAL.md` | This file |
-| `docs/img/` | Five English diagrams: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
-| `images/` | Fifteen real screenshots (referenced by README and this manual — not decoration) |
+| `docs/img/` | Five English mechanism diagrams, drawn once and gate-checked: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
+| `images/` | Fifteen English explainer figures — one per panel, plus the map readout, the light skin and the bridge health payload. Each is placed beside the paragraph it explains; none is a generic screenshot |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
 | `tests/check-package.py` | 71 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
@@ -118,7 +118,7 @@ exist and nothing is missing — the tree you see in the repository *is* the del
 
 ### 1.1 You do not have to download everything: per-platform packs
 
-The repository carries every platform's launcher, both bridges, 5.04 MB of screenshots and the test
+The repository carries every platform's launcher, both bridges, 2.62 MB of explainer figures and the test
 gates. A given device needs none of that except its own. `工具/pack-platform.py` therefore
 declares an **explicit manifest per platform** — no wildcards, so a stray file dropped into `app/`
 cannot silently ride along into a release — and the manifests are a gate, not prose:
@@ -127,15 +127,15 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 594 170 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 883 253 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 752 779 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 756 074 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 739 165 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 749 276 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 10 076 366 B | 6.73 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 590 364 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 879 447 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 748 973 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 752 268 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 735 359 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 745 470 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 7 577 683 B | 4.31 MB |
 
-Measured on 2026-11-03 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
+Measured on 2026-11-10 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
 describing the packs is inside every pack it describes**. File counts and uncompressed bytes survive
 that — correcting a byte count here replaces digits with digits, so the tree keeps its size and the
@@ -152,7 +152,7 @@ What each pack contains, and why:
   files, the three `vendor/` files, the ten `示例数据/` samples, `LICENSE`, `README.md`, `MANUAL.md`.
   This is the whole application: 2.86 MB of it is the offline city and land data, which is exactly
   the point of offline-first.
-- **Figures (every pack)** — `docs/img/*.svg`, 5 files, 58 KB. "Why does the bridge bind
+- **Figures (every pack)** — `docs/img/*.svg`, 5 files, 48 KB. "Why does the bridge bind
   loopback only?" must be answerable with a diagram on every platform.
 - **Platform-specific** — `windows` adds `启动-Windows.bat`, `bridge-powershell.ps1` and `server.py`
   (so a machine that happens to have Python gets that bridge, and one that does not gets PowerShell);
@@ -163,7 +163,7 @@ What each pack contains, and why:
   `package.json`, `.github/`, `.gitattributes`, `.gitignore` and `images/*.png`. Those are the
   developer surface: nothing in the running application reads them. Packs other than `geo-full`
   therefore carry no `images/`, and the packager rewrites this manual's `](images/…)` links to the
-  identical PNGs on the Pages site — one source of truth, no duplicated document, no 2.79 MB tax on
+  identical PNGs on the Pages site — one source of truth, no duplicated document, no 2.62 MB tax on
   a phone.
 
 ```bash
@@ -269,7 +269,7 @@ Consistency is held by three gates, not by "they look the same":
    `health.python = null`. The PowerShell implementation **does not pretend to be Python**: the version
    is computed on the host and `platform` is not hard-coded.
 
-![Panel ⑧ bridge self-test answered by the PowerShell bridge; health carries no Python version](images/15-bridge-health.png)
+![Health is the contract: the key set, the capability flags and the origin verdict the panel is allowed to trust](images/15-bridge-health.png)
 
 ### 2.4 Ports, double starts, changing the port
 
@@ -615,6 +615,51 @@ The audit above proves the *bytes emitted* — that a face asks for 24-bit only 
 it, and asks for nothing at all when its output is a pipe. How a given terminal paints those bytes is
 the next step, and `NO_COLOR=1` / `GEO_COLOR=1` are the two switches that make that step debuggable by
 the person sitting in front of the screen.
+
+### 2.11 Updating a local copy without losing its data
+
+The page can tell whether it is looking at an old *local* copy: it runs from
+`file://` or a loopback host, and the encrypted vault on that origin either
+already holds an envelope or still has legacy plaintext keys from a pre-vault
+build. Only then does a thin strip above the top bar appear (`#geo-update`). It
+is shown once on **every page open** while those records exist. The hosted page
+and a freshly unpacked copy with no records show nothing, so a current
+installation is never nagged. The strip also prints the build number of the copy
+you are running (`BUILD` in `app/ui-app.js`, the same number as `version` in
+`package.json`), so it can be compared with the newest release tag without
+opening a file.
+
+The strip is not an update check. It performs **no request** at load: the two
+inputs are `location` and `GEOVAULT.status()` / `legacyPlaintextPresent()`, all
+local. The one link it exposes points at the GitHub project page
+(<https://github.com/IAMMEZSH/geo-position-workstation>); nothing is fetched
+until the reader clicks it. Closing the strip — or successfully creating or
+unlocking the vault — removes it for the current session only. No
+acknowledgement is written: the next open shows it again until the reader moves
+to a copy from the official page. `GEOVAULT.seenBuild()` / `markBuild()` still
+exist for callers that want them, but the strip neither reads nor writes that
+state, so clearing browser storage cannot change the behaviour.
+
+To update while keeping the records:
+
+1. Unpack the new build over the old folder (or replace only the program files),
+   and keep the same `index.html` path. Browser storage for `file://` is tied to
+   the origin the previous copy used; moving to a different path or a different
+   browser profile is the one action that can make the old envelope unreachable.
+   Export what you need from ⑨ first if you must move.
+2. Open the page, go to ⑩ and unlock with the **same passphrase**. The envelope
+   is byte-compatible across builds; nothing is re-imported or re-encrypted at
+   startup, and an auto-lock still requires the passphrase after every restart.
+3. If the old build predates the vault, the panel lists the readable plaintext
+   keys (`llgz.history.v1`, `llgz.fav.v1`, `llgz.prefs.v1`, and the probe keys).
+   Creating or unlocking a vault calls `absorbLegacy()`, which moves those values
+   into the envelope and deletes the plaintext originals. Until that happens the
+   old keys remain readable on disk, and ⑩ says so.
+
+A copy that predates this strip has no update channel of its own: the
+application never contacts the repository, and there is no server to push to.
+Opening a current build at the same path is the update step; the data carried by
+the old origin is what makes the transfer automatic.
 
 ---
 
@@ -1149,9 +1194,13 @@ panel could all read it. GEOVAULT replaces that with one authenticated-encryptio
 conventions below are all asserted by its 75 gates (§8.1); the panel's rows are §3 ⑩, and the privacy
 claim is §7.5.
 
-- **One disk key, four logical keys.** `llgz.vault.v1` is the only name this kernel writes. `hist`,
-  `fav`, `prefs` and `probe` live inside it, so "which key holds my positions" has one answer, and
-  `tests/check-package.py` asserts that no other module touches `localStorage` at all.
+- **One record key, four logical keys, one optional build id.** `llgz.vault.v1` is the only name this kernel
+  writes for records. `hist`, `fav`, `prefs` and `probe` live inside it, so "which key holds my
+  positions" has one answer, and `tests/check-package.py` asserts that no other module touches
+  `localStorage` at all. The separate `llgz.build.v1` key can hold a build id, and
+  `seenBuild()` / `markBuild()` remain as small helpers, but the local update strip (§2.11) no longer
+  reads or writes it: that strip reappears on every open while old records exist, and `wipe()` still
+  deletes the key with the envelope if an older build left one behind.
 - **Envelope shape.** `{v, kdf, hash, iters, salt, iv, ct, alg}` — version, `PBKDF2-SHA256`, `SHA-256`,
   the iteration count, a 16-byte salt, a 12-byte GCM nonce, the Base64 ciphertext and `AES-GCM-256`.
   The header text (`v`/`kdf`/`iters`/`salt`) is fed to GCM as **additional authenticated data**, so
@@ -1212,7 +1261,7 @@ claim is §7.5.
 
 ### 6.9 The skin (`app/style.css`) — one stylesheet, two themes, one sticky chain
 
-678 lines that draw the whole interface: no image, no web font, no `url()` anywhere. Every visual is a
+699 lines that draw the whole interface: no image, no web font, no `url()` anywhere. Every visual is a
 colour, a gradient or a pseudo-element, which is what makes §7.2 item 13's stylesheet rule enforceable —
 a stylesheet that fetches a font hands the visitor's IP and `Referer` to a third party on every page
 open, and no JS-side scan would ever see it happen.
@@ -1267,61 +1316,40 @@ light theme and back.
 
 ### 6.10 The five mechanism figures — one canvas, colour by role, one measured bound
 
-`docs/img/` holds five hand-written SVGs, and §1's file table says which section each one belongs to.
+`docs/img/` holds five generated SVGs, and §1's file table says which section each one belongs to.
 They are the only part of this repository that is *drawn* rather than written, so they need their own
-contract — and the contract is §6.9's, not a new one: deep-space canvas, cyan/mint/amber/violet for
-state, no raster asset, no external reference, English like every other file GitHub-facing. What follows
-is only what is specific to a static diagram: how a hue is chosen, where a glow is allowed, and what
-"nothing runs off the card" means when nobody is watching the page.
+contract — and the contract is §6.9's, not a new one: deep-space canvas, cyan/mint/amber/violet/rose for
+state, no raster asset, no external reference, English like every other file GitHub-facing.
 
-- **One `<defs>` block, byte-identical in all five files.** `hudbg` is a three-stop linear gradient
-  (`#0c1626` → `#070d18` → `#03060c`) and replaces the single flat rectangle the light version used;
-  over it go `hudgrid` (a 26 px `userSpaceOnUse` path at 8.5 % opacity) and `hudscan` (a 4 px horizontal
-  rule at 4.5 %), so the sheet is coordinate paper before it is a diagram — the same reasoning as the
-  app's 46 px body graticule; `hudbloom` is a radial cyan → violet wash anchored top-left, which is the
-  picture's only light source. Four stacked `<rect>`s and four L-shaped corner brackets, then content.
-- **The brackets are 12 px in from the edge with 20 px arms.** The first pass used 16/28, and in
-  `architecture.svg` the bottom-left arm landed exactly on the footnote baseline (text at `y=846`, canvas
-  860): a frame that eats its own caption. 12/20 clears the caption in all five files, measured, not
-  assumed.
-- **Colour is chosen by what an element *is*, never by its hue.** One token — say `#4a5566` — appears
-  both as body text and as the `fill` of an arrowhead, and those two need opposite treatment: text goes
-  bright (`#a2b5cb` → `#a2b5cb`-family neon), a *panel* goes dark (`#ffffff` → `#111c2a`), and anything
-  else stays neon. The role test is deliberately narrow: a tag carrying `font-size`, or a `<text>`, is
-  text; only `<rect>` and `<polygon>` fills are surfaces. That narrowness is the whole lesson — the
-  first version treated *every* non-text fill as a surface, and the connector arrowheads (`<path fill>`)
-  were painted `#151f2b` on a `#070d18` canvas: present, correct XML, invisible.
-- **Glow is a heading policy, not a text policy.** `hudglow` (blur 2.1, two merged blur nodes under the
-  source) is attached only to text at `font-size ≥ 16` or `font-weight` bold/≥500 — 19, 24, 19, 16 and
-  25 elements across the five files. A 12 px body label with a bloom on it is not a highlight, it is
-  soup: the sheet stops being scannable, which is the one thing a mechanism diagram is for.
-- **Lift is a panel policy.** `hudlift` (`feDropShadow dy=2`, blur 3.4, 72 % black) goes on rectangles
-  at least 200 × 40 — 4, 23, 13, 6 and 3 per file — and skips anything already referencing a paint
-  server, so the four canvas layers stay flat against each other while the cards float off them.
-- **The bound is measured in a renderer, not counted in characters.** Character-counting cannot work
-  here: the same string is a different width in Helvetica at 12 px than in Menlo at 13, and the files
-  mix both (the command block in `platform-packs.svg` is monospace). So every `<text>` is asked for its
-  `getBoundingClientRect()`, mapped back into user units through the root `getScreenCTM().inverse()`,
-  matched to the smallest stroked `<rect>` that contains its start point, and required to clear that
-  card's right and bottom edge by 4 px. Run over all five: **0 violations**, after three real defects
-  fell out of it — a rotated label in `architecture.svg` that ran 384 px up through three cards because
-  its anchor was the curve's midpoint and its length had never been checked (now horizontal, in the
-  20 px corridor between the kernels row and the data row, right-anchored so it ends at the arrowhead);
-  two lines in `platform-packs.svg` sitting 3 px and 9 px *past* their cards' bottom borders (the two
-  middle cards are 244 tall now and the command row moved from 660 to 676); and `decision-flow.svg`'s
-  second ladder card, 66 tall against a sibling that needed 72, which pushed its text 3 px over
-  (card 2 is 72, card 3 re-anchored at 308 × 54 so the 8 px rhythm down the column survives).
-- **Two of these facts are asserted, not remembered.** §8.6's documentation item checks all five files
-  for `hudgrid`, for a canvas on `url(#hudbg)`, for the absence of the six light-canvas tokens, and for
-  the absence of `filter="#…"`. That last one is not pedantry: `filter="#hudglow"` is *well-formed XML*
-  that every renderer treats as a missing reference, so the first "dark" build of these figures passed
-  `ET.fromstring`, looked plausible in a diff, and had no glow and no shadow at all — the filters were
-  silently absent until a real render was measured. The check lives inside the existing doc-links item
-  rather than as a new one, which is why the package gate grew by a single item — the link checker's own probe (§8.6).
+- **One `<defs>` block, the same in all five files.** `hudbg` is a three-stop linear gradient
+  (`#0c1626` → `#070d18` → `#03060c`); over it go `hudgrid` (a 26 px `userSpaceOnUse` path at 8.5 %
+  opacity) and `hudscan` (a 4 px horizontal rule at 4.5 %), so the sheet is coordinate paper before it
+  is a diagram; `hudbloom` is a radial cyan wash anchored top-left, and it is the picture's only light
+  source. Four stacked `<rect>`s and four L-shaped corner brackets, then content.
+- **The brackets sit 14 px in with 30 px arms.** Every card and the footer baseline clear them in all
+  five files, so no frame arm lands on a caption.
+- **Colour is chosen by role.** Cyan marks structure, mint marks what is allowed, amber marks a rule or
+  a measured value, violet marks the UI layer, rose marks a boundary or a refusal. Body copy is
+  `#a9bdd0` on `#0c1727` cards; commands are monospace `#8fe3ff`, so a line a reader might copy is
+  visually distinct from prose.
+- **Content is factual, not decorative.** Each diagram answers one question named in its title:
+  structure and the two outbound edges, what may leave and which fix wins, what the bridge cannot see,
+  which file to launch on Apple devices, and what each platform pack contains. No panel art, no stock
+  imagery, no watermark.
+- **Text is wrapped to the card, then rendered and inspected.** The figures are produced by a small
+  generator that wraps every paragraph to its card width; each finished SVG is rendered through a
+  headless browser and checked for overflow, collision and clipping before it is committed. The visible
+  result is what §1.1's pack table ships.
+- **Two properties are asserted, not remembered.** §8.6's documentation item checks all five files for
+  `hudgrid`, for a canvas on `url(#hudbg)`, for the absence of the six light-canvas tokens, and for the
+  absence of `filter="#…"`. That last one is not pedantry: `filter="#hudglow"` is *well-formed XML*
+  that every renderer treats as a missing reference, so a file can look plausible in a diff and render
+  with no glow at all. The check lives inside the existing doc-links item rather than as a new one,
+  which is why the package gate grew by a single item — the link checker's own probe (§8.6).
 
-Sizes belong to one place only: §1.1 states the figure total (5 files, 58 KB) and `--all` re-measures
-it into the pack table, so `platform-packs.svg` deliberately says "Five figures, in every pack" instead
-of carrying a number that would drift the moment one of them is redrawn.
+Sizes belong to one place only: §1.1 states the figure total (5 files, 48 KB) and `--all` re-measures
+it into the pack table, so `platform-packs.svg` says "five SVG figures" instead of carrying a number
+that would drift the moment one of them is redrawn.
 
 ---
 
@@ -1340,8 +1368,9 @@ Four, and only four. Nothing in this section is a promise — each row is checke
 | 3 | The target of a system `tracert` / `ping` | panel ⑧ + a bridge is running | a DNS lookup of the hostname you typed, then ICMP/UDP probes toward it | do not press the button |
 | 4 | Browser Geolocation | press the locate button **and** click Allow in the browser's own dialog | whatever the browser/OS decides to use (Wi-Fi, cell, IP); this tool never forwards it and never stores it | deny the prompt |
 
-There is no analytics beacon, no update check, no crash reporter, no CDN: Leaflet and qrcode.js are
-vendored in `vendor/` and the three data files ship in the package (§1).
+There is no analytics beacon, no network update check, no crash reporter, no CDN: Leaflet and qrcode.js are
+vendored in `vendor/` and the three data files ship in the package (§1). The update strip described in
+§2.11 is local-only: it reads `location` and the on-disk vault state and makes no request.
 
 ### 7.2 Red lines that are enforced in code
 
@@ -1643,8 +1672,8 @@ The four case families, with what each one actually asserts:
 
 | Family | Cases | What is compared |
 | --- | --- | --- |
-| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (35 967 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
-| Static assets | 16 | every local file `index.html` references, fetched from both bridges: status, **byte count**, and `Content-Type` must match — 2 084 466 bytes of `data-cities.js` and 226 222 of `ui-app.js` included. A Content-Type table that drifted between the two implementations would silently hand the browser a `text/plain` module and the page would die at `import` time on one channel only |
+| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (36 605 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
+| Static assets | 16 | every local file `index.html` references, fetched from both bridges: status, **byte count**, and `Content-Type` must match — 2 084 466 bytes of `data-cities.js` and 228 650 of `ui-app.js` included. A Content-Type table that drifted between the two implementations would silently hand the browser a `text/plain` module and the page would die at `import` time on one channel only |
 | Traversal attempts | 5 | `/%2e%2e/%2e%2e/C:/Windows/win.ini`, `/..%5cwindows%5cwin.ini`, `/app/../server.py`, `/%2e%2e/app/data/data-countries.js`, `/%c0%af%x`. Deliberately **not** a same-status assertion: `http.sys` normalises `/app/../server.py` before the handler ever sees it, so the PowerShell bridge answers 200 with a file *inside the root* while `server.py` answers 403. The case is "refused, or served from inside the root — and never the contents of `win.ini`", which is the property that matters; the previous version asserted equal status and was wrong about the platform (§11.11) |
 | `health` semantics + origin policy | 9 | 14 semantic fields must be identical (server name, version, capability list, endpoint list, GeoIP source list — the bridge's **five**, the sixth being browser-only (§3 ⑧) — banned parameter list, the three "always false" privacy booleans, the hop/ping ceilings, `bind.loopback_only`, the bind address), while `python` and `runtime` are asserted to be **honestly different** (`'3.13.14'` vs `null`, `Python 3.13.14` vs `PowerShell 5.1.28000.2113`). Then the origin allowlist (§7.3) is replayed over real HTTP: 5 listed origins (the `file://` `null`, the hosted page, both bridges' own loopback origins, `http://localhost:1`) get 200 with their own origin echoed on both bridges; 4 hostile origins get `403 origin_not_allowed` with **no** `Access-Control-Allow-Origin` header at all — a silent "no header" instead of a 403 would be invisible to `curl` and is treated as a failure; `OPTIONS` preflight runs the same list (204 + PNA echo for listed, 403 for unlisted); a request with **no** `Origin` header gets 200 and no CORS headers and no `Vary`; a static file gets no CORS header even for a listed origin; and a wildcard collector inspects **every header of every response this run produced** and asserts the list stayed empty — which is the claim §7.3 rests on, verified by observation rather than by grep |
 

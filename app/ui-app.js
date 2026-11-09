@@ -9,6 +9,8 @@
 
   var G = global;
   var DOC = (typeof document !== 'undefined') ? document : null;
+  // 构建号: 印在更新提示条上, 让人不用翻文件就知道手里这份副本是哪一版。发新版本时改这里。
+  var BUILD = '1.1.0';
 
   /* ============================================================ 0. 小工具 */
   function $(id) { return DOC && DOC.getElementById ? DOC.getElementById(id) : null; }
@@ -113,6 +115,11 @@
      锁着的时候读不到任何记录、也不许写（宁可当场说「锁着」，也不装作已经存好了）。 */
   var LS = { hist: 'hist', fav: 'fav', prefs: 'prefs' };
   function vault() { return eng('GEOVAULT'); }
+  function ackBuild() {
+    // 只收起本次会话的提示条, 不写任何“已读”标记: 旧部署下次打开仍会再提示一次。
+    var u = $('geo-update');
+    if (u && u.parentNode) u.parentNode.removeChild(u);
+  }
   function lsGet(key, dflt) {
     var v = vault();
     if (!v) return dflt;              // 内核没加载：当作「没有记录」，绝不退回到明文存储
@@ -1455,6 +1462,8 @@
     state.lastSky = { list: sc.satellites.map(function (s) { return { prn: s.prn, system: s.sys, az: s.azimuth_deg, el: s.elevation_deg, snr: s.snr_db, used: (fix.excluded_prns || []).indexOf(s.prn) < 0 }; }), mask: opt.mask_deg };
     renderSky();
     setDraw('gnss', { circles: [{ lat: fix.lat, lon: fix.lon, r_m: fix.cep95_m || 0, label: 'GNSS CEP95' }] });
+    // ⑧ 的「离线 ↔ 联网」判定读这一份；此前从未赋值，判定永远说「没有离线解」
+    state.lastFix = fix;
     addSolution({ source: 'GNSS 单点定位', lat: fix.lat, lon: fix.lon, h: fix.h, accuracy_m: fix.cep68_m, sigma_e_m: fix.sigma_e_m, sigma_n_m: fix.sigma_n_m, basis: 'LSQ PVT，' + fix.sats_used + ' 星，HDOP ' + fmt(fix.dop.hdop, 2) + '，σ₀ ' + m(fix.sigma0_posterior_m, 1) });
     centerOn(fix.lat, fix.lon, 9);
   }
@@ -2869,6 +2878,7 @@
       v.unlock(p).then(function (r) {
         if (r.ok) {
           clearPw();
+          ackBuild();
           status('已解锁：读到 ' + r.keys + ' 组本机记录', 'ok');
           return v.absorbLegacy().then(function (ab) {
             if (ab.ok && ab.moved && ab.moved.length) status('已把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除原键', 'ok');
@@ -2897,6 +2907,7 @@
       v.createNew(p, {}).then(function (r) {
         if (r.ok) {
           clearPw();
+          ackBuild();
           status('已建锁：磁盘上从此只有一个 AES-256-GCM 信封', 'ok');
           return v.absorbLegacy().then(function (ab) {
             if (ab.ok && ab.moved && ab.moved.length) status('顺手把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除', 'ok');
@@ -3487,6 +3498,43 @@
   }
 
   function boot() {
+    var ubox = $('geo-update'), ubtn = $('geo-update-close'), ulinks = $('geo-update-links');
+    /* 更新提示只在「本地打开、而且本机已经存过数据」时出现：
+       官网页面本身永远是最新版，全新下载的副本也没有旧数据——这两种情况都不打扰。
+       判据全部来自本机：hostname/protocol 与保险柜里是否已有信封，不发任何请求。
+       不记录“已读”：旧部署每次打开都提示一次，关掉只对本次会话生效。 */
+    var host = String(location.hostname || '');
+    var hosted = /(^|\.)iammezsh\.github\.io$/i.test(host);
+    var localCopy = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host);
+    var vstat = null, legacy = 0;
+    try {
+      var vv = vault();
+      if (vv) {
+        vstat = vv.status();
+        legacy = typeof vv.legacyPlaintextPresent === 'function' ? vv.legacyPlaintextPresent().length : 0;
+      }
+    } catch (e) { /* 内核异常就当没有旧数据 */ }
+    var hasOldData = !!(vstat && vstat.has_vault) || legacy > 0;
+    if (ubox && (hosted || !localCopy || !hasOldData)) {
+      ubox.parentNode.removeChild(ubox);
+      ubox = null;
+    }
+    if (ubox && ubtn) ubtn.addEventListener('click', function () { ackBuild(); });
+    // 只放项目官方地址，且仅作导航链接：页面加载时不会去请求它，入口页保持零远程资源。
+    if (ubox && ulinks) {
+      [['https://github.com/IAMMEZSH/geo-position-workstation', 'GitHub 官网']].forEach(function (p) {
+        var a = DOC.createElement('a');
+        a.className = 'update-link';
+        a.href = p[0];
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = p[1];
+        ulinks.appendChild(a);
+      });
+    }
+    var ubuild = $('geo-update-build');
+    if (ubox && ubuild) ubuild.textContent = '本机副本 v' + BUILD;
+    if (ubox) ubox.hidden = false;
     populateSelects();
     var MAP = mapOf();
     if (MAP) {

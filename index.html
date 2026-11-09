@@ -12,6 +12,14 @@
 </head>
 <body data-theme="dark">
 
+<div id="geo-update" class="update-strip" role="status" hidden>
+  <span class="update-dot" aria-hidden="true"></span>
+  <span class="update-text">更新提示：如果你打开的是较早下载的本地副本，请到 GitHub 官方项目核对最新版本。历史、收藏与偏好保存在本机：替换程序文件不要删除浏览器数据，并用同一路径打开；解锁后，旧版遗留的明文记录会自动收进新的加密信封。</span>
+  <span id="geo-update-build" class="update-build"></span>
+  <span id="geo-update-links" class="update-links"></span>
+  <button type="button" id="geo-update-close" class="update-close" aria-label="关闭更新提示">✕</button>
+</div>
+
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true">◎</span>

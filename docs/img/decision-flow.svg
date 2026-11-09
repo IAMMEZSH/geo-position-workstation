@@ -1,143 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900" font-family="Helvetica, Arial, sans-serif">
-
-  <defs>
-    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
-      <stop offset="0" stop-color="#0c1626"/>
-      <stop offset="0.45" stop-color="#070d18"/>
-      <stop offset="1" stop-color="#03060c"/>
-    </linearGradient>
-    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
-      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
-      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
-      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
-    </pattern>
-    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
-      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
-    </pattern>
-    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
-      <feGaussianBlur stdDeviation="2.1" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
-    </filter>
-  </defs>
-  <defs>
-    <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#8fa8c2"/>
-    </marker>
-    <marker id="fb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
-    </marker>
-  </defs>
-
-  <rect x="0" y="0" width="1180" height="900" fill="url(#hudbg)"/>
-  <rect x="0" y="0" width="1180" height="900" fill="url(#hudgrid)"/>
-  <rect x="0" y="0" width="1180" height="900" fill="url(#hudscan)"/>
-  <rect x="0" y="0" width="1180" height="900" fill="url(#hudbloom)"/>
-  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
-    <path d="M12 32V12h20"/>
-    <path d="M1148 12h20v20"/>
-    <path d="M1168 868v20h-20"/>
-    <path d="M32 888H12v-20"/>
-  </g>
-  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Offline-first: when traffic may leave the machine, and how fixes rank</text>
-  <text x="40" y="72" font-size="14" fill="#a2b5cb">Left = the order the code actually runs · Right = how this tool ranks "how far can I trust this fix"; panel ① labels every row with its source</text>
-
-  <!-- Main flow -->
-  <rect x="40" y="100" width="620" height="56" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="60" y="126" font-size="15" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Entry: double-click index.html (or http://127.0.0.1:8765)</text>
-  <text x="60" y="146" font-size="12" fill="#a2b5cb">Nothing is sent at this point; loading the page = reading local files</text>
-
-  <path d="M350,156 L350,182" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
-
-  <rect x="40" y="182" width="620" height="86" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="60" y="208" font-size="15" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Step 1 · everything computed locally</text>
-  <text x="60" y="230" font-size="12" fill="#7ff0bb">Parse any notation (DMS/DDM/DD/UTM/UPS/MGRS/Geohash/Plus Code/merged digits/map URL) →</text>
-  <text x="60" y="248" font-size="12" fill="#7ff0bb">then look it up offline: nearest city, country, land or water, inside the GCJ-02 offset zone?</text>
-
-  <path d="M350,268 L350,294" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
-
-  <polygon points="350,294 560,340 350,386 140,340" fill="#1c1608" stroke="#f2d488" stroke-width="2"/>
-  <text x="350" y="334" font-size="13" font-weight="bold" fill="#f5c74d" text-anchor="middle" filter="url(#hudglow)">Enough offline evidence?</text>
-  <text x="350" y="354" font-size="12" fill="#e3c987" text-anchor="middle">any measured observation (TA / RSRP / range)?</text>
-
-  <path d="M140,340 L80,340 L80,420 L110,420" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
-  <text x="86" y="332" font-size="12" fill="#34e88c" font-weight="bold" filter="url(#hudglow)">yes</text>
-
-  <path d="M560,340 L620,340 L620,520 L590,520" stroke="#fbbf24" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#fb)"/>
-  <text x="566" y="332" font-size="12" fill="#f5c74d" font-weight="bold" filter="url(#hudglow)">no</text>
-
-  <rect x="110" y="392" width="480" height="84" rx="10" fill="#111c2a" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="128" y="418" font-size="14" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Return the fix and state its accuracy honestly</text>
-  <text x="128" y="440" font-size="12" fill="#7ff0bb">A kernel returning null / error too large / &lt; 4 satellites makes the UI say</text>
-  <text x="128" y="458" font-size="12" fill="#7ff0bb">"cannot solve" with the reason — no interpolation, no city centroid faked as you</text>
-
-  <rect x="110" y="520" width="480" height="120" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="128" y="546" font-size="14" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Only now escalate: panel ⑧, needs your explicit allow</text>
-  <text x="128" y="568" font-size="12" fill="#ffb998">Geolocation: needs your tap; file:// and loopback http are both secure</text>
-  <text x="128" y="586" font-size="12" fill="#ffb998">IP lookup: 6 upstreams in parallel → dead ones dropped → BLUE fusion</text>
-  <text x="128" y="604" font-size="12" fill="#ffb998">Traceroute: via the local bridge; unparsed → 0 hops + reason</text>
-
-  <path d="M350,640 L350,668" stroke="#8fa8c2" stroke-width="2" fill="none" marker-end="url(#f)"/>
-
-  <rect x="110" y="668" width="480" height="72" rx="10" fill="#0c1728" stroke="#6fd3ff" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="128" y="694" font-size="14" font-weight="bold" fill="#55c8ff" filter="url(#hudglow)">Everything lands in the ① session table</text>
-  <text x="128" y="716" font-size="12" fill="#6fc0ff">Every fix carries source, accuracy, basis, timestamp; rows compare and</text>
-  <text x="128" y="732" font-size="12" fill="#6fc0ff">show on the map. Crosshair bar: DD / DMS / UTM / MGRS / Plus Code</text>
-
-  <!-- Evidence ladder -->
-  <rect x="700" y="100" width="440" height="640" rx="10" fill="#111c2a" stroke="#dbe9fb" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="720" y="130" font-size="16" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Evidence ladder (strong → weak)</text>
-
-  <g font-size="12">
-    <rect x="720" y="148" width="400" height="72" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
-    <text x="734" y="170" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">1 · GNSS pseudorange weighted LSQ</text>
-    <text x="734" y="190" fill="#7ff0bb">Measured: 4.94 m off truth (horizontal); RAIM dropped 1 outlier</text>
-    <text x="734" y="208" fill="#7ff0bb">Reported accuracy = DOP × posterior σ₀, never a guess</text>
-
-    <rect x="720" y="228" width="400" height="72" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
-    <text x="734" y="250" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">2 · Cell timing advance / lateration</text>
-    <text x="734" y="270" fill="#7ff0bb">Measured: 3 LTE sites, residual RMS 21.5 m, uncertainty 102.2 m</text>
-    <text x="734" y="288" fill="#7ff0bb">TA is a measured range; pure RSSI ranges rank lower</text>
-
-    <rect x="720" y="308" width="400" height="54" rx="6" fill="#0b1a13" stroke="#9ff5c8" filter="url(#hudlift)"/>
-    <text x="734" y="328" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">3 · Bearing / triangulation intersection</text>
-    <text x="734" y="348" fill="#7ff0bb">Measured: 3 bearings, residual ≈0.5 m, uncertainty 52.3 m</text>
-
-    <rect x="720" y="370" width="400" height="60" rx="6" fill="#1c1608" stroke="#f2d488" filter="url(#hudlift)"/>
-    <text x="734" y="392" font-size="13" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">4 · Celestial navigation</text>
-    <text x="734" y="412" fill="#e3c987">Altitude of sun/star → circle of position; cross several of them</text>
-
-    <rect x="720" y="438" width="400" height="60" rx="6" fill="#1c1608" stroke="#f2d488" filter="url(#hudlift)"/>
-    <text x="734" y="460" font-size="13" font-weight="bold" fill="#f5c74d" filter="url(#hudglow)">5 · Browser geolocation</text>
-    <text x="734" y="480" fill="#e3c987">Circle comes from the OS (Wi-Fi/cell, tens of metres typical)</text>
-
-    <rect x="720" y="506" width="400" height="76" rx="6" fill="#1e120c" stroke="#ffc8ab" filter="url(#hudlift)"/>
-    <text x="734" y="528" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">6 · IP coarse fix (weakest, city level)</text>
-    <text x="734" y="548" fill="#ffb998">Measured: 2/6 sources live, fused 30.0156,121.2294 ±50 km,</text>
-    <text x="734" y="566" fill="#ffb998">χ²=0.148 = consistent; dead sources dropped with reasons listed</text>
-
-    <rect x="720" y="590" width="400" height="60" rx="6" fill="#170f22" stroke="#ddc3ff" filter="url(#hudlift)"/>
-    <text x="734" y="612" font-size="13" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">0 · Nothing sufficient</text>
-    <text x="734" y="632" fill="#cdb8f0">UI says "cannot solve" and names the missing observation</text>
-  </g>
-
-  <text x="720" y="690" font-size="12" fill="#a2b5cb">Lower = coarser. Fusion only runs when evidence at that level is</text>
-  <text x="720" y="710" font-size="12" fill="#a2b5cb">missing; reported accuracy = max(BLUE σ, weighted 75th pct).</text>
-  <text x="720" y="732" font-size="12" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Orange dashed = the only step that leaves the machine</text>
-
-  <text x="40" y="784" font-size="13" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Three hard constraints</text>
-  <text x="40" y="808" font-size="12" fill="#a2b5cb">· Offline by default: with no fetchImpl injected and no allow, every network entry returns offline_disallowed — not even a URL is constructed.</text>
-  <text x="40" y="828" font-size="12" fill="#a2b5cb">· URL construction audit: the self-test dissects every outbound URL; a coordinate-like parameter (lat/lon/accuracy …) in any of them is a gate failure.</text>
-  <text x="40" y="848" font-size="12" fill="#a2b5cb">· A missing bridge changes nothing else: panel ⑧ says "bridge offline" and keeps using the sources the browser can reach directly.</text>
-
-  <text x="40" y="878" font-size="12" fill="#93a8bd">This diagram describes branches that exist in the code, not an ideal flow. See networkPolicy / buildBridgeUrl in app/core-net.js and the ① ⑧ panel bindings in app/ui-app.js.</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs>
+  <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+    <stop offset="0" stop-color="#0c1626"/><stop offset="0.45" stop-color="#070d18"/><stop offset="1" stop-color="#03060c"/>
+  </linearGradient>
+  <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+    <path d="M26 0H0V26" fill="none" stroke="#5d8fb0" stroke-opacity="0.085" stroke-width="1"/>
+  </pattern>
+  <pattern id="hudscan" width="26" height="4" patternUnits="userSpaceOnUse">
+    <rect width="26" height="1" fill="#5d8fb0" fill-opacity="0.045"/>
+  </pattern>
+  <radialGradient id="hudbloom" cx="0.18" cy="0.05" r="0.95">
+    <stop offset="0" stop-color="#59d6ff" stop-opacity="0.10"/><stop offset="0.6" stop-color="#59d6ff" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="1180" height="900" fill="url(#hudbg)"/>
+<rect width="1180" height="900" fill="url(#hudgrid)"/>
+<rect width="1180" height="900" fill="url(#hudscan)"/>
+<rect width="1180" height="900" fill="url(#hudbloom)"/>
+<rect x="14" y="14" width="1152" height="872" rx="3" fill="none" stroke="#1d3a53"/>
+<path d="M14 44V14h30M1136 14h30v30M1166 856v30h-30M44 886H14v-30" fill="none" stroke="#3b8fc4" stroke-width="2"/>
+<text x="48" y="58" font-size="11.5" fill="#59d6ff" font-weight="600" text-anchor="start" letter-spacing="3.2">DECISION</text>
+<text x="48" y="92" font-size="27" fill="#f3d27a" font-weight="700" text-anchor="start" letter-spacing="0.6">WHAT MAY LEAVE, AND WHICH ANSWER WINS</text>
+<text x="48" y="118" font-size="13.5" fill="#8ea9bf" font-weight="400" text-anchor="start">Two decision chains: one for traffic, one for competing fixes. Both print their reasons.</text>
+<rect x="48" y="140" width="660" height="70" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="48" y="140" width="3.5" height="70" rx="1.7" fill="#59d6ff"/>
+<text x="62" y="167" font-size="13" fill="#59d6ff" font-weight="600" text-anchor="start" letter-spacing="1.5">1 · DID YOU ASK FOR A NETWORK ACTION?</text>
+<text x="62" y="192" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">No → nothing leaves; the default policy is local. Yes → the request must be one of the four</text>
+<text x="62" y="210" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">  below.</text><rect x="48" y="226" width="660" height="62" rx="7" fill="#0a1422" stroke="#24455f"/><rect x="48" y="226" width="3" height="62" fill="#59d6ff"/><text x="66" y="250" font-size="13.5" fill="#59d6ff" font-weight="600" text-anchor="start">GeoIP lookup</text><text x="66" y="270" font-size="12" fill="#a9bdd0" font-weight="400" text-anchor="start">what leaves: one IP address</text><text x="694" y="250" font-size="10.5" fill="#7f97ad" font-weight="600" text-anchor="end" letter-spacing="1.2">switch it off</text><text x="694" y="270" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="end">set policy to network disabled</text><rect x="48" y="300" width="660" height="62" rx="7" fill="#0a1422" stroke="#24455f"/><rect x="48" y="300" width="3" height="62" fill="#6fe3b0"/><text x="66" y="324" font-size="13.5" fill="#6fe3b0" font-weight="600" text-anchor="start">Online basemap</text><text x="66" y="344" font-size="12" fill="#a9bdd0" font-weight="400" text-anchor="start">what leaves: the visible map extent</text><text x="694" y="324" font-size="10.5" fill="#7f97ad" font-weight="600" text-anchor="end" letter-spacing="1.2">switch it off</text><text x="694" y="344" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="end">switch back to vector</text><rect x="48" y="374" width="660" height="62" rx="7" fill="#0a1422" stroke="#24455f"/><rect x="48" y="374" width="3" height="62" fill="#f3d27a"/><text x="66" y="398" font-size="13.5" fill="#f3d27a" font-weight="600" text-anchor="start">tracert / ping</text><text x="66" y="418" font-size="12" fill="#a9bdd0" font-weight="400" text-anchor="start">what leaves: hostname DNS + probes</text><text x="694" y="398" font-size="10.5" fill="#7f97ad" font-weight="600" text-anchor="end" letter-spacing="1.2">switch it off</text><text x="694" y="418" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="end">do not press the button</text><rect x="48" y="448" width="660" height="62" rx="7" fill="#0a1422" stroke="#24455f"/><rect x="48" y="448" width="3" height="62" fill="#b8a6ff"/><text x="66" y="472" font-size="13.5" fill="#b8a6ff" font-weight="600" text-anchor="start">Browser geolocation</text><text x="66" y="492" font-size="12" fill="#a9bdd0" font-weight="400" text-anchor="start">what leaves: what the OS decides</text><text x="694" y="472" font-size="10.5" fill="#7f97ad" font-weight="600" text-anchor="end" letter-spacing="1.2">switch it off</text><text x="694" y="492" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="end">deny the browser prompt</text><rect x="48" y="532" width="660" height="96" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="48" y="532" width="3.5" height="96" rx="1.7" fill="#ff9a94"/>
+<text x="62" y="559" font-size="13" fill="#ff9a94" font-weight="600" text-anchor="start" letter-spacing="1.5">NO SILENT FALLBACK</text>
+<text x="62" y="584" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">A refused prompt stays refused: the UI never substitutes an IP-derived position for a denied</text>
+<text x="62" y="602" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">  fix.</text>
+<text x="62" y="620" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">A bridge that cannot trace returns zero hops with a reason, never a padded count.</text><rect x="48" y="646" width="660" height="106" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="48" y="646" width="3.5" height="106" rx="1.7" fill="#f3d27a"/>
+<text x="62" y="673" font-size="13" fill="#f3d27a" font-weight="600" text-anchor="start" letter-spacing="1.5">FOUR REQUESTS, FOUR LABELS</text>
+<text x="62" y="698" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">Each outbound path is named in panel ⑧ before it runs; the label says what is transmitted.</text>
+<text x="62" y="716" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">Upstream URLs accept one replaceable placeholder, {ip} — never a coordinate.</text><rect x="736" y="140" width="396" height="70" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="736" y="140" width="3.5" height="70" rx="1.7" fill="#6fe3b0"/>
+<text x="750" y="167" font-size="13" fill="#6fe3b0" font-weight="600" text-anchor="start" letter-spacing="1.5">2 · WHICH FIX WINS?</text>
+<text x="750" y="192" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">A later fix does not automatically replace an earlier</text>
+<text x="750" y="210" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">  one; the basis decides.</text><rect x="736" y="226" width="396" height="58" rx="7" fill="#0a1422" stroke="#24455f"/><circle cx="764" cy="255" r="13" fill="none" stroke="#6fe3b0"/><text x="764" y="259" font-size="12" fill="#6fe3b0" font-weight="700" text-anchor="middle">1</text><text x="788" y="250" font-size="13" fill="#6fe3b0" font-weight="600" text-anchor="start">Explicit range_m</text><text x="788" y="269" font-size="11.5" fill="#a9bdd0" font-weight="400" text-anchor="start">a measured number supplied per site</text><rect x="736" y="296" width="396" height="58" rx="7" fill="#0a1422" stroke="#24455f"/><circle cx="764" cy="325" r="13" fill="none" stroke="#f3d27a"/><text x="764" y="329" font-size="12" fill="#f3d27a" font-weight="700" text-anchor="middle">2</text><text x="788" y="320" font-size="13" fill="#f3d27a" font-weight="600" text-anchor="start">Timing advance</text><text x="788" y="339" font-size="11.5" fill="#a9bdd0" font-weight="400" text-anchor="start">GSM 554.69 m/bit · LTE/NR 78.17 m/bit</text><rect x="736" y="366" width="396" height="58" rx="7" fill="#0a1422" stroke="#24455f"/><circle cx="764" cy="395" r="13" fill="none" stroke="#b8a6ff"/><text x="764" y="399" font-size="12" fill="#b8a6ff" font-weight="700" text-anchor="middle">3</text><text x="788" y="390" font-size="13" fill="#b8a6ff" font-weight="600" text-anchor="start">Propagation model</text><text x="788" y="409" font-size="11.5" fill="#a9bdd0" font-weight="400" text-anchor="start">RSSI/RSRP with the model’s own σ</text><rect x="736" y="446" width="396" height="148" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="736" y="446" width="3.5" height="148" rx="1.7" fill="#ff9a94"/>
+<text x="752" y="473" font-size="13" fill="#ff9a94" font-weight="600" text-anchor="start" letter-spacing="1.5">WHEN THE OBSERVATIONS DISAGREE</text>
+<text x="752" y="498" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• Residual RMS far above one site’s σ → the</text>
+<text x="752" y="518" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  solution is marked unusable.</text>
+<text x="752" y="538" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• Two intersecting circles → both branches are</text>
+<text x="752" y="558" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  reported; you choose.</text>
+<text x="752" y="578" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• One bearing cannot fix a point → candidates and</text>
+<text x="752" y="598" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  residuals, not an answer.</text><rect x="736" y="610" width="396" height="160" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="736" y="610" width="3.5" height="160" rx="1.7" fill="#59d6ff"/>
+<text x="752" y="637" font-size="13" fill="#59d6ff" font-weight="600" text-anchor="start" letter-spacing="1.5">CHECKS BEHIND THE VERDICT</text>
+<text x="752" y="662" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• GNSS: weighted least squares, then RAIM removes</text>
+<text x="752" y="682" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  an outlier before the fix is shown.</text>
+<text x="752" y="702" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• GeoIP: six sources, χ² consistency, then a</text>
+<text x="752" y="722" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  conservative accuracy floor.</text>
+<text x="752" y="742" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• Celestial: a second route prints its difference</text>
+<text x="752" y="762" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  beside the result.</text><text x="48" y="874" font-size="10.5" fill="#5e7890" font-weight="600" text-anchor="start" letter-spacing="2.2">GEO POSITION WORKSTATION</text><text x="1132" y="874" font-size="10.5" fill="#5e7890" font-weight="600" text-anchor="end" letter-spacing="2.2">MECHANISM DIAGRAM</text></svg>

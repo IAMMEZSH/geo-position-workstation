@@ -1,152 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="760" viewBox="0 0 1180 760" font-family="Helvetica, Arial, sans-serif">
-
-  <defs>
-    <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
-      <stop offset="0" stop-color="#0c1626"/>
-      <stop offset="0.45" stop-color="#070d18"/>
-      <stop offset="1" stop-color="#03060c"/>
-    </linearGradient>
-    <radialGradient id="hudbloom" cx="0.16" cy="0.05" r="0.95">
-      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.18"/>
-      <stop offset="0.42" stop-color="#7c3aed" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
-      <path d="M26 0H0V26" fill="none" stroke="#2dd4bf" stroke-opacity="0.085" stroke-width="1"/>
-    </pattern>
-    <pattern id="hudscan" width="4" height="4" patternUnits="userSpaceOnUse">
-      <path d="M0 0.5H4" fill="none" stroke="#8ab4ff" stroke-opacity="0.045" stroke-width="1"/>
-    </pattern>
-    <filter id="hudglow" x="-25%" y="-70%" width="150%" height="240%">
-      <feGaussianBlur stdDeviation="2.1" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="hudlift" x="-14%" y="-14%" width="128%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3.4" flood-color="#000000" flood-opacity="0.72"/>
-    </filter>
-  </defs>
-  <defs>
-    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#ff9f6e"/>
-    </marker>
-  </defs>
-
-  <rect x="0" y="0" width="1180" height="760" fill="url(#hudbg)"/>
-  <rect x="0" y="0" width="1180" height="760" fill="url(#hudgrid)"/>
-  <rect x="0" y="0" width="1180" height="760" fill="url(#hudscan)"/>
-  <rect x="0" y="0" width="1180" height="760" fill="url(#hudbloom)"/>
-  <g stroke="#22d3ee" stroke-opacity="0.65" stroke-width="2" fill="none">
-    <path d="M12 32V12h20"/>
-    <path d="M1148 12h20v20"/>
-    <path d="M1168 728v20h-20"/>
-    <path d="M32 748H12v-20"/>
-  </g>
-  <text x="40" y="46" font-size="24" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">Privacy boundary: what stays, what leaves, what the code forbids</text>
-  <text x="40" y="72" font-size="14" fill="#a2b5cb">This diagram maps onto gates, not promises: break any line below and ⑪ or tests/check-package.py turns red</text>
-
-  <!-- Stays local -->
-  <rect x="40" y="96" width="360" height="560" rx="10" fill="#0b1a13" stroke="#4bf2a2" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="60" y="126" font-size="16" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">① Always stays on this machine</text>
-  <g font-size="12" fill="#7ff0bb">
-    <text x="60" y="152" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">All computation</text>
-    <text x="60" y="172">Seven kernels: parsing, projection, transforms,</text>
-    <text x="60" y="188">lateration, orbits, atmosphere, sky places, vault</text>
-    <text x="60" y="214" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Offline data</text>
-    <text x="60" y="234">cities 2.08 MB / land 763 KB / countries 9.4 KB</text>
-    <text x="60" y="250">shipped in the package, never fetched at runtime</text>
-    <text x="60" y="276" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">What you type in</text>
-    <text x="60" y="296">pasted coordinates, NMEA logs, site tables, obs</text>
-    <text x="60" y="312">in memory only; ⑩ history writes one AES-256-GCM</text>
-    <text x="60" y="328">envelope — no plaintext on disk; wipe in one click</text>
-    <text x="60" y="354" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Map</text>
-    <text x="60" y="374">"Vector" mode renders the offline land outlines</text>
-    <text x="60" y="390">and sends no tile request at all</text>
-    <text x="60" y="416" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Share links</text>
-    <text x="60" y="436">⑨ deep link / QR carries lat, lon and zoom only</text>
-    <text x="60" y="452">no device id, no history, none of your input</text>
-    <text x="60" y="478" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">Bridge service</text>
-    <text x="60" y="498">binds 127.0.0.1; a non-loopback bind is rejected</text>
-    <text x="60" y="514">and every request re-checks the peer address</text>
-    <text x="60" y="540" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">/api/iface</text>
-    <text x="60" y="560">answers "loopback only?" and how many interfaces</text>
-    <text x="60" y="576">no hostname, no MAC, no LAN address list</text>
-    <text x="60" y="612" font-size="13" font-weight="bold" fill="#34e88c" filter="url(#hudglow)">10 of 11 panels work with networking off</text>
-    <text x="60" y="632">Only ⑧ may leave, and only after you allow it</text>
-  </g>
-
-  <!-- Leaves -->
-  <rect x="420" y="96" width="360" height="560" rx="10" fill="#1e120c" stroke="#ff9f6e" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="440" y="126" font-size="16" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">② Only these four things ever leave</text>
-  <g font-size="12" fill="#ffb998">
-    <text x="440" y="152" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">1 · GeoIP lookup</text>
-    <text x="440" y="172">Sent: one IP + the source name. Looking up your</text>
-    <text x="440" y="188">own egress IP leaks a coarse location to a third</text>
-    <text x="440" y="204">party — no tool can anonymise that, so it is stated.</text>
-    <text x="440" y="230" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">2 · Online map tiles</text>
-    <text x="440" y="250">tile.openstreetmap.org, tiles around the view centre</text>
-    <text x="440" y="266">exclusive with "Vector", off by default</text>
-    <text x="440" y="292" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">3 · Target of system commands</text>
-    <text x="440" y="312">tracert/ping must send probes to what you query;</text>
-    <text x="440" y="328">the tool's job is character whitelist + argv list +</text>
-    <text x="440" y="344">shell=False, and a 400 before any process starts</text>
-    <text x="440" y="370" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">4 · Browser geolocation</text>
-    <text x="440" y="390">handled by the browser/OS; this tool forwards</text>
-    <text x="440" y="406">nothing, stores nothing, shows the refusal reason</text>
-
-    <text x="440" y="446" font-size="13" font-weight="bold" fill="#ff875c" filter="url(#hudglow)">Shared preconditions</text>
-    <text x="440" y="466">· Without the allow tap, allow_real_network=false</text>
-    <text x="440" y="482">  and every network entry returns offline_disallowed</text>
-    <text x="440" y="498">· Upstream URLs come only from the built-in table,</text>
-    <text x="440" y="514">  with one placeholder: {ip}. A custom upstream_url</text>
-    <text x="440" y="530">  must contain {ip} and rejects loopback, private,</text>
-    <text x="440" y="546">  link-local and non-http(s)  →  no open relay (SSRF)</text>
-    <text x="440" y="562">  six sources in the page, five in the bridges</text>
-    <text x="440" y="578">· Static files never carry a CORS header. Only /api/*</text>
-    <text x="440" y="594">  answers cross-origin, and only by echoing the</text>
-    <text x="440" y="610">  caller's own origin when it is on the allowlist</text>
-    <text x="440" y="626">  (null · hosted page · loopback) — never "*"</text>
-  </g>
-
-  <!-- Forbidden -->
-  <rect x="800" y="96" width="340" height="560" rx="10" fill="#170f22" stroke="#c084fc" stroke-width="2" filter="url(#hudlift)"/>
-  <text x="820" y="126" font-size="16" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">③ Forbidden by the code itself</text>
-  <g font-size="12" fill="#cdb8f0">
-    <text x="820" y="152" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">Coordinate-like parameters refused</text>
-    <text x="820" y="172">lat / lon / lng / latitude / longitude /</text>
-    <text x="820" y="188">position / loc / accuracy,</text>
-    <text x="820" y="204">plus alt / altitude / bearing / heading / speed</text>
-    <text x="820" y="220">→ the bridge never learns where you are</text>
-    <text x="820" y="248" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">No shell execution</text>
-    <text x="820" y="268">os.system / os.popen / shell=True / eval / exec</text>
-    <text x="820" y="284">checked by tests/check-package.py over the AST;</text>
-    <text x="820" y="300">prose inside comments is not a violation</text>
-    <text x="820" y="328" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">No telemetry</text>
-    <text x="820" y="348">no analytics, no update check, no crash reports;</text>
-    <text x="820" y="364">vendor/ is local Leaflet and qrcode.js only</text>
-    <text x="820" y="392" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">No path traversal</text>
-    <text x="820" y="412">static serving returns 403 for .., dotfiles, keys</text>
-    <text x="820" y="428">instead of silently rewriting the path</text>
-    <text x="820" y="456" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">No invented data</text>
-    <text x="820" y="476">unparsed traceroute → 0 hops + the reason;</text>
-    <text x="820" y="492">RTT below 1 ms stays an upper bound, never</text>
-    <text x="820" y="508">interpolated to 0.5 ms; a null result stays null</text>
-    <text x="820" y="536" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">Ambiguity is yours to resolve</text>
-    <text x="820" y="556">"31.23 121.47" lists every candidate reading</text>
-    <text x="820" y="572">with confidence instead of quietly picking one</text>
-    <text x="820" y="592" font-weight="bold" fill="#b983ff" filter="url(#hudglow)">No plaintext personal data</text>
-    <text x="820" y="612">history · favourites · preferences · probe all</text>
-    <text x="820" y="628">cross one AES-256-GCM envelope under one key;</text>
-    <text x="820" y="644">with the lock down the page refuses to save</text>
-  </g>
-
-  <path d="M400,300 L420,300" stroke="#ff9f6e" stroke-width="2" fill="none" marker-end="url(#p)"/>
-  <path d="M780,300 L800,300" stroke="#ff9f6e" stroke-width="2" fill="none" marker-end="url(#p)"/>
-
-  <text x="40" y="692" font-size="13" font-weight="bold" fill="#dbe9fb" filter="url(#hudglow)">How to re-check</text>
-  <text x="40" y="714" font-size="12" fill="#a2b5cb">Browser ⑪'s GEONET 104 gates include "privacyAudit: build every source URL from a fake position — none may contain 31.2304 or 121.4737"; both bridges self-test (Python 110 / PowerShell 202)</text>
-  <text x="40" y="732" font-size="12" fill="#a2b5cb">on whitelist, argv, loopback bind and per-request peer guard, the origin allowlist, path traversal, upstream constraints, parsers that invent nothing; tests/bridge-parity.py replays 41 live cases on both bridges</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="820" viewBox="0 0 1180 820" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs>
+  <linearGradient id="hudbg" x1="0" y1="0" x2="0.5" y2="1">
+    <stop offset="0" stop-color="#0c1626"/><stop offset="0.45" stop-color="#070d18"/><stop offset="1" stop-color="#03060c"/>
+  </linearGradient>
+  <pattern id="hudgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+    <path d="M26 0H0V26" fill="none" stroke="#5d8fb0" stroke-opacity="0.085" stroke-width="1"/>
+  </pattern>
+  <pattern id="hudscan" width="26" height="4" patternUnits="userSpaceOnUse">
+    <rect width="26" height="1" fill="#5d8fb0" fill-opacity="0.045"/>
+  </pattern>
+  <radialGradient id="hudbloom" cx="0.18" cy="0.05" r="0.95">
+    <stop offset="0" stop-color="#59d6ff" stop-opacity="0.10"/><stop offset="0.6" stop-color="#59d6ff" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="1180" height="820" fill="url(#hudbg)"/>
+<rect width="1180" height="820" fill="url(#hudgrid)"/>
+<rect width="1180" height="820" fill="url(#hudscan)"/>
+<rect width="1180" height="820" fill="url(#hudbloom)"/>
+<rect x="14" y="14" width="1152" height="792" rx="3" fill="none" stroke="#1d3a53"/>
+<path d="M14 44V14h30M1136 14h30v30M1166 776v30h-30M44 806H14v-30" fill="none" stroke="#3b8fc4" stroke-width="2"/>
+<text x="48" y="58" font-size="11.5" fill="#59d6ff" font-weight="600" text-anchor="start" letter-spacing="3.2">PRIVACY</text>
+<text x="48" y="92" font-size="27" fill="#f3d27a" font-weight="700" text-anchor="start" letter-spacing="0.6">WHAT THE BRIDGE CANNOT SEE</text>
+<text x="48" y="118" font-size="13.5" fill="#8ea9bf" font-weight="400" text-anchor="start">The page holds the coordinates. The bridge holds no field that could carry one.</text>
+<rect x="48" y="140" width="500" height="420" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="48" y="140" width="3.5" height="420" rx="1.7" fill="#59d6ff"/>
+<text x="66" y="167" font-size="13" fill="#59d6ff" font-weight="600" text-anchor="start" letter-spacing="1.5">INSIDE THE BROWSER</text>
+<text x="66" y="192" font-size="11" fill="#59d6ff" font-weight="400" text-anchor="start">COORDINATES LIVE HERE</text>
+<text x="66" y="210" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• Map centre, GNSS fix, cell solution, bearings, celestial</text>
+<text x="66" y="230" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  result — all computed in this tab.</text>
+<text x="66" y="250" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• The encrypted vault stores what you choose to keep, under</text>
+<text x="66" y="270" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  llgz.vault.v1 (AES-256-GCM).</text>
+<text x="66" y="290" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• No coordinate is placed in a request body, a query string, or</text>
+<text x="66" y="310" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  a header.</text>
+<text x="66" y="338" font-size="11" fill="#59d6ff" font-weight="400" text-anchor="start">REQUEST PATHS THAT DO EXIST</text>
+<text x="66" y="356" font-size="12.5" fill="#8fe3ff" font-weight="400" text-anchor="start" font-family="Consolas, Menlo, monospace">GET /api/health capability flags only</text>
+<text x="66" y="375" font-size="12.5" fill="#8fe3ff" font-weight="400" text-anchor="start" font-family="Consolas, Menlo, monospace">GET /api/geoip?ip=… the IP you typed, or none</text>
+<text x="66" y="394" font-size="12.5" fill="#8fe3ff" font-weight="400" text-anchor="start" font-family="Consolas, Menlo, monospace">GET /api/trace?host=… the hostname you typed</text>
+<text x="66" y="413" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">Position-shaped parameter names are refused before dispatch.</text><line x1="590" y1="146" x2="590" y2="660" stroke="#ff9a94" stroke-width="2" stroke-dasharray="8 7"/><text x="590" y="132" font-size="10.5" fill="#ff9a94" font-weight="700" text-anchor="middle" letter-spacing="2.4">TRUST BOUNDARY</text><rect x="632" y="140" width="500" height="306" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="632" y="140" width="3.5" height="306" rx="1.7" fill="#6fe3b0"/>
+<text x="650" y="167" font-size="13" fill="#6fe3b0" font-weight="600" text-anchor="start" letter-spacing="1.5">INSIDE THE BRIDGE</text>
+<text x="650" y="192" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• 13 parameter names — lat, lon, lng, latitude, longitude,</text>
+<text x="650" y="212" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  position, loc, accuracy, alt, altitude, bearing, heading,</text>
+<text x="650" y="232" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  speed — return 400 privacy_rejected.</text>
+<text x="650" y="252" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• A POST body is never parsed at all; every endpoint is</text>
+<text x="650" y="272" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  read-only.</text>
+<text x="650" y="292" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• Log fields are flattened onto one line, so a value cannot</text>
+<text x="650" y="312" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  forge a new log record.</text>
+<text x="650" y="332" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">• /api/iface returns counts and the loopback fact — no hostname,</text>
+<text x="650" y="352" font-size="13" fill="#a9bdd0" font-weight="400" text-anchor="start">  MAC or LAN address list.</text><rect x="632" y="462" width="500" height="124" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="632" y="462" width="3.5" height="124" rx="1.7" fill="#f3d27a"/>
+<text x="650" y="489" font-size="13" fill="#f3d27a" font-weight="600" text-anchor="start" letter-spacing="1.5">THE OUTBOUND ARROW IS NARROW ON PURPOSE</text>
+<text x="650" y="514" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">GeoIP sends one IP; a trace sends a hostname and probes toward it.</text>
+<text x="650" y="532" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">Neither carries a field for your position; {ip} is the only</text>
+<text x="650" y="550" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">  placeholder.</text><rect x="48" y="604" width="1084" height="74" rx="8" fill="#0c1727" stroke="#24455f"/>
+<rect x="48" y="604" width="3.5" height="74" rx="1.7" fill="#ff9a94"/>
+<text x="66" y="631" font-size="13" fill="#ff9a94" font-weight="600" text-anchor="start" letter-spacing="1.5">THE 403 IS THE FEATURE</text>
+<text x="66" y="656" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">A request that carries a coordinate is rejected instead of being stripped and forwarded: the bridge cannot</text>
+<text x="66" y="674" font-size="12" fill="#7f97ad" font-weight="400" text-anchor="start">silently decide which part of a position was “probably fine” to send.</text><text x="48" y="794" font-size="10.5" fill="#5e7890" font-weight="600" text-anchor="start" letter-spacing="2.2">GEO POSITION WORKSTATION</text><text x="1132" y="794" font-size="10.5" fill="#5e7890" font-weight="600" text-anchor="end" letter-spacing="2.2">MECHANISM DIAGRAM</text></svg>

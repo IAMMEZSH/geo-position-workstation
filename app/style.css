@@ -121,6 +121,28 @@ body[data-theme="light"] ::selection { background: rgba(11, 111, 196, .20); }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: content-box; }
 
+/* ---------- 更新提示条（真实界面元素，不参与皮肤伪元素扫描） ---------- */
+.update-strip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; font-size: 12.5px; line-height: 1.5;
+  color: var(--fg);
+  background: linear-gradient(90deg, rgba(47, 224, 255, .12), rgba(55, 255, 190, .07));
+  border-bottom: 1px solid var(--line);
+}
+.update-strip[hidden] { display: none; }
+.update-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.update-text { flex: 1; min-width: 0; }
+.update-build { flex: none; color: var(--fg-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.update-links { display: flex; gap: 10px; flex: none; }
+.update-link { color: var(--accent); text-decoration: none; white-space: nowrap; border-bottom: 1px dashed rgba(47, 224, 255, .45); }
+.update-link:hover { color: var(--accent-2); }
+.update-close { flex: none; padding: 2px 4px; font-size: 13px; color: var(--fg-dim); background: none; border: none; cursor: pointer; }
+.update-close:hover { color: var(--fg); }
+@media (max-width: 720px) {
+  .update-strip { flex-wrap: wrap; }
+  .update-text { flex-basis: 100%; }
+}
+
 /* ---------- 顶栏 ---------- */
 .topbar {
   display: flex;

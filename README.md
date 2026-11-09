@@ -48,11 +48,15 @@ you download): **<https://iammezsh.github.io/geo-position-workstation/>**
 - **macOS / Linux / Android / iPhone / iPad** → per-platform wording, the three-level fallback, the
   iSH path, changing the port, and exactly what you lose with no bridge: **MANUAL §2** (§2.7 macOS and
   Linux, §2.8 iPhone/iPad, §2.9 no bridge, §2.10 the five launcher faces and their colour rules).
+- **Updating a downloaded copy** → unpack the new build over the same folder (or replace only the
+  program files) and keep the same path; history, favourites and preferences stay in the vault.
+  The GitHub project is **<https://github.com/IAMMEZSH/geo-position-workstation>**; the local-only
+  notice and the exact steps are in **MANUAL §2.11**.
 
 Open it and go to panel ⑪ (`⑪ 内核自检`), press **`运行全部自检`** (*run the full self-test*):
 expect **623 gates / 0 failures** before using anything else.
 
-![Offline vector land with the centre crosshair, city annotations and the readout bar (no tile request is sent)](images/02-crosshair-readout.png)
+![One point, six notations: the crosshair fixes the measurement and every readout can be copied as shown (no tile request is sent)](images/02-crosshair-readout.png)
 
 ## Which section answers what
 
@@ -66,7 +70,7 @@ expect **623 gates / 0 failures** before using anything else.
 | Decimal places, GCJ-02 irreversibility, the conservative accuracy of IP lookup, astronomical time scales | §5 + `docs/img/decision-flow.svg` |
 | Layering, how a kernel is written, map layer, network layer, the UI escaping model, the vault layer, the stylesheet, the five mechanism figures, adding a panel | §6 (6.8 vault, 6.10 figures) |
 | What may leave the machine, the red lines enforced in code, who may talk to the bridge, where your data physically is | §7 (7.3 origin allowlist · 7.5 storage) |
-| How "all green" is re-checked — six independent gate layers (623 / 623 / 110 (+1) / 202 / 41 / 67) and what a single gate looks like | §8 (§8.8 CI, ubuntu and windows jobs) |
+| How "all green" is re-checked — six independent gate layers (623 / 623 / 110 (+1) / 202 / 41 / 71) and what a single gate looks like | §8 (§8.8 CI, ubuntu and windows jobs) |
 | Platform matrix, three things refused by design, panel-by-panel runs, hosted page, clone and ZIP verification | §9 |
 | Offline data: sources, SHA-256, trimming constants, how to rebuild it byte-identically | §10 |
 | Pitfalls actually hit — the class the kernels cannot see | §11 |
@@ -91,8 +95,9 @@ the three commands above on Ubuntu and on Windows for every push (§8.8).
 
 ## Pictures
 
-The 15 screenshots are not decoration: each is embedded in MANUAL.md next to the paragraph it
-proves, so the number in the text and the number in the image are read together. The files live in
+The 15 explainer figures are not decoration: each is embedded in MANUAL.md next to the paragraph it
+explains, so the number in the text and the number in the image are read together. None of them is a
+generic screenshot or stock art. The files live in
 [`images/`](images/), and the five mechanism diagrams — `architecture.svg`, `decision-flow.svg`,
 `privacy-boundary.svg`, `apple-launch-paths.svg`, `platform-packs.svg` — in
 [`docs/img/`](docs/img/).
