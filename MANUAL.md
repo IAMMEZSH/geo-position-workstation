@@ -68,7 +68,7 @@ Ordered by how much you have to install. All four paths open all eleven panels.
 
 ## 1. What is in the package
 
-The complete package is **68 files, about 7.6 MB (7.2 MiB)** — including 15 English explainer
+The complete package is **68 files, about 7.7 MB (7.3 MiB)** — including 15 English explainer
 figures (2.62 MB), five SVG mechanism diagrams (48 KB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts (the byte-for-byte sum of
 those 68 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 590 364 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 879 447 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 748 973 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 752 268 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 735 359 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 745 470 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 7 577 683 B | 4.31 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 590 867 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 879 950 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 749 476 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 752 771 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 735 862 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 745 973 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 68 | 7 656 659 B | 4.31 MB |
 
 Measured on 2026-11-10 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
