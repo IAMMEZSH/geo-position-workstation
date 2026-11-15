@@ -14,9 +14,10 @@
 
 <div id="geo-update" class="update-strip" role="status" hidden>
   <span class="update-dot" aria-hidden="true"></span>
-  <span class="update-text">更新提示：如果你打开的是较早下载的本地副本，请到 GitHub 官方项目核对最新版本。历史、收藏与偏好保存在本机：替换程序文件不要删除浏览器数据，并用同一路径打开；解锁后，旧版遗留的明文记录会自动收进新的加密信封。</span>
+  <span class="update-text">更新提示：历史、收藏与偏好保存在本机——替换程序文件不要删除浏览器数据，并用同一路径打开；解锁后，旧版遗留的明文记录会自动收进新的加密信封。点“检查更新”会向 GitHub 发一次只读请求核对版本；不点则不发起版本核对请求。</span>
   <span id="geo-update-build" class="update-build"></span>
   <span id="geo-update-links" class="update-links"></span>
+  <button type="button" id="geo-update-check" class="update-check">检查更新</button>
   <button type="button" id="geo-update-close" class="update-close" aria-label="关闭更新提示">✕</button>
 </div>
 
@@ -47,6 +48,7 @@
   <button class="tab" role="tab" data-tab="batch">⑨ 批处理导出</button>
   <button class="tab" role="tab" data-tab="history">⑩ 历史收藏</button>
   <button class="tab" role="tab" data-tab="selftest">⑪ 内核自检</button>
+  <button class="tab" role="tab" data-tab="chat">⑫ 群聊</button>
 </nav>
 
 <main class="layout">
@@ -573,6 +575,36 @@ $BDGSV,1,1,05,07,30,120,44,08,55,210,46,09,18,030,37,10,42,300,43,11,63,150,47*5
       </div>
       <div id="stSummary" class="resultbox"></div>
       <div id="stDetail" class="resultbox"></div>
+    </div>
+
+    <!-- ⑫ 群聊 -->
+    <div class="panel" data-panel="chat">
+      <h2>群聊 · 大厅</h2>
+      <p class="hint">默认关闭。启用并保存后，才会连接你填写的 TenSaint73OS 中继；不启用时不会发出任何请求。设置写进本机保险柜（锁着时只在本次会话生效），不落明文。</p>
+      <div class="resultbox chat-civility">文明发言 · 希望大家文明发言，不文明的字符将会变成星号（*）。脏话与涉黄、涉赌、涉毒内容都算不文明字符；中继在服务端强制替换，本机显示前还会再过滤一次。</div>
+      <div class="grid2">
+        <div>
+          <label>中继地址<input id="chatUrl" placeholder="中继地址（HTTPS 或 127.0.0.1:7373）"></label>
+          <label>房间令牌<input id="chatToken" type="password" autocomplete="off" placeholder="由 TenSaint73OS 管理员生成"></label>
+          <label>显示昵称<input id="chatName" maxlength="24" placeholder="经纬度定位工作站读者"></label>
+          <label class="inline"><input type="checkbox" id="chatEnabled"> 启用群聊（默认关闭；关闭时不会发出任何请求）</label>
+          <div class="row">
+            <button id="chatTest" class="ghost">测试连接</button>
+            <button id="chatSave" class="primary">保存设置</button>
+          </div>
+          <div id="chatStatus" class="resultbox">未启用</div>
+        </div>
+        <div>
+          <div id="chatLog" class="chat-log"><div class="chat-empty">还没有消息。<br>启用后这里会显示中继里的最近 100 条发言。</div></div>
+          <form id="chatForm" class="chat-composer">
+            <textarea id="chatInput" rows="2" maxlength="2000" placeholder="说点什么…"></textarea>
+            <div class="row">
+              <span id="chatCount" class="hint">0 / 2000</span>
+              <button id="chatSend" class="primary" type="submit">发送</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
 
   </section>
