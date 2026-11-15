@@ -70,10 +70,10 @@ Ordered by how much you have to install. All four paths open all twelve panels.
 
 ## 1. What is in the package
 
-The complete package is **68 files, about 7.7 MB (7.3 MiB)** — including 17 English explainer
+The complete package is **70 files, about 8.3 MB (7.9 MiB)** — including 17 English explainer
 figures (3.20 MB), five SVG mechanism diagrams (48 KB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts (the byte-for-byte sum of
-those 68 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
+those 70 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
 so the exact figure is kept where it can go stale and the prose here is kept where it cannot); the same
 gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 
@@ -102,7 +102,7 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `README.md` | Repository front page: index only (what this is / how to open it / which section answers which question / where the pictures are) |
 | `MANUAL.md` | This file |
 | `docs/img/` | Five English mechanism diagrams, drawn once and gate-checked: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
-| `images/` | Fifteen English explainer figures — one per panel, plus the map readout, the light skin and the bridge health payload. Each is placed beside the paragraph it explains; none is a generic screenshot |
+| `images/` | Seventeen English explainer figures — one per panel, plus the map readout, the light skin and the bridge health payload. Each is placed beside the paragraph it explains; none is a generic screenshot |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
 | `tests/check-package.py` | 71 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
@@ -129,15 +129,15 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 618 942 B | 1.63 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 908 025 B | 1.73 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 777 551 B | 1.69 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 780 846 B | 1.69 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 763 937 B | 1.68 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 774 048 B | 1.69 MB |
-| Everything (developers) | `geo-full.zip` | 68 | 7 684 630 B | 4.32 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 618 944 B | 1.63 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 908 027 B | 1.73 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 777 553 B | 1.69 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 780 848 B | 1.69 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 763 939 B | 1.68 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 774 050 B | 1.69 MB |
+| Everything (developers) | `geo-full.zip` | 70 | 8 262 646 B | 4.90 MB |
 
-Measured on 2026-11-10 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
+Measured on 2026-11-15 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
 describing the packs is inside every pack it describes**. File counts and uncompressed bytes survive
 that — correcting a byte count here replaces digits with digits, so the tree keeps its size and the
