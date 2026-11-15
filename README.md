@@ -26,12 +26,20 @@ The interface itself is Chinese; MANUAL §3.0 maps each on-screen label to the p
 
 ## What this is
 
-Eleven panels on one desk: coordinates and formats, datums, cell-station positioning, triangulation,
+Twelve panels on one desk: coordinates and formats, datums, cell-station positioning, triangulation,
 signal ranging, GNSS, celestial, networking and IP/route tracing, batch export, history and
-favourites, kernel self-test. Everything computes in local JavaScript by default, with the city and
-land datasets shipped inside the package. Only panel ⑧ may touch the network, and only after you
-allow it in that panel. History, favourites, preferences and probes leave RAM for disk only as one
-passphrase-locked AES-256-GCM envelope. When a kernel cannot solve something it returns `null` and
+favourites, kernel self-test, and an optional group chat. Everything computes in local JavaScript by
+default, with the city and land datasets shipped inside the package. Only panel ⑧ and the optional
+panel ⑫ may touch the network: ⑧ only after you allow that request, ⑫ only after you enable chat
+and save (it is off by default and sends nothing until then). History, favourites, preferences and
+probes leave RAM for disk only as one passphrase-locked AES-256-GCM envelope; chat settings live in
+the same vault, and the room token is never written as plaintext. Anyone holding the room token can
+read and post — the room is not read-only and not restricted to the relay owner; the `启用群聊`
+switch is a real local switch that stops polling and posting with zero chat requests and affects
+nobody else. The chat room states the rule it
+enforces: **«希望大家文明发言，不文明的字符将会变成星号»** — profanity and pornography-, gambling-
+and drug-related terms are replaced with same-length asterisks by the relay before storage and again
+by this client before display (§3.12). When a kernel cannot solve something it returns `null` and
 the page says so with the missing observation named — no interpolation, no borrowed source, no
 city-centre substituted for your position.
 
@@ -43,20 +51,24 @@ you download): **<https://iammezsh.github.io/geo-position-workstation/>**
 - **Install nothing** → use the hosted URL above. All seven kernels, the map, the offline data and
   ⑪ run there; only ⑧'s hop-by-hop trace needs a bridge on your own machine.
 - **Windows, full ⑧** → double-click `启动-Windows.bat`. It tries Python bridge → PowerShell bridge
-  → the bare page, in that order, so **a machine with no Python still gets all eleven panels** using
+  → the bare page, in that order, so **a machine with no Python still gets all twelve panels** using
   the PowerShell that ships with Windows.
 - **macOS / Linux / Android / iPhone / iPad** → per-platform wording, the three-level fallback, the
   iSH path, changing the port, and exactly what you lose with no bridge: **MANUAL §2** (§2.7 macOS and
   Linux, §2.8 iPhone/iPad, §2.9 no bridge, §2.10 the five launcher faces and their colour rules).
 - **Updating a downloaded copy** → unpack the new build over the same folder (or replace only the
   program files) and keep the same path; history, favourites and preferences stay in the vault.
-  The GitHub project is **<https://github.com/IAMMEZSH/geo-position-workstation>**; the local-only
-  notice and the exact steps are in **MANUAL §2.11**.
+  The GitHub project is **<https://github.com/IAMMEZSH/geo-position-workstation>** and the GitCode
+  mirror is **<https://gitcode.com/gcw_So3EkhfR/geo-position-workstation>**. The local-copy strip
+  prints your build number; its `检查更新` button makes exactly one read-only request to GitHub when
+  you press it (nothing is sent at load), and the exact steps are in **MANUAL §2.11**.
 
 Open it and go to panel ⑪ (`⑪ 内核自检`), press **`运行全部自检`** (*run the full self-test*):
 expect **623 gates / 0 failures** before using anything else.
 
 ![One point, six notations: the crosshair fixes the measurement and every readout can be copied as shown (no tile request is sent)](images/02-crosshair-readout.png)
+
+![⑫ group chat: the civility rule on screen, masked messages, and the switch that stops every request](images/17-chat.png)
 
 ## Which section answers what
 
@@ -65,7 +77,7 @@ expect **623 gates / 0 failures** before using anything else.
 | One-minute start, download and unzip, what to click first | §0 |
 | Every file in the package, one line each, and the per-platform packs | §1 (§1.1 packs) |
 | Launching per platform; why `server.py` and `bridge-powershell.ps1` are one contract | §2 (2.3 bridges · 2.5 hosted page → local bridge · 2.6 per-request origin guard · 2.7 macOS · 2.8 iOS) |
-| Each of the eleven panels: what it eats, what it gives, the numbers measured on the machine | §3 (3.0 label map) |
+| Each of the twelve panels: what it eats, what it gives, the numbers measured on the machine | §3 (3.0 label map, 3.12 group chat) |
 | Why the ten files under `示例数据/` cross-check against each other | §4 |
 | Decimal places, GCJ-02 irreversibility, the conservative accuracy of IP lookup, astronomical time scales | §5 + `docs/img/decision-flow.svg` |
 | Layering, how a kernel is written, map layer, network layer, the UI escaping model, the vault layer, the stylesheet, the five mechanism figures, adding a panel | §6 (6.8 vault, 6.10 figures) |
@@ -95,7 +107,7 @@ the three commands above on Ubuntu and on Windows for every push (§8.8).
 
 ## Pictures
 
-The 15 explainer figures are not decoration: each is embedded in MANUAL.md next to the paragraph it
+The 17 explainer figures are not decoration: each is embedded in MANUAL.md next to the paragraph it
 explains, so the number in the text and the number in the image are read together. None of them is a
 generic screenshot or stock art. The files live in
 [`images/`](images/), and the five mechanism diagrams — `architecture.svg`, `decision-flow.svg`,
