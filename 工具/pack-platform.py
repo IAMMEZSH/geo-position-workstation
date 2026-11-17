@@ -16,11 +16,12 @@
     python 工具/pack-platform.py --all --json dist/包清单.json
 
 三条纪律
-    1. 只用标准库（zipfile / argparse / json），因为这台机器可能没装任何东西。
-    2. zip 里每个条目的时间戳钉死成 1980-01-01，同一份源码重复打包得到同样的字节，
+    1. 只用标准库（zipfile / argparse / json / re），因为这台机器可能没装任何东西。
+    2. zip 里每个条目的时间戳钉死成 1980-01-01，文本行尾按仓库策略归一化
+       （.bat/.cmd/.ps1 = CRLF，其余 = LF），同一份源码重复打包得到同样的字节，
        「文档里写的包大小」才不会因为哪天重新压一次就漂移。
     3. 除 full 以外的包不带 images/（那 2.92 MB 截图是文档用的），
-       于是包内 MANUAL.md 的图片链接会被改写成 Pages 上的同一张图——
+       于是包内 README.md 与 MANUAL.md 的图片链接会被改写成 Pages 上的同一张图——
        文档只有一份源，改一次两边都改，不在包里塞一份重复的图。
 """
 
@@ -28,6 +29,7 @@ import argparse
 import io
 import json
 import os
+import re
 import sys
 import zipfile
 
@@ -144,6 +146,23 @@ FULL = sorted(set(CORE) | set(FIGURES) | set(DEV) | set(IMAGES) | _PLATFORM_EXTR
 
 FIXED_ZIP_DATE = (1980, 1, 1, 0, 0, 0)
 
+# 工作区里的行尾可以和仓库里不一样（编辑器保存、autocrlf、历史文件都可能造成），
+# 而 zip 的字节必须只由源码内容决定。这里按 .gitattributes 的同一套规则归一化。
+_CRLF_EXT = {".bat", ".cmd", ".ps1"}
+_TEXT_EXT = {".md", ".txt", ".log", ".csv", ".gpx", ".json", ".yml", ".yaml",
+             ".js", ".mjs", ".css", ".html", ".svg", ".py", ".sh", ".command"}
+_TEXT_NAMES = {"LICENSE", ".gitignore", ".gitattributes"}
+
+
+def normalize_eol(rel, data):
+    name = rel.rsplit("/", 1)[-1]
+    ext = os.path.splitext(name)[1].lower()
+    if ext in _CRLF_EXT:
+        return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n").replace(b"\n", b"\r\n")
+    if name in _TEXT_NAMES or ext in _TEXT_EXT:
+        return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return data
+
 
 def toposix(rel):
     return rel.replace(os.sep, "/")
@@ -196,12 +215,17 @@ def stats_for(platform):
     return len(present), sum(size_of(rel) for rel in present)
 
 
-def rewrite_manual(text):
-    """把包内 MANUAL.md 的图片相对链接改成 Pages 上同一张图。
+_IMAGE_LINK = re.compile(r"\]\(images/([^)]+\.(?:png|jpe?g|svg|gif))\)")
+
+
+def rewrite_asset_links(text):
+    """把包内文档的图片相对链接改成 Pages 上同一张图。
 
     只在「这个包不带 images/」时调用。full 包保留相对路径，因为它自己就有图。
+    只改真正的图片链接：目录引用和正文里当作示例的 ``](images/…)`` 保持原样。
     """
-    return text.replace("](images/", "](" + PAGES_BASE + "images/")
+    return _IMAGE_LINK.sub(
+        lambda m: "](" + PAGES_BASE + "images/" + m.group(1) + ")", text)
 
 
 def build(platform, outdir, verbose=True):
@@ -223,8 +247,9 @@ def build(platform, outdir, verbose=True):
         for rel in files:
             data = open(abs_of(rel), "rb").read()
             arc = folder + "/" + rel
-            if platform != "full" and rel == "MANUAL.md":
-                data = rewrite_manual(data.decode("utf-8")).encode("utf-8")
+            if platform != "full" and rel in ("README.md", "MANUAL.md"):
+                data = rewrite_asset_links(data.decode("utf-8")).encode("utf-8")
+            data = normalize_eol(rel, data)
             info = zipfile.ZipInfo(arc, date_time=FIXED_ZIP_DATE)
             info.compress_type = zipfile.ZIP_DEFLATED
             # 外部属性按目标平台该有的权限位写：启动器必须可执行，否则 macOS/Linux

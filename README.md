@@ -117,7 +117,7 @@ the three commands above on Ubuntu and on Windows for every push (§8.8).
 The 16 explainer figures are not decoration: each is embedded in MANUAL.md next to the paragraph it
 explains, so the number in the text and the number in the image are read together. None of them is a
 generic screenshot or stock art. The files live in
-[`images/`](images/), and the five mechanism diagrams — `architecture.svg`, `decision-flow.svg`,
+`images/`, and the five mechanism diagrams — `architecture.svg`, `decision-flow.svg`,
 `privacy-boundary.svg`, `apple-launch-paths.svg`, `platform-packs.svg` — in
 [`docs/img/`](docs/img/).
 

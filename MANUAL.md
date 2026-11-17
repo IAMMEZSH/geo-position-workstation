@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 600 216 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 889 299 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 758 825 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 762 120 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 745 211 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 755 322 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 69 | 7 961 405 B | 4.61 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 597 774 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 886 857 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 756 383 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 759 678 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 742 769 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 752 880 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 960 193 B | 4.61 MB |
 
 Measured on 2026-11-18 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
@@ -162,9 +162,9 @@ What each pack contains, and why:
 - **Left out of every platform pack** — `tests/` (three gate runners), `工具/build-data.mjs`,
   `package.json`, `.github/`, `.gitattributes`, `.gitignore` and `images/*.png`. Those are the
   developer surface: nothing in the running application reads them. Packs other than `geo-full`
-  therefore carry no `images/`, and the packager rewrites this manual's `](images/…)` links to the
-  identical PNGs on the Pages site — one source of truth, no duplicated document, no 2.92 MB tax on
-  a phone.
+  therefore carry no `images/`, and the packager rewrites the `](images/…)` links in this manual and
+  README to the identical PNGs on the Pages site — one source of truth, no duplicated document, no
+  2.92 MB tax on a phone.
 
 ```bash
 python 工具/pack-platform.py --list      # print every manifest, file by file
