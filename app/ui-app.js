@@ -10,7 +10,7 @@
   var G = global;
   var DOC = (typeof document !== 'undefined') ? document : null;
   // 构建号: 印在更新提示条上, 让人不用翻文件就知道手里这份副本是哪一版。发新版本时改这里。
-  var BUILD = '1.2.0';
+  var BUILD = '1.3.0';
   var UPDATE_API = 'https://api.github.com/repos/IAMMEZSH/geo-position-workstation/releases/latest';
   var GITHUB_RELEASES = 'https://github.com/IAMMEZSH/geo-position-workstation/releases';
   var GITCODE_RELEASES = 'https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases';
@@ -140,7 +140,7 @@
      以前这里是 JSON.stringify 直接进 localStorage —— 同一台机器上的任何进程、F12 的
      Application 面板都能把你的坐标读走。现在全部经 GEOVAULT（app/core-vault.js）：
      锁着的时候读不到任何记录、也不许写（宁可当场说「锁着」，也不装作已经存好了）。 */
-  var LS = { hist: 'hist', fav: 'fav', prefs: 'prefs', chat: 'chat' };
+  var LS = { hist: 'hist', fav: 'fav', prefs: 'prefs' };
   function vault() { return eng('GEOVAULT'); }
   function ackBuild() {
     // 只收起本次会话的提示条, 不写任何“已读”标记: 旧部署下次打开仍会再提示一次。
@@ -2909,7 +2909,7 @@
           status('已解锁：读到 ' + r.keys + ' 组本机记录', 'ok');
           return v.absorbLegacy().then(function (ab) {
             if (ab.ok && ab.moved && ab.moved.length) status('已把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除原键', 'ok');
-            applyPrefs(); if (state.tab === 'chat') chatOnTab(true); renderHistory(); renderVault();
+            applyPrefs(); renderHistory(); renderVault();
           });
         }
         status('解锁失败：' + (r.reason === 'wrong_passphrase' ? '口令不对（猜错不会弄坏信封，也不会提示差多少）'
@@ -2938,7 +2938,7 @@
           status('已建锁：磁盘上从此只有一个 AES-256-GCM 信封', 'ok');
           return v.absorbLegacy().then(function (ab) {
             if (ab.ok && ab.moved && ab.moved.length) status('顺手把 ' + ab.moved.length + ' 个旧版明文键收进信封并删除', 'ok');
-            applyPrefs(); if (state.tab === 'chat') chatOnTab(true); renderHistory(); renderVault();
+            applyPrefs(); renderHistory(); renderVault();
           });
         }
         status('建锁失败：' + (r.reason === 'no_envelope_storage' || r.reason === 'storage_write_failed'
@@ -3354,252 +3354,6 @@
     return seg.join(' ｜ ');
   }
 
-  /* ============================================================ 11.5 群聊 (默认关闭)
-     客户端只在中继启用且「群聊」页签打开时轮询; 关闭页签立即停止。
-     设置经 GEOVAULT 落盘: 锁着时只在本次会话生效, 绝不退回明文 localStorage。
-     不文明字符由中继服务端强制替换成星号, 这里再按同一份词表过滤一次。 */
-  var CHAT_BANNED = [
-    '傻逼', '煞笔', '沙比', '脑残', '智障', '贱人', '婊子', '王八蛋', '畜生', '狗东西',
-    '操你妈', '草你妈', '草泥马', '他妈的', '弄死你', '杀了你', '强奸', '轮奸',
-    '色情', '黄色网站', '黄片', '毛片', '成人视频', '裸聊', '约炮', '嫖娼', '卖淫', '援交',
-    '一夜情', '淫秽', '淫荡', '自慰', '手淫', '口交', '肛交', '乳交', '鸡巴', '肉棒',
-    '赌博', '赌场', '赌球', '赌钱', '博彩', '六合彩', '时时彩', '百家乐', '老虎机', '下注', '押注',
-    '毒品', '吸毒', '贩毒', '冰毒', '海洛因', '大麻', '可卡因', '摇头丸', 'K粉', '麻古', '制毒',
-    'fuck', 'fucking', 'motherfucker', 'shit', 'bitch', 'asshole', 'bastard', 'cunt',
-    'dickhead', 'whore', 'slut', 'nigger', 'nigga', 'faggot', 'retard',
-    'porn', 'porno', 'pornhub', 'sex', 'sexting', 'nude', 'naked', 'xxx',
-    'casino', 'gambling', 'gamble', 'betting', 'blackjack', 'roulette', 'baccarat',
-    'heroin', 'cocaine', 'meth', 'marijuana', 'cannabis', 'fentanyl', 'ecstasy', 'ketamine', 'opium', 'drugs'
-  ];
-  var CHAT_BANNED_RE = new RegExp('(' + CHAT_BANNED.map(function (w) {
-    var safe = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return /[\u4e00-\u9fff]/.test(w) ? safe : '\\b' + safe + '\\b';
-  }).sort(function (a, b) { return b.length - a.length; }).join('|') + ')', 'gi');
-
-  function chatMask(text) {
-    return String(text == null ? '' : text).replace(CHAT_BANNED_RE, function (hit) {
-      return new Array(hit.length + 1).join('*');
-    });
-  }
-
-  function chatNormalizeUrl(raw) {
-    var value = String(raw || '').trim().replace(/\/+$/, '');
-    if (!value) return '';
-    if (/^https:\/\/[^\s]+$/i.test(value)) return value;
-    if (/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(value)) return value;
-    return '';
-  }
-
-  var chatRt = { url: '', token: '', name: '', enabled: false, timer: null, lastId: 0, sending: false, seen: {} };
-
-  function chatSetStatus(text, cls) {
-    var el = $('chatStatus');
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'resultbox' + (cls ? ' ' + cls : '');
-  }
-
-  function chatFill() {
-    if ($('chatUrl')) $('chatUrl').value = chatRt.url;
-    if ($('chatToken')) $('chatToken').value = chatRt.token;
-    if ($('chatName')) $('chatName').value = chatRt.name || '经纬度定位工作站读者';
-    if ($('chatEnabled')) $('chatEnabled').checked = !!chatRt.enabled;
-    if (!chatRt.enabled) chatSetStatus('未启用');
-  }
-
-  function chatLoad() {
-    var saved = lsGet(LS.chat, null);
-    if (saved && typeof saved === 'object') {
-      chatRt.url = String(saved.url || '');
-      chatRt.token = String(saved.token || '');
-      chatRt.name = String(saved.name || '');
-      chatRt.enabled = !!saved.enabled;
-    }
-    chatFill();
-  }
-
-  function chatReadForm() {
-    var cfg = {
-      url: chatNormalizeUrl(V('chatUrl')),
-      token: V('chatToken'),
-      name: (V('chatName') || '经纬度定位工作站读者').slice(0, 24),
-      enabled: B('chatEnabled')
-    };
-    if (cfg.enabled && !cfg.url) { chatSetStatus('中继地址只支持 https，或本机回环 http://127.0.0.1 / http://localhost。', 'bad'); return null; }
-    if (cfg.enabled && !cfg.token) { chatSetStatus('请填写房间令牌。', 'bad'); return null; }
-    return cfg;
-  }
-
-  function chatPersist(cfg) {
-    var r = lsSet(LS.chat, cfg);
-    if (r && r.ok) return 'saved';
-    if (r && r.locked) return 'locked';
-    return 'error';
-  }
-
-  function chatStop() {
-    if (chatRt.timer) clearTimeout(chatRt.timer);
-    chatRt.timer = null;
-  }
-
-  function chatSchedule() {
-    chatStop();
-    if (state.tab !== 'chat' || !chatRt.enabled) return;
-    chatRt.timer = setTimeout(chatPoll, 3500);
-  }
-
-  function chatRelayFetch(path, options) {
-    var opt = options || {};
-    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 8000) : null;
-    var headers = { Authorization: 'Bearer ' + chatRt.token, 'Content-Type': 'application/json' };
-    if (opt.headers) { for (var k in opt.headers) if (Object.prototype.hasOwnProperty.call(opt.headers, k)) headers[k] = opt.headers[k]; }
-    var init = { method: opt.method || 'GET', headers: headers, cache: 'no-store' };
-    if (opt.body) init.body = opt.body;
-    if (controller) init.signal = controller.signal;
-    return fetch(chatNormalizeUrl(chatRt.url) + path, init).then(function (res) {
-      if (timer) clearTimeout(timer);
-      return res;
-    }, function (err) {
-      if (timer) clearTimeout(timer);
-      throw err;
-    });
-  }
-
-  function chatMessageNode(msg) {
-    var wrap = DOC.createElement('div');
-    wrap.className = 'chat-msg' + (msg.name && msg.name === chatRt.name ? ' mine' : '');
-    var meta = DOC.createElement('div');
-    meta.className = 'chat-meta';
-    var name = DOC.createElement('span');
-    name.className = 'chat-name';
-    name.textContent = chatMask(msg.name || '访客');
-    var via = DOC.createElement('span');
-    via.className = 'chat-via';
-    via.textContent = msg.via === 'relay' ? '中继' : '本机';
-    var time = DOC.createElement('span');
-    try { time.textContent = new Date(msg.at).toLocaleTimeString('zh-CN', { hour12: false }); } catch (e) { time.textContent = ''; }
-    meta.appendChild(name); meta.appendChild(via); meta.appendChild(time);
-    var bubble = DOC.createElement('div');
-    bubble.className = 'chat-bubble';
-    bubble.textContent = chatMask(msg.text);
-    wrap.appendChild(meta); wrap.appendChild(bubble);
-    return wrap;
-  }
-
-  function chatAppend(msg) {
-    if (!msg || chatRt.seen[msg.id]) return;
-    chatRt.seen[msg.id] = true;
-    if (Number(msg.id) > chatRt.lastId) chatRt.lastId = Number(msg.id);
-    var log = $('chatLog');
-    if (!log) return;
-    var empty = log.querySelector('.chat-empty');
-    if (empty) log.removeChild(empty);
-    var nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 90;
-    log.appendChild(chatMessageNode(msg));
-    if (nearBottom) log.scrollTop = log.scrollHeight;
-  }
-
-  function chatPoll() {
-    chatRt.timer = null;
-    if (state.tab !== 'chat' || !chatRt.enabled) return;
-    if (!chatRt.url || !chatRt.token) { chatSetStatus('未配置', 'bad'); return; }
-    chatRelayFetch('/api/chat/relay/messages?after=' + chatRt.lastId).then(function (res) {
-      if (res.status === 401) { chatSetStatus('令牌无效或已吊销', 'bad'); return null; }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    }).then(function (data) {
-      if (!data) return;
-      (data.messages || []).forEach(chatAppend);
-      chatSetStatus('已连接 · ' + (data.room || '大厅'), 'good');
-      chatSchedule();
-    }).catch(function () {
-      chatSetStatus('连接中断，稍后重试', 'bad');
-      chatSchedule();
-    });
-  }
-
-  function chatOnTab(active) {
-    if (!active) { chatStop(); return; }
-    chatLoad();
-    if (chatRt.enabled) {
-      chatSetStatus('连接中…');
-      chatPoll();
-      chatSchedule();
-    }
-  }
-
-  function chatBind() {
-    if (!$('chatForm')) return;
-    on('chatTest', 'click', function () {
-      var cfg = chatReadForm();
-      if (!cfg) return;
-      var saved = { url: chatRt.url, token: chatRt.token, name: chatRt.name, enabled: chatRt.enabled };
-      chatRt.url = cfg.url; chatRt.token = cfg.token;
-      chatSetStatus('测试中…');
-      chatRelayFetch('/api/chat/relay/info').then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          if (!res.ok) {
-            chatSetStatus(res.status === 401 ? '令牌无效或已吊销' : '连接失败（' + res.status + '）', 'bad');
-            return;
-          }
-          chatSetStatus('已连接 · ' + (data.room || '大厅') + ' · 已有 ' + (data.messages || 0) + ' 条消息', 'good');
-        });
-      }).catch(function () {
-        chatSetStatus('连接失败，请检查地址、令牌或中继是否在运行。', 'bad');
-      }).then(function () {
-        chatRt.url = saved.url; chatRt.token = saved.token;
-      });
-    });
-    on('chatSave', 'click', function () {
-      var cfg = chatReadForm();
-      if (!cfg) return;
-      chatRt.url = cfg.url; chatRt.token = cfg.token; chatRt.name = cfg.name; chatRt.enabled = cfg.enabled;
-      var persisted = chatPersist(cfg);
-      chatStop();
-      if (!cfg.enabled) {
-        chatSetStatus('未启用 · 不会发出任何请求');
-        status('群聊已关闭', 'ok');
-        return;
-      }
-      if (persisted === 'saved') chatSetStatus('连接中…（设置已加密写入本机保险柜）');
-      else if (persisted === 'locked') chatSetStatus('连接中…（保险柜锁着：设置只在本次会话生效，解锁后再保存才会落盘）', 'warn');
-      else chatSetStatus('连接中…（设置无法写入保险柜，只在本次会话生效）', 'warn');
-      chatPoll();
-      chatSchedule();
-    });
-    on('chatForm', 'submit', function (event) {
-      event.preventDefault();
-      if (chatRt.sending) return;
-      var input = $('chatInput');
-      var text = chatMask(String(input.value || '').trim());
-      if (!text) return;
-      if (!chatRt.enabled) { chatSetStatus('群聊未启用，先在上面打开并保存。', 'bad'); return; }
-      chatRt.sending = true;
-      if ($('chatSend')) $('chatSend').disabled = true;
-      chatRelayFetch('/api/chat/relay/messages', {
-        method: 'POST',
-        body: JSON.stringify({ name: chatRt.name || '经纬度定位工作站读者', text: text })
-      }).then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
-          input.value = '';
-          if ($('chatCount')) $('chatCount').textContent = '0 / 2000';
-          if (data.message) chatAppend(data.message);
-          chatSetStatus('已连接 · ' + (data.room || '大厅'), 'good');
-        });
-      }).catch(function (err) {
-        chatSetStatus('发送失败：' + ((err && err.message) || '未知错误'), 'bad');
-      }).then(function () {
-        chatRt.sending = false;
-        if ($('chatSend')) $('chatSend').disabled = false;
-      });
-    });
-    on('chatInput', 'input', function () {
-      if ($('chatCount')) $('chatCount').textContent = String($('chatInput').value.length) + ' / 2000';
-    });
-  }
-
   function bindShell() {
     var tabs = DOC.querySelectorAll('.tab'), panels = DOC.querySelectorAll('.panel');
     Array.prototype.forEach.call(tabs, function (btn) {
@@ -3611,7 +3365,6 @@
         savePrefs();
         if (name === 'history') renderHistory();
         if (name === 'selftest' && !V('stSummary')) put('stSummary', note('点「运行全部自检」跑一遍七个内核。'));
-        chatOnTab(name === 'chat');
       });
     });
     on('btnTheme', 'click', function () {
@@ -3850,7 +3603,6 @@
     on('btnRunAll', 'click', function () { runSelfTest(false); });
     on('btnRunQuick', 'click', function () { runSelfTest(true); });
     bindShell();
-    chatBind();
     applyPrefs();
     updateBadges();
     syncMap();

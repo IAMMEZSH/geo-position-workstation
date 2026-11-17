@@ -19,7 +19,7 @@
     1. 只用标准库（zipfile / argparse / json），因为这台机器可能没装任何东西。
     2. zip 里每个条目的时间戳钉死成 1980-01-01，同一份源码重复打包得到同样的字节，
        「文档里写的包大小」才不会因为哪天重新压一次就漂移。
-    3. 除 full 以外的包不带 images/（那 2.79 MB 截图是文档用的），
+    3. 除 full 以外的包不带 images/（那 2.92 MB 截图是文档用的），
        于是包内 MANUAL.md 的图片链接会被改写成 Pages 上的同一张图——
        文档只有一份源，改一次两边都改，不在包里塞一份重复的图。
 """
@@ -118,7 +118,7 @@ DEV = [
     "工具/pack-platform.py",
 ]
 
-# 截图只进文档包：2.79 MB 的 PNG 对「今天就要用一个坐标」的人没有意义。
+# 截图只进文档包：2.92 MB 的 PNG 对「今天就要用一个坐标」的人没有意义。
 IMAGES = [
     "images/01-map-crosshair.png",
     "images/02-crosshair-readout.png",
@@ -135,6 +135,7 @@ IMAGES = [
     "images/13-theme-light.png",
     "images/14-batch-export.png",
     "images/15-bridge-health.png",
+    "images/16-update-check.png",
 ]
 
 # full 包 = 仓库里的一切：平台无关核心 + 每张机制图 + 各平台入口 + 开发文件 + 截图。

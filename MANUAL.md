@@ -4,8 +4,6 @@ An offline-first positioning and surveying toolbox. Seven computational kernels 
 JavaScript — double-click the page and everything runs. Only panel ⑧ (networking and route
 tracing) needs an extra local bridge, and on **Windows that bridge needs nothing installed**
 (`bridge-powershell.ps1` runs on the PowerShell 5.1 that ships with the operating system).
-Panel ⑫ is an optional chat client: it is off by default, and while it is off it sends nothing
-at all (§3.12).
 
 - Hosted, no download, same bytes as the repository: **<https://iammezsh.github.io/geo-position-workstation/>**
 - Repository: <https://github.com/IAMMEZSH/geo-position-workstation>
@@ -33,7 +31,7 @@ Contents:
 | 0 | One-minute start | 7 | Networking and privacy red lines |
 | 1 | What is in the package · per-platform packs | 8 | How to re-verify the self-tests (six layers) |
 | 2 | Launching on each platform (both bridges, Apple in depth) | 9 | Platform matrix and measured runs |
-| 3 | The twelve panels, one by one | 10 | Offline data: source, cropping, rebuild |
+| 3 | The eleven panels, one by one | 10 | Offline data: source, cropping, rebuild |
 | 4 | Sample data that closes on itself | 11 | Pitfalls |
 | 5 | Accuracy and honesty | 12 | FAQ |
 | 6 | Architecture and implementation conventions | 13 | Data sources and licences |
@@ -42,7 +40,7 @@ Contents:
 
 ## 0. One-minute start
 
-Ordered by how much you have to install. All four paths open all twelve panels.
+Ordered by how much you have to install. All four paths open all eleven panels.
 
 | What you want | Do this | ⑧ route tracing |
 |---|---|---|
@@ -64,22 +62,22 @@ Ordered by how much you have to install. All four paths open all twelve panels.
 4. **Not sure what a panel eats?** Every panel has a grey hint line at the top and a button that
    loads a working example. §3 documents inputs, outputs and the numbers measured today.
 
-![Light theme: the same twelve panels and the same measured values, only the colour variables change](images/13-theme-light.png)
+![Light theme: the same eleven panels and the same measured values, only the colour variables change](images/13-theme-light.png)
 
 ---
 
 ## 1. What is in the package
 
-The complete package is **70 files, about 8.3 MB (7.9 MiB)** — including 17 English explainer
-figures (3.20 MB), five SVG mechanism diagrams (48 KB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
+The complete package is **69 files, about 8.0 MB (7.6 MiB)** — including 16 English explainer
+figures (2.92 MB), five SVG mechanism diagrams (48 KB) and 2.86 MB of offline data, excluding `.git` and the author's development-only
 directories. That is exactly what `git ls-files -co --exclude-standard` counts (the byte-for-byte sum of
-those 70 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
+those 69 paths is the `full` row of §1.1, which `tests/check-package.py` rebuilds and compares every run,
 so the exact figure is kept where it can go stale and the prose here is kept where it cannot); the same
 gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 
 | Path | Purpose |
 |---|---|
-| `index.html` | The only entry point; twelve panels; references **17 local resources**; no bundler, no CDN |
+| `index.html` | The only entry point; eleven panels; references **17 local resources**; no bundler, no CDN |
 | `favicon.svg` | The tab icon, **declared** by the entry page. Without a declaration every browser asks the *site root* for `/favicon.ico`, and on GitHub Pages that unasked-for request answers 404 (§11.27). Same palette as the dark skin: deep-space panel, neon crosshair over a meridian ring |
 | `app/core-geodetic.js` | GEOGEO (701 lines): ellipsoid, geodesic direct/inverse, ECEF/ENU, area and convex hull, compass |
 | `app/core-datums.js` | GEODATUM (1276 lines): projections and encodings, datum transforms, GCJ-02/BD-09, `parseAny` |
@@ -102,7 +100,7 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `README.md` | Repository front page: index only (what this is / how to open it / which section answers which question / where the pictures are) |
 | `MANUAL.md` | This file |
 | `docs/img/` | Five English mechanism diagrams, drawn once and gate-checked: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
-| `images/` | Seventeen English explainer figures — one per panel, plus the map readout, the light skin and the bridge health payload. Each is placed beside the paragraph it explains; none is a generic screenshot |
+| `images/` | Sixteen English explainer figures — beside the panels, the map readout, the light skin, the bridge health payload and the update strip. Each is placed beside the paragraph it explains; none is a generic screenshot |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
 | `tests/check-package.py` | 71 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
@@ -120,7 +118,7 @@ exist and nothing is missing — the tree you see in the repository *is* the del
 
 ### 1.1 You do not have to download everything: per-platform packs
 
-The repository carries every platform's launcher, both bridges, 3.20 MB of explainer figures and the test
+The repository carries every platform's launcher, both bridges, 2.92 MB of explainer figures and the test
 gates. A given device needs none of that except its own. `工具/pack-platform.py` therefore
 declares an **explicit manifest per platform** — no wildcards, so a stray file dropped into `app/`
 cannot silently ride along into a release — and the manifests are a gate, not prose:
@@ -129,15 +127,15 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 618 944 B | 1.63 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 908 027 B | 1.73 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 777 553 B | 1.69 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 780 848 B | 1.69 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 763 939 B | 1.68 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 774 050 B | 1.69 MB |
-| Everything (developers) | `geo-full.zip` | 70 | 8 262 646 B | 4.90 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 598 314 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 887 397 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 756 923 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 760 218 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 743 309 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 753 420 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 959 503 B | 4.61 MB |
 
-Measured on 2026-11-15 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
+Measured on 2026-11-18 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
 describing the packs is inside every pack it describes**. File counts and uncompressed bytes survive
 that — correcting a byte count here replaces digits with digits, so the tree keeps its size and the
@@ -165,7 +163,7 @@ What each pack contains, and why:
   `package.json`, `.github/`, `.gitattributes`, `.gitignore` and `images/*.png`. Those are the
   developer surface: nothing in the running application reads them. Packs other than `geo-full`
   therefore carry no `images/`, and the packager rewrites this manual's `](images/…)` links to the
-  identical PNGs on the Pages site — one source of truth, no duplicated document, no 3.20 MB tax on
+  identical PNGs on the Pages site — one source of truth, no duplicated document, no 2.92 MB tax on
   a phone.
 
 ```bash
@@ -226,7 +224,7 @@ state is signalled — is a separate layer with its own rules: §2.10.
 | macOS | Terminal: `cd` to the folder, `sh 启动-macOS-Linux.sh` — or double-click `启动-macOS.command` | Terminal is the primary path (§2.7). Double-click needs the executable bit and survives Gatekeeper only once |
 | Linux (any distro) | Its own terminal: `cd` to the folder, `sh 启动-Linux.sh` — or double-click `启动-Linux.sh`, which finds the terminal emulator you already have and re-enters it | The same Terminal-first policy as macOS (§2.7). The bridge here is `server.py`, so ⑧'s per-hop tracing needs a `python3` from your distro's own package manager; the other ten panels run without it |
 | Android | Termux: `pkg install python` → `sh 启动-Android.sh` | Open the printed `http://127.0.0.1:8765/` in the phone's browser (the bridge runs on the phone, loopback only, so no other device can reach it) |
-| iPhone / iPad | **Shortest path: Safari on the hosted URL** — all twelve panels render, ⑪ runs as normal | For per-hop route tracing install iSH and run `sh 启动-iSH.sh` (§2.8). Without it, ⑧ still does IP lookup and DoH but gets no hops |
+| iPhone / iPad | **Shortest path: Safari on the hosted URL** — all eleven panels render, ⑪ runs as normal | For per-hop route tracing install iSH and run `sh 启动-iSH.sh` (§2.8). Without it, ⑧ still does IP lookup and DoH but gets no hops |
 | Nothing installed | Double-click `index.html` (`file://`) | Seven kernels + map + offline data + ⑪ all run; only the bridge side of ⑧ is missing |
 
 On iOS the Files app's Quick Look *previews* an `.html` but does not execute its scripts, so real use
@@ -672,7 +670,7 @@ the old origin is what makes the transfer automatic.
 
 ---
 
-## 3. The twelve panels
+## 3. The eleven panels
 
 Each entry below states what the panel eats, what it gives back, and what was measured today.
 "Measured 2026-11-03" numbers come from real button clicks on this machine (Windows, PowerShell bridge
@@ -690,7 +688,7 @@ work). Nothing here has to be guessed:
 | `离线内核 + 联网升级 · 基站 / 三角 / 信号 / GNSS / 天象 / IP 路由` | offline kernels + networked upgrade · cell / triangulation / signal / GNSS / celestial / IP-route | header subtitle |
 | `离线` · `内核检测中…` | offline · detecting kernels… | the two badges, top right |
 | `◐ 主题` | theme toggle | top right |
-| `① 总览` `② 坐标与格式` `③ 基站定位` `④ 三角定位` `⑤ 信号测距` `⑥ GNSS 卫星` `⑦ 天象定位` `⑧ 联网与路由` `⑨ 批处理导出` `⑩ 历史收藏` `⑪ 内核自检` `⑫ 群聊` | Overview · Coordinates & formats · Cell stations · Triangulation · Signal ranging · GNSS satellites · Celestial · Networking & routing · Batch & export · History & favourites · Kernel self-test · Group chat | the twelve tabs |
+| `① 总览` `② 坐标与格式` `③ 基站定位` `④ 三角定位` `⑤ 信号测距` `⑥ GNSS 卫星` `⑦ 天象定位` `⑧ 联网与路由` `⑨ 批处理导出` `⑩ 历史收藏` `⑪ 内核自检` | Overview · Coordinates & formats · Cell stations · Triangulation · Signal ranging · GNSS satellites · Celestial · Networking & routing · Batch & export · History & favourites · Kernel self-test | the eleven tabs |
 | `定位总览` | Positioning overview | ① panel heading |
 | `矢量` `在线底图` `全览` `我` `准星` `经纬网` `城市注记` | Vector · Online tiles · Fit all · Me · Crosshair · Graticule · City labels | map toolbar chips, left to right |
 | `游标：—` | Cursor: — | readout line under the map |
@@ -980,57 +978,6 @@ blocks attached; 0 missing UI ids; 0 pieces of markup visible in rendered text; 
 which is the point: the verdict must not depend on which container ran it (§8.1).
 
 ![⑪ all green, with the environment table below](images/09-selftest.png)
-
-### ⑫ Group chat (`⑫ 群聊` → heading `群聊 · 大厅`)
-
-An optional client for the `大厅` room of a TenSaint73OS relay. It is **off by default**: a fresh
-copy has no relay address and no token, the tab shows `未启用` (*not enabled*), and while it is off
-the page sends **zero** requests — opening the tab, switching away, reloading, running ⑪: nothing
-leaves the machine. The network only exists after the reader fills in the form and saves with
-`启用群聊` ticked.
-
-- **Anyone with the token can speak.** The room is not read-only and is not restricted to the relay
-  owner: every client that holds the room token can read and post. The `启用群聊` switch is a real
-  local switch — unticking it stops this browser's polling and posting with zero chat requests and
-  never affects other participants.
-
-- **Relay address** (`中继地址`): `https://` only, or plain `http://` on a loopback host
-  (`127.0.0.1` / `localhost`). `chatNormalizeUrl()` refuses anything else, so a relay on a LAN
-  address over cleartext is not offered, and the form says why instead of failing at send time.
-- **Room token** (`房间令牌`): generated by the TenSaint73OS administrator; the relay stores only
-  its SHA-256 hash. The token is a password field and is stored **inside the encrypted vault**
-  (`LS.chat` through GEOVAULT, §6.8) — if the vault is locked, the setting applies to this session
-  only, the status line says so (`保险柜锁着：设置只在本次会话生效`), and there is no fallback to
-  plaintext `localStorage`.
-- **Display name** (`显示昵称`): capped at 24 characters. **`测试连接`** asks the relay's
-  `/api/chat/relay/info` and reports `已连接 · 大厅 · 已有 N 条消息`, or names the failure
-  (`令牌无效或已吊销`).
-- **Polling**: only while the ⑫ tab is visible **and** the switch is on, one request every
-  **3.5 s** for messages after the last id. Leaving the tab or unticking the switch stops the timer
-  immediately. The panel keeps the last **100** messages in view; the relay keeps **200**; message
-  text is capped at **2000** characters and the relay admits **20 per minute**.
-- **Civility is enforced, not requested.** The panel carries the sentence
-  `文明发言 · 希望大家文明发言，不文明的字符将会变成星号（*）。脏话与涉黄、涉赌、涉毒内容都算不文明字符；中继在服务端强制替换，本机显示前还会再过滤一次。`
-  Two filters implement it. The relay replaces every matched term with a run of `*` of the same
-  length **before** the message is stored or relayed; the client runs the same bilingual list again
-  **before display** (`chatMask()`, applied to the name and the body). Chinese terms match as
-  substrings; English terms match on word boundaries, so `class` does not contain `ass`. The list
-  covers profanity and pornography, gambling and drug vocabulary in both languages. The client also
-  masks outgoing text before sending, which means the relay never even receives the plain form from
-  this page. A server that ignored the rule would still be filtered on screen — and a version of
-  the client with a shorter list cannot make the relay store an unmasked term.
-
-![⑫ group chat: the civility rule on screen, masked messages, and the switch that stops every request](images/17-chat.png)
-
-Measured on the running page against a test relay: with the switch off, **0** relay requests while
-opening, polling and leaving the tab; after `测试连接`, `已连接 · 大厅 · 已有 3 条消息`; a seeded
-message that the relay stored verbatim as `服务端原样返回：傻逼 fuck casino 毒品 赌博 porn` displays
-as `服务端原样返回：** **** ****** ** ** ****`; sending
-`操你妈，这里不欢迎黄片和吸毒的 fuck heroin` made the relay store
-`***，这里不欢迎**和**的 **** ******`, i.e. masked at both ends; closing the tab left the request
-count unchanged over six seconds; unticking the switch and saving produced
-`未启用 · 不会发出任何请求` and the count stayed flat over the next six seconds. Chat is not a side
-channel: it is the only panel that reads chat state, and it stores nothing except the settings above.
 
 ---
 
@@ -1358,7 +1305,7 @@ open, and no JS-side scan would ever see it happen.
   at `var(--topbar-h)` and `.mapwrap` at `calc(var(--topbar-h) + var(--tabs-h))`. Measured on the running
   page: top bar 58.00 px, tab bar flush at 58.00, map wrap 122 px against a tab-bar bottom of 121.92.
   `--tabs-h` deliberately takes the *taller* of the tab bar's two real heights (54 px with no horizontal
-  scrollbar, 64 px with one, and twelve tabs overflow below roughly 1350 px). Too large costs a few
+  scrollbar, 64 px with one, and eleven tabs overflow below roughly 1250 px). Too large costs a few
   pixels of air; too small slides Leaflet's zoom control under the tab bar and makes it unclickable —
   the same failure as §11.2. The previous stylesheet hardcoded `top: 57px` / `108px`, and 57 was already
   8 px short at desktop widths: an opaque top bar hid the mistake, a translucent one would have shown it
@@ -1420,7 +1367,7 @@ that would drift the moment one of them is redrawn.
 
 ### 7.1 Every request that can leave the machine
 
-Six, and only six. Nothing in this section is a promise — each row is checked by a gate named in §8.
+Five, and only five. Nothing in this section is a promise — each row is checked by a gate named in §8.
 
 | # | Outbound request | Trigger | What leaves | How to switch it off |
 | --- | --- | --- | --- | --- |
@@ -1429,14 +1376,11 @@ Six, and only six. Nothing in this section is a promise — each row is checked 
 | 3 | The target of a system `tracert` / `ping` | panel ⑧ + a bridge is running | a DNS lookup of the hostname you typed, then ICMP/UDP probes toward it | do not press the button |
 | 4 | Browser Geolocation | press the locate button **and** click Allow in the browser's own dialog | whatever the browser/OS decides to use (Wi-Fi, cell, IP); this tool never forwards it and never stores it | deny the prompt |
 | 5 | `api.github.com` latest-release metadata | press `检查更新` in the local-copy strip (§2.11) | one HTTPS GET for a public release record; no vault data, no page content, no extra identifier | do not press the button |
-| 6 | The chat relay you configured (§3.12) | chat is enabled **and** the ⑫ tab is open — never on page load, never from another tab | the relay address and room token go in the request headers; a poll sends only `after=<last id>`; a message sends your display name (≤24 chars) and the text you typed, already masked by the client before it is sent, and the server masks again before storing it | untick `启用群聊` and save, or close the ⑫ tab (polling stops at once) |
 
 There is no analytics beacon, **no automatic network update check**, no crash reporter, no CDN: Leaflet and qrcode.js are
 vendored in `vendor/` and the three data files ship in the package (§1). The update strip described in
 §2.11 is local-only at load; its `检查更新` button makes the single request listed above, and only on click.
-The one automatic repeat is the chat poll (row 6), and only under the two conditions in its trigger
-column: it stops the moment the ⑫ tab is left or the switch is turned off, and no other panel reads or
-sends chat state.
+No request in this table repeats on a timer.
 
 ### 7.2 Red lines that are enforced in code
 
