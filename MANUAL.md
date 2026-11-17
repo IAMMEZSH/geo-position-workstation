@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 598 314 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 887 397 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 756 923 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 760 218 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 743 309 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 753 420 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 69 | 7 959 503 B | 4.61 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 600 346 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 889 429 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 758 955 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 762 250 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 745 341 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 755 452 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 961 535 B | 4.61 MB |
 
 Measured on 2026-11-18 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
