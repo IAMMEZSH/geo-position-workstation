@@ -2663,7 +2663,7 @@
     /* ---- D. 路由追踪：桥接可用 / 不可用 ---- */
     var bridgeRoutes = [
       { match: '/api/traceroute', body: { ok: true, host: 'example.com', elapsed_ms: 900, reached: true, hops: [{ hop: 1, ip: '10.0.0.1', hostname: 'gw', rtts_ms: [2, 2, 3] }, { hop: 2, ip: '93.184.216.34', hostname: 'example.com', rtts_ms: [15] }] } },
-      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.0.0', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'], cors_policy: { wildcard: false, built_in: ['null', 'https://iammezsh.github.io'], extra: [], loopback_origins_allowed: true, no_origin_clients_allowed: true, note: '名单外的浏览器来源一律 403 origin_not_allowed' } } },
+      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.3.0', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'], cors_policy: { wildcard: false, built_in: ['null', 'https://iammezsh.github.io'], extra: [], loopback_origins_allowed: true, no_origin_clients_allowed: true, note: '名单外的浏览器来源一律 403 origin_not_allowed' } } },
       { match: 'dns.google/resolve', body: { Status: 0, Answer: [{ type: 1, name: 'example.com.', data: '93.184.216.34', TTL: 300 }] } }
     ];
     var t1 = await tracerouteViaBridge('example.com', { fetchImpl: makeMockFetch(bridgeRoutes, { calls: [] }) });
@@ -2739,7 +2739,7 @@
     var bsPs = await bridgeStatus({
       fetchImpl: makeMockFetch([{
         match: '/api/health',
-        body: { ok: true, server: 'geonet-bridge', version: '1.0.0', python: null, runtime: 'PowerShell 5.1.28000.2113', platform: 'win32', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip', 'static'] }
+        body: { ok: true, server: 'geonet-bridge', version: '1.3.0', python: null, runtime: 'PowerShell 5.1.28000.2113', platform: 'win32', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip', 'static'] }
       }], { calls: [] })
     });
     push('bridgeStatus 透出 PowerShell 桥的 runtime（python 为 null 时不冒充 Python）', (function () {
@@ -2812,7 +2812,7 @@
 
   /* ================================================================ 17. 导出面 */
   var API = {
-    VERSION: '1.0.0',
+    VERSION: '1.3.0',
     // 常数与表
     WGS84: WGS84, C_MS: C_MS, IP_SOURCES: IP_SOURCES, PATH_LOSS_N: PATH_LOSS_N,
     ERROR_KINDS: ERROR_KINDS, DEFAULTS: DEFAULTS,

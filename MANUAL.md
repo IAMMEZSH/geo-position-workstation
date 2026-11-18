@@ -882,7 +882,7 @@ lunar occultations or age-of-moon work.
   "besides me, who can borrow this machine" instead of leaving it to be inferred. Leaving that box empty
   is automatic — same-origin pages
   follow their own port, `file://` and the hosted page use `127.0.0.1:8765`. Measured: PowerShell bridge
-  online in `7 ms`, runtime line `geonet-bridge 1.0.0（PowerShell 5.1.28000.2113，win32）`.
+  online in `7 ms`, runtime line `geonet-bridge 1.3.0（PowerShell 5.1.28000.2113，win32）`.
 - **`升级判定` (*escalation check*)** compares this session's offline solutions against the networked
   ones with a χ² test and tells you plainly whether the networked evidence is enough to overturn the
   offline conclusion (α, and the HDOP/RMS/satellite-count thresholds, all visible).
@@ -1887,7 +1887,7 @@ build's measurements, kept because they were actually observed; the 2026-11-03 r
 | --- | --- |
 | `http://127.0.0.1:8765/index.html` with a bridge behind it | all seven namespaces loaded, Leaflet ready, 1 374 land polygons attached, ⑪ **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), missing ids 0, leaked markup 0, protocol row `http:`, and the storage row reads `加密落盘可用（localStorage · 写前 AES-256-GCM）` — the loopback `http:` origin counts as a secure context (§6.8), so this is the path where ⑩ is fully functional. The same run sampled every 200 ms is what §11.26 was written from: `552 门，还剩 2 组` at 0.67 s, `581 门（其中异步 29），还剩 1 组` at 0.88 s, and only at 1.70 s does the panel dare to say `自检通过：623 门 0 失败`. Measured 2026-11-03 with `server.py`; the same page against the PowerShell bridge on the previous build measured 515 gates in 0.69 s |
 | `file://…/index.html` (double-click, no bridge started) | `isSecureContext = true`, seven namespaces, map ready, 1 374 polygons; the bridge health check from `Origin: null` returns "online" in 11 ms when the PowerShell bridge happens to be running |
-| ⑧ bridge health | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, `geonet-bridge 1.0.0 (PowerShell 5.1.28000.2113, win32)`, 7 ms |
+| ⑧ bridge health | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, `geonet-bridge 1.3.0 (PowerShell 5.1.28000.2113, win32)`, 7 ms |
 | ⑧ trace `github.com` | 5 hops (2 honestly marked "no response (`*`)"), did not arrive within 20 hops, 8 017 ms, target scope `public`, "fabricated hops: no" |
 | ⑧ trace `192.168.2.1` (this machine's gateway) | 1 hop, target reached, 39 ms, target scope "private/LAN (192.168/16)" |
 | ⑧ IP lookup, six sources in parallel | 2 sources usable → fused `30.015638, 121.229409`, reported accuracy `50.0 km`, χ²=0.148 / dof=2 / p=9.29e-1; timed-out, 403, 307 and key-missing sources are dropped and each reason is listed |
@@ -2352,7 +2352,7 @@ A: The default view is offline vector land outlines, not empty space. If you rea
 "online basemap", which sends requests to OpenStreetMap.
 
 **Q: The title bar or tabs do not respond.**
-A: Fixed in v1.0.0 (Leaflet's z-index escaped the stacking context on narrow layouts, §11.2). If you are on
+A: Fixed in an early release (Leaflet's z-index escaped the stacking context on narrow layouts, §11.2). If you are on
 an older copy, hard-refresh `app/style.css` with `Ctrl+F5`.
 
 **Q: In ③ every row of my CSV says "no latitude/longitude".**

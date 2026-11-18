@@ -2314,7 +2314,7 @@
   }
 
   var API = {
-    VERSION: '1.0.0',
+    VERSION: '1.3.0',
     J2000: J2000, GREGORIAN_JD: GREGORIAN_JD, SIDEREAL_RATE: SIDEREAL_RATE,
     jdFromParts: jdFromParts, mjdFromParts: mjdFromParts, dateFromJd: dateFromJd, parseTime: parseTime,
     timeSystems: timeSystems, isLeap: isLeap,

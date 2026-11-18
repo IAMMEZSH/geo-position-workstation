@@ -42,7 +42,7 @@ param(
 )
 
 # ---------------------------------------------------------------- 0. 常量
-$script:Version = '1.0.0'
+$script:Version = '1.3.0'
 $script:ServerName = 'geonet-bridge'
 $script:RuntimeName = 'PowerShell ' + [string]$PSVersionTable.PSVersion
 # 与 server.py 的 sys.platform 对齐的那个字段。这里不能写死 'win32'：这份桥在装了 pwsh 的
@@ -1805,7 +1805,7 @@ function Invoke-BridgeSelfTest {
 
     # ---------- H. /api 契约（页面不区分两份实现） ----------
     $h = Get-HealthPayload
-    CHK 'server/version 与 server.py 同名同义' ($h.server -eq 'geonet-bridge' -and $h.version -eq '1.0.0')
+    CHK 'server/version 与 server.py 同名同义' ($h.server -eq 'geonet-bridge' -and $h.version -eq '1.3.0')
     CHK 'health 里没有 python 版本号：PowerShell 实现不冒充 Python' ($null -eq $h.python -and ($h.runtime -like 'PowerShell*')) ("" + $h.python)
     CHK 'platform 由本机算出来，不写死（这份桥在装了 pwsh 的 mac/Linux 上也要说实话）' `
         ($h.platform -eq $script:PlatformName -and @('win32', 'posix') -contains $h.platform) ("" + $h.platform)

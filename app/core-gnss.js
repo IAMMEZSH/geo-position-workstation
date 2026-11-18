@@ -1708,7 +1708,7 @@
 
   /* ================================================================ 13. 导出 */
   const API = {
-    VERSION: '1.0.0',
+    VERSION: '1.3.0',
     // 常数与表
     WGS84, C_LIGHT, OMEGA_E_DOT, MU_GPS, MU_BDS, MU_GAL, MU_GLN, F_REL_GPS, GLONASS_J2, GLONASS_RE,
     SIGNALS, TALKER, NMEA_WORDS, GGA_QUALITY,

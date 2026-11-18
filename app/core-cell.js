@@ -2393,7 +2393,7 @@
   }
 
   var API = {
-    VERSION: '1.0.0',
+    VERSION: '1.3.0',
     MODELS: MODELS, RAT_INFO: RAT_INFO, OPERATORS: OPERATORS, WGS84: WGS84,
     SPEED_OF_LIGHT_M_S: C_MS, M_PER_DEGREE_LAT: rnd(M_PER_DEG_LAT, 3), M_PER_DEGREE_LON_EQUATOR: rnd(M_PER_DEG_LON, 3),
     operatorName: operatorName, normalizeTower: normalizeTower, parseInput: parseInput,
