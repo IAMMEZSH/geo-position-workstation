@@ -14,6 +14,7 @@
     python 工具/pack-platform.py macos               # 只打 macos 包 -> dist/geo-macos.zip
     python 工具/pack-platform.py --all               # 打全部六个 + full
     python 工具/pack-platform.py --all --json dist/包清单.json
+    python 工具/pack-platform.py --write-table       # 真打一遍，把 §1.1 那张表写回 MANUAL.md
 
 三条纪律
     1. 只用标准库（zipfile / argparse / json / re），因为这台机器可能没装任何东西。
@@ -31,6 +32,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -75,7 +77,7 @@ CORE = [
     "示例数据/航迹示例.gpx",
 ]
 
-# 三张机制图 + 一张 Apple 路径图 + 一张分包图：只有 43 KB，每个平台都带上，
+# 三张机制图 + 一张 Apple 路径图 + 一张分包图：只有 48 KB，每个平台都带上，
 # 因为「桥接为什么只绑回环」这类问题在任何平台都得看着图回答。
 FIGURES = [
     "docs/img/architecture.svg",
@@ -272,6 +274,86 @@ def build(platform, outdir, verbose=True):
             "list": files}
 
 
+def fmt_raw(n):
+    """§1.1「未压缩」那一列的写法：千位用空格分（与闸门、与 MANUAL 同一套）。"""
+    return "{:,}".format(n).replace(",", " ")
+
+
+def fmt_mb(n):
+    """§1.1「ZIP」那一列的写法：按 10^6 字节折算，留两位小数。"""
+    return "%.2f" % (n / 1e6)
+
+
+# §1.1 那张表的一行。列顺序与 MANUAL 里写死的完全一样，只把三个数字当成可替换的槽位，
+# 其余文字（平台名、代码反引号、竖线两侧的单个空格）原样吐回去，改动只落在数字上。
+_TABLE_ROW = re.compile(
+    r"^\| (?P<label>[^|]+) \| `geo-(?P<pack>[a-z0-9-]+)\.zip` \| (?P<files>\d+) \| "
+    r"(?P<raw>[\d ]+) B \| (?P<mb>[\d.]+) MB \|$", re.M)
+
+
+def measure_all():
+    """把七个包真打一遍到临时目录，返回 {pack: (文件数, 未压缩字节, zip 字节)}。
+    不碰 dist/——那是本机产物，被 .gitignore 忽略，谁也不该为了量尺寸去动它。"""
+    tmp = tempfile.mkdtemp(prefix="geo-table-")
+    try:
+        return {s["platform"]: (s["files"], s["raw_bytes"], s["zip_bytes"])
+                for s in (build(p, tmp, verbose=False) for p in platforms() + ["full"])}
+    finally:
+        for fn in os.listdir(tmp):
+            os.remove(os.path.join(tmp, fn))
+        os.rmdir(tmp)
+
+
+def read_manual():
+    with open(abs_of("MANUAL.md"), encoding="utf-8", newline="") as fh:
+        return fh.read()
+
+
+def render_table(text, rows):
+    """用测量结果替换 §1.1 表里的三列，返回 (新文本, 被改的包名, 命中的行数)。"""
+    changed, hit = [], []
+
+    def sub(m):
+        pack = m.group("pack")
+        hit.append(pack)
+        if pack not in rows:
+            raise SystemExit("§1.1 表里有 %r 这一行，打包清单里却没有这个包" % pack)
+        n, raw, zipped = rows[pack]
+        line = "| %s | `geo-%s.zip` | %d | %s B | %s MB |" % (
+            m.group("label"), pack, n, fmt_raw(raw), fmt_mb(zipped))
+        if line != m.group(0):
+            changed.append(pack)
+        return line
+
+    new = _TABLE_ROW.sub(sub, text)
+    missing = sorted(set(rows) - set(hit))
+    if missing:
+        raise SystemExit("§1.1 表里缺了这些包的行：%s" % ", ".join(missing))
+    return new, changed, hit
+
+
+def write_table(rounds=6):
+    """真打一遍，把 §1.1 的分包表写回 MANUAL.md；迭代到「表所描述的字节数就是含这张表的
+    那份 MANUAL 打出来的字节数」为止——说明书住在它自己描述的每一个包里，所以这是一次
+    定点迭代而不是一次赋值。没收敛就把原文还回去并报错：留半张对不上的表比留旧表更糟。"""
+    original = read_manual()
+    previous = None
+    for _round in range(rounds):
+        rows = measure_all()
+        new, changed, hit = render_table(read_manual(), rows)
+        if new == previous:
+            print("[表] §1.1 的 %d 行已与本次实打对齐（%d 轮迭代）" % (len(hit), _round))
+            return 0
+        with open(abs_of("MANUAL.md"), "w", encoding="utf-8", newline="") as fh:
+            fh.write(new)
+        previous = new
+    with open(abs_of("MANUAL.md"), "w", encoding="utf-8", newline="") as fh:
+        fh.write(original)
+    raise SystemExit("§1.1 在 %d 轮里没收敛：改一位数字让包体积跨了十进制位，"
+                     "先把那一列的措辞放宽（例如多留一个空格位）再重跑。"
+                     "已把 MANUAL.md 恢复原样。" % rounds)
+
+
 def check():
     """清单自检：文件在不在、有没有互相夹带、六个包 + DEV + IMAGES 是不是正好覆盖交付面。"""
     problems = []
@@ -334,9 +416,14 @@ def main(argv=None):
     ap.add_argument("--all", action="store_true", help="打全部六个平台包 + full")
     ap.add_argument("--list", action="store_true", help="打印每个平台的文件清单")
     ap.add_argument("--check", action="store_true", help="只校验清单，不打包")
+    ap.add_argument("--write-table", action="store_true",
+                    help="真打一遍七个包，把 MANUAL §1.1 的三列数字写回文件（迭代到自洽）")
     ap.add_argument("--json", help="把结果写成 JSON（供文档与闸门核对）")
     ap.add_argument("--outdir", default=os.path.join(ROOT, "dist"), help="输出目录，默认 dist/")
     args = ap.parse_args(argv)
+
+    if args.write_table:
+        return write_table()
 
     if args.list:
         for name, label, files in PLATFORMS:

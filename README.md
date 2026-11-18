@@ -89,7 +89,7 @@ expect **623 gates / 0 failures** before using anything else.
 | Decimal places, GCJ-02 irreversibility, the conservative accuracy of IP lookup, astronomical time scales | §5 + `docs/img/decision-flow.svg` |
 | Layering, how a kernel is written, map layer, network layer, the UI escaping model, the vault layer, the stylesheet, the five mechanism figures, adding a panel | §6 (6.8 vault, 6.10 figures) |
 | What may leave the machine, the red lines enforced in code, who may talk to the bridge, where your data physically is | §7 (7.3 origin allowlist · 7.5 storage) |
-| How "all green" is re-checked — six independent gate layers (623 / 623 / 110 (+1) / 202 / 41 / 71) and what a single gate looks like | §8 (§8.8 CI, ubuntu and windows jobs) |
+| How "all green" is re-checked — six independent gate layers (623 / 623 / 110 (+1) / 202 / 41 / 72) and what a single gate looks like | §8 (§8.8 CI, ubuntu and windows jobs) |
 | Platform matrix, three things refused by design, panel-by-panel runs, hosted page, clone and ZIP verification | §9 |
 | Offline data: sources, SHA-256, trimming constants, how to rebuild it byte-identically | §10 |
 | Pitfalls actually hit — the class the kernels cannot see | §11 |
@@ -104,7 +104,7 @@ metadata.
 ```bash
 node tests/run-all.mjs --with-server --with-bridge   # kernels 623 + Python bridge 110 (+1) + PowerShell bridge 202
 python tests/bridge-parity.py                        # two bridges at once, 41 live cases
-python tests/check-package.py                        # package inspection, 71 items
+python tests/check-package.py                        # package inspection, 72 items
 ```
 
 The sixth layer is panel ⑪ itself, in a real DOM with Leaflet mounted: **623 gates / 0 failures**.

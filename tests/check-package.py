@@ -29,7 +29,11 @@
    （反引号 / `<code>` / **加粗**）里；仓库根只有这两份 .md；`§x.y` 交叉引用必须指得到
    真实小节；文档里声明的包闸门数必须等于本次实跑总数（这一条把自己也算进去）；
    §1.1 的分包表必须在临时目录里真打一次七个包对回去——清单一改，手机要下载多少字节就变了，
-   而这件事内核自检完全看不见。
+   而这件事内核自检完全看不见。同一次实打还得把 zip 里那两份文档读回来：不带 images/ 的包里
+   不许残留一条 `](images/…)`，改写后的 Pages 图必须是仓库里真有的那 16 张之一（网页从树里渲染，
+   看不见死链，只有下载的那台设备看得见）。最后，§9.5 与 §8.5 从磁盘抄来的三个数字——浅克隆的
+   文件数、桥吐出去的 index.html 字节数与它的 SHA-256 前缀——各自回一次源头，因为它们既不归
+   打包器管也不归两份桥的自检管（§11.29）。
 """
 import fnmatch
 import json
@@ -761,7 +765,11 @@ for _line in manual.split("\n"):
     if len(_c) == 7 and _c[2].startswith("`geo-") and _c[2].endswith(".zip`"):
         _pp_rows[_c[2][5:-5]] = _c
 _mismatch = []
+_pack_doc = []
 _tmpdir = _tempfile.mkdtemp(prefix="geo-pack-")
+import zipfile as _zip
+
+_PAGES_RE = re.escape(_pp.PAGES_BASE)
 try:
     for _p in _pp.platforms() + ["full"]:
         _s = _pp.build(_p, _tmpdir, verbose=False)
@@ -770,19 +778,75 @@ try:
             _mismatch.append("%s: 表里没有这一行" % _p)
             continue
         _want = [" %d " % _s["files"],
-                 " %s B " % "{:,}".format(_s["raw_bytes"]).replace(",", " "),
-                 " %.2f MB " % (_s["zip_bytes"] / 1e6)]
+                 " %s B " % _pp.fmt_raw(_s["raw_bytes"]),
+                 " %s MB " % _pp.fmt_mb(_s["zip_bytes"])]
         for _i, _w in enumerate(_want):
             if _c[3 + _i] != _w.strip():
                 _mismatch.append("%s 第 %d 列 文档=%s 实跑=%s"
                                  % (_p, 3 + _i, _c[3 + _i], _w.strip()))
+        # 同一次实打还顺手把「包里的文档」读一遍。GitHub 是从树里渲染说明书的，
+        # 一条没改写成功的 images/ 链接在网页上照样能点开，只有把它装进 zip、
+        # 让别人的手机下载下来，它才变成一张永远补不回来的空白图。
+        with _zip.ZipFile(os.path.join(_tmpdir, "geo-%s.zip" % _p)) as _z:
+            _names = _z.namelist()
+            _root = _names[0].rsplit("/", 1)[0]
+            _members = [n.split("/", 1)[1] for n in _names]
+            _inpack = sorted(m for m in _members if m.startswith("images/"))
+            if _p == "full":
+                if len(_inpack) != len(_pp.IMAGES):
+                    _pack_doc.append("full 包内 images/ 成员 %d 个（清单 %d 个）"
+                                     % (len(_inpack), len(_pp.IMAGES)))
+                continue
+            if _inpack:
+                _pack_doc.append("%s 不该带 images/，实带 %d 个" % (_p, len(_inpack)))
+            for _doc in ("README.md", "MANUAL.md"):
+                _txt = _z.read(_root + "/" + _doc).decode("utf-8")
+                _rel = [t for _ln, t, _ph in md_link_targets(_txt) if t.startswith("images/")]
+                _abs = re.findall(_PAGES_RE + r"images/([^)]+)\)", _txt)
+                _ghost = [a for a in _abs if "images/" + a not in _pp.IMAGES]
+                if _rel:
+                    _pack_doc.append("%s/%s 有 %d 条没改写的 images/ 链接（第一条 %s）"
+                                     % (_p, _doc, len(_rel), _rel[0]))
+                if _ghost:
+                    _pack_doc.append("%s/%s 改写到了不存在的图 %s" % (_p, _doc, _ghost[0]))
+                if _doc == "MANUAL.md" and not _abs:
+                    _pack_doc.append("%s/MANUAL.md 一条 Pages 图链都没有——改写正则落空了" % _p)
 finally:
     for _f in os.listdir(_tmpdir):
         os.remove(os.path.join(_tmpdir, _f))
     os.rmdir(_tmpdir)
-check("MANUAL §1.1 的分包尺寸就是本次实打出来的",
-      not _mismatch and len(_pp_rows) == len(_pp.platforms()) + 1,
-      "%d 个包逐项对回；差异 %s" % (len(_pp_rows), _mismatch[:4] or "无"))
+check("MANUAL §1.1 的分包尺寸、以及包内文档的图片链接，就是本次实打出来的",
+      not _mismatch and not _pack_doc and len(_pp_rows) == len(_pp.platforms()) + 1,
+      "%d 个包逐项对回；尺寸差异 %s；包内文档 %s" % (
+          len(_pp_rows), _mismatch[:4] or "无",
+          _pack_doc[:4] or "无残留相对图链、Pages 目标全部存在（full 另含 %d 张 PNG）" % len(_pp.IMAGES)))
+
+# §9.5 与 §8.5 从磁盘抄了三个数字：浅克隆里的文件数、桥实际吐出去的那份 index.html 的字节数，
+# 还有它的 SHA-256 前缀。三个都不在打包器也不在两份桥的自检范围里，于是各自漂过一次（§11.29）——
+# 这里逐个回源头取一遍，谁落后谁报出「文档=几 实测=几」。
+import hashlib
+
+_der = []
+_dm = re.search(r"\*\*(\d+) files, every one byte-identical", manual)
+if not _dm:
+    _der.append("§9.5 的 clone 文件数没找到")
+elif int(_dm.group(1)) != len(_pp.FULL):
+    _der.append("clone 文件数 文档=%s 清单=%d" % (_dm.group(1), len(_pp.FULL)))
+_db = re.search(r"\((\d[\d ]*) bytes, `text/html; charset=utf-8`\)", manual)
+_html_bytes = len(read_bytes("index.html"))
+if not _db:
+    _der.append("§8.5 的 index.html 字节数没找到")
+elif int(_db.group(1).replace(" ", "")) != _html_bytes:
+    _der.append("index.html 字节 文档=%s 磁盘=%d" % (_db.group(1), _html_bytes))
+_ds = re.search(r"the \*\*same SHA-256\*\* \(`([0-9a-f]{8})…`\)", manual)
+_sha8 = hashlib.sha256(read_bytes("index.html")).hexdigest()[:8]
+if not _ds:
+    _der.append("§9.5 的 index.html 摘要没找到")
+elif _ds.group(1) != _sha8:
+    _der.append("index.html 摘要 文档=%s 磁盘=%s" % (_ds.group(1), _sha8))
+check("§9.5/§8.5 抄自磁盘的三个数字（clone 文件数 · index.html 字节 · SHA-256 前缀）就是本次实测",
+      not _der, "；".join(_der) if _der else "清单 %d 个文件 · index.html %d B · %s…"
+      % (len(_pp.FULL), _html_bytes, _sha8))
 
 # 这一条把自己也算进去：文档里写的包闸门数必须等于本次实跑的总数，
 # 否则「加一道门、说明书继续写旧数」就会静默发生（§11 记过一次同类事故）。
@@ -791,19 +855,29 @@ check("MANUAL §1.1 的分包尺寸就是本次实打出来的",
 total_gates = len(results) + 1
 
 
-def _doc_num(pattern, text):
-    m = re.search(pattern, text)
-    return m.group(1) if m else "缺失"
-
-
-doc_counts = (_doc_num(r'\| Package inspection \| `python tests/check-package\.py` \| \*\*(\d+) items / 0 failures\*\*', manual),
-              _doc_num(r'### 8\.6 Package inspection: (\d+) items', manual),
-              _doc_num(r'package inspection, (\d+) items', readme),
-              _doc_num(r'`tests/check-package\.py` \| (\d+) packaging gates', manual))
-check("文档写的包闸门数就是本次实跑数（四处：§1 表、§8 表、§8.6 标题、README 注释）",
-      all(c == str(total_gates) for c in doc_counts),
-      "实跑 %d 项；文档 §8 表=%s / §8.6 标题=%s / README=%s / §1 表=%s"
-      % ((total_gates,) + doc_counts))
+# 「文档声明 N == 实跑 N」原来只查四处，其余写在 §0 的验证状态、§8 的四命令清单、§8.7 的对照表
+# 与汇总行、§9.5 的五层复跑、README 的两处——它们一旦落后，读起来不像错账，像另一份意见（§11.29）。
+# 每处各自锚定一行上下文，所以 §11 里那些「67 项」的历史叙述不会被当成现值。
+COUNT_PLACES = [
+    ("§0 验证状态", r"`tests/check-package\.py` \*\*(\d+) items\*\*;"),
+    ("§1 文件表", r"`tests/check-package\.py` \| (\d+) packaging gates"),
+    ("§8 运行表", r"\| Package inspection \| `python tests/check-package\.py` \| \*\*(\d+) items / 0 failures\*\*"),
+    ("§8 四命令注释", r"python tests/check-package\.py\s+# (\d+) package checks"),
+    ("§8.6 标题", r"### 8\.6 Package inspection: (\d+) items"),
+    ("§8.6 首段", r"no subprocess: (\d+) items over"),
+    ("§8.6 扫描说明", r"Two of the (\d+) items exist"),
+    ("§8.7 对照表", r"`check-package\.py` \| (\d+) items / 0 failed"),
+    ("§8.7 汇总行", r"合计 (\d+) 项 / 0 失败"),
+    ("§9.5 复跑", r"/ package (\d+), every one with 0 failures"),
+    ("README 索引表", r"/ 202 / 41 / (\d+)\)"),
+    ("README 命令注释", r"package inspection, (\d+) items"),
+]
+_docs = manual + "\n" + readme
+doc_counts = [(_label, "/".join(sorted(set(re.findall(_pat, _docs)))) or "缺失")
+              for _label, _pat in COUNT_PLACES]
+check("文档写的包闸门数就是本次实跑数（%d 处各报各的）" % len(COUNT_PLACES),
+      len(doc_counts) == len(COUNT_PLACES) and all(v == str(total_gates) for _l, v in doc_counts),
+      "实跑 %d 项；" % total_gates + " ".join("%s=%s" % (l, v) for l, v in doc_counts))
 
 # ---------------------------------------------------------------- 汇总
 width = max(len(n) for n, _, _ in results)

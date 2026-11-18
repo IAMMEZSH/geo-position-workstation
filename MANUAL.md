@@ -9,11 +9,11 @@ tracing) needs an extra local bridge, and on **Windows that bridge needs nothing
 - Repository: <https://github.com/IAMMEZSH/geo-position-workstation>
 - Delivery form: one self-contained folder. No installer, no registration, no cloud account,
   no third-party runtime dependencies.
-- Verification status (measured 2026-11-03, all zero failures): browser panel ⑪ **623 gates / 0 failures**
+- Verification status (measured 2026-11-18, all zero failures): browser panel ⑪ **623 gates / 0 failures**
   (71 of them asynchronous); Node `tests/run-all.mjs` **623 gates** — the same files reaching the same
   number in both environments, which is itself part of the check (§8.1); `server.py --selftest` **110 items**
   (1 skipped because this machine forbids the symlink); `bridge-powershell.ps1 -SelfTest` **202 items**;
-  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **71 items**;
+  `tests/bridge-parity.py` **41 cases**; `tests/check-package.py` **72 items**;
   `工具/pack-platform.py --check` **0 problems**. Composition and commands: §8. Screenshots and
   per-panel numbers: §3 and §9.
 - **This file is the only usage document.** Platform boundaries, architecture conventions,
@@ -102,7 +102,7 @@ gate verifies in reverse that no deliverable file is swallowed by `.gitignore`.
 | `docs/img/` | Five English mechanism diagrams, drawn once and gate-checked: `architecture.svg` (§6.1), `decision-flow.svg` (§5), `privacy-boundary.svg` (§7), `apple-launch-paths.svg` (§2.7–2.8), `platform-packs.svg` (§1.1) |
 | `images/` | Sixteen English explainer figures — beside the panels, the map readout, the light skin, the bridge health payload and the update strip. Each is placed beside the paragraph it explains; none is a generic screenshot |
 | `tests/run-all.mjs` | Runs every kernel gate in Node (623); `--with-server` adds the Python bridge, `--with-bridge` also the PowerShell one |
-| `tests/check-package.py` | 71 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
+| `tests/check-package.py` | 72 packaging gates: entry resources, launcher encoding and line endings, both bridges' red lines and contract, the front end's exfiltration-channel scan, broken doc links plus a probe of that link checker itself, ignore-rule swallowing, zero dependencies, English-only GitHub docs, platform manifests, the per-pack size table, the order of the self-test panel's own verdict, and the entry page's icon declaration |
 | `tests/bridge-parity.py` | 41 live cases: both bridges started together, the same request sent to each, comparing status, key sets, byte counts, Content-Type and the cross-origin answer |
 | `工具/pack-platform.py` | Builds the per-platform archives listed below (`--list`, `--check`, `--all`) |
 | `.github/workflows/ci.yml` | Runs the three groups above on Ubuntu and Windows on every push |
@@ -127,15 +127,17 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 597 774 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 886 857 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 756 383 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 759 678 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 742 769 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 752 880 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 69 | 7 960 193 B | 4.61 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 601 836 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 890 919 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 760 445 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 763 740 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 746 831 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 756 942 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 973 303 B | 4.61 MB |
 
-Measured on 2026-11-18 by `python 工具/pack-platform.py --all --json dist/包清单.json`. Two columns
+Written by `python 工具/pack-platform.py --write-table`, which builds all seven archives in a temporary
+directory and rewrites the three columns until the table describes the very `MANUAL.md` it sits inside of
+(`--all --json dist/包清单.json` is the same measurement, left as a machine-readable file). Two columns
 are quoted to the byte and one is not, because of an awkward fact about this table: **the manual
 describing the packs is inside every pack it describes**. File counts and uncompressed bytes survive
 that — correcting a byte count here replaces digits with digits, so the tree keeps its size and the
@@ -1541,21 +1543,21 @@ other ten panels are untouched.
 "All kernels pass" is worthless unless someone else can re-run it. Six layers, none of which
 substitutes for another; if any one is red, do not use the build.
 
-| Layer | Command / entry point | Measured 2026-11-03 | What it owns |
+| Layer | Command / entry point | Measured 2026-11-18 | What it owns |
 | --- | --- | --- | --- |
-| Browser kernel gates | panel ⑪ → run the full self-test | **623 gates / 0 failures** in 1.49 s, **71 of them asynchronous** | the seven kernels inside a real DOM + Leaflet environment, including the PBKDF2/AES round trip and the network-layer promises |
+| Browser kernel gates | panel ⑪ → run the full self-test | **623 gates / 0 failures** in 1.52 s, **71 of them asynchronous** | the seven kernels inside a real DOM + Leaflet environment, including the PBKDF2/AES round trip and the network-layer promises |
 | Node kernel gates | `node tests/run-all.mjs` | **623 gates / 0 failures** | the same kernel files in a DOM-less sandbox — the identical total is the point: the verdict must not depend on which container ran it (§8.1) |
 | Python bridge gates | `python server.py --selftest` | **110 items / 0 failures + 1 skipped locally, 111 on CI** (§8.8) | whitelist, origin allowlist, loopback bind, port pre-probe, path traversal, upstream URL rules, contract keys, parsers that cannot invent hops |
 | PowerShell bridge gates | `powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -SelfTest` | **202 items / 0 failures** | the same list, plus PS-specific evaluation, redirection, `-eq` casing, source guard, cross-origin allowlist, concurrency |
 | Live cross-check | `python tests/bridge-parity.py` | **41 cases / 0 failures** (exit code 3 = honestly skipped on non-Windows) | both bridges started at once and fed identical requests: status, key set, byte count, Content-Type, and the origin allowlist's verdict for five allowed and four hostile origins (§8.5) |
-| Package inspection | `python tests/check-package.py` | **71 items / 0 failures** | the 17 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, §1.1's pack sizes rebuilt in a temporary directory, the branch order that keeps ⑪ from announcing a verdict while its async gates are still running (§11.26), and the icon declaration that keeps the hosted page's console clean (§11.27) |
+| Package inspection | `python tests/check-package.py` | **72 items / 0 failures** | the 17 local resources the entry page needs, launcher encoding and line endings, AST/line red lines in both bridges, the source-level exfiltration scan, contract literals, broken image links in the docs, a synthetic document fed to that link checker to prove it still bites, gitignore collateral damage, zero dependencies, English-only GitHub docs, platform manifests, §1.1's pack sizes rebuilt in a temporary directory, the branch order that keeps ⑪ from announcing a verdict while its async gates are still running (§11.26), and the icon declaration that keeps the hosted page's console clean (§11.27) |
 
 All of it in four commands:
 
 ```bash
 node tests/run-all.mjs --with-server --with-bridge   # 623 kernel + 110 Python + 202 PowerShell
 python tests/bridge-parity.py                        # 41 live cases against both bridges
-python tests/check-package.py                        # 71 package checks (Python only)
+python tests/check-package.py                        # 72 package checks (Python only)
 npm run test:all                                     # kernels + Python bridge only
 ```
 
@@ -1675,14 +1677,14 @@ Both offline self-tests are allowed to be alone with their own decision function
 random free loopback ports (probed, never assumed — §2.4), waits for each to answer `/api/health`, feeds
 both the *same* byte-for-byte requests, and only then stops them. It exists because the page does not
 know which implementation it reached (§2.3), so a behavioural difference between them is a defect even
-when each one is individually green. Measured 2026-11-03: **41 cases / 0 failures**; on a non-Windows
+when each one is individually green. Measured 2026-11-18: **41 cases / 0 failures**; on a non-Windows
 machine it exits with code **3** and says why rather than pretending (§8.8).
 
 The four case families, with what each one actually asserts:
 
 | Family | Cases | What is compared |
 | --- | --- | --- |
-| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (36 605 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
+| Endpoint shapes | 11 | `health` (17 keys), `iface` (9), `dns` on a loopback literal (10), `ping` 2 packets (18), `traceroute` 3 hops (24), and four refusal paths — unknown GeoIP source, a domain passed as `ip`, a coordinate parameter, a garbage hostname — each of which must reach the *same* 400/403 status **and the same key set and the same `error_kind`** on both bridges. `index.html` is served identically (36 768 bytes, `text/html; charset=utf-8`), and the bridge's own access log must not be downloadable (403 on both) |
 | Static assets | 16 | every local file `index.html` references, fetched from both bridges: status, **byte count**, and `Content-Type` must match — 2 084 466 bytes of `data-cities.js` and 228 650 of `ui-app.js` included. A Content-Type table that drifted between the two implementations would silently hand the browser a `text/plain` module and the page would die at `import` time on one channel only |
 | Traversal attempts | 5 | `/%2e%2e/%2e%2e/C:/Windows/win.ini`, `/..%5cwindows%5cwin.ini`, `/app/../server.py`, `/%2e%2e/app/data/data-countries.js`, `/%c0%af%x`. Deliberately **not** a same-status assertion: `http.sys` normalises `/app/../server.py` before the handler ever sees it, so the PowerShell bridge answers 200 with a file *inside the root* while `server.py` answers 403. The case is "refused, or served from inside the root — and never the contents of `win.ini`", which is the property that matters; the previous version asserted equal status and was wrong about the platform (§11.11) |
 | `health` semantics + origin policy | 9 | 14 semantic fields must be identical (server name, version, capability list, endpoint list, GeoIP source list — the bridge's **five**, the sixth being browser-only (§3 ⑧) — banned parameter list, the three "always false" privacy booleans, the hop/ping ceilings, `bind.loopback_only`, the bind address), while `python` and `runtime` are asserted to be **honestly different** (`'3.13.14'` vs `null`, `Python 3.13.14` vs `PowerShell 5.1.28000.2113`). Then the origin allowlist (§7.3) is replayed over real HTTP: 5 listed origins (the `file://` `null`, the hosted page, both bridges' own loopback origins, `http://localhost:1`) get 200 with their own origin echoed on both bridges; 4 hostile origins get `403 origin_not_allowed` with **no** `Access-Control-Allow-Origin` header at all — a silent "no header" instead of a 403 would be invisible to `curl` and is treated as a failure; `OPTIONS` preflight runs the same list (204 + PNA echo for listed, 403 for unlisted); a request with **no** `Origin` header gets 200 and no CORS headers and no `Vary`; a static file gets no CORS header even for a listed origin; and a wildcard collector inspects **every header of every response this run produced** and asserts the list stayed empty — which is the claim §7.3 rests on, verified by observation rather than by grep |
@@ -1693,10 +1695,10 @@ case still passes on key-set equality and prints the differing `ok` flag as refe
 of hiding it — a parity test that reports "identical" about things that are not identical is worse than no
 test.
 
-### 8.6 Package inspection: 71 items, and how a scanner proves it is not blind
+### 8.6 Package inspection: 72 items, and how a scanner proves it is not blind
 
 `tests/check-package.py` is the layer that looks at the **files**, not at the running code. Pure Python,
-no browser, no network, no subprocess: 71 items over the entry page's 17 local resources (§1), the
+no browser, no network, no subprocess: 72 items over the entry page's 17 local resources (§1), the
 launchers' encoding, line endings and skin invariants (`.bat` pure ASCII + CRLF + zero ESC bytes + a
 widest-line bound + no `timeout`, `.sh`/`.command` LF, `.ps1` BOM + CRLF, and each face's own colour
 discipline — the rules are in §2.10, the assertions that they did not drift are here), both bridges' red
@@ -1713,7 +1715,7 @@ lines, and the docs themselves.
   (preflight and real request). Each bridge's contract literals must be parseable by the other's regex,
   which is what catches "the pattern silently matched nothing" (§11.14).
 - **The front-end exfiltration scan** (§7.2 item 13) bans nine constructs across ten files and asserts
-  `localStorage` is named by exactly two keepers. Two of the 71 items exist to keep that scan honest:
+  `localStorage` is named by exactly two keepers. Two of the 72 items exist to keep that scan honest:
   a four-line `_probe` in which it must find **exactly one** `sendBeacon(` — the two mentions inside
   comments must not count, and `http://127.0.0.1:8765` must survive comment-stripping — and a *witness*
   string per scanned file that exists only in real code (`allow_ambient_storage`, `AES-GCM`,
@@ -1743,44 +1745,55 @@ lines, and the docs themselves.
   two bridge logs and is checked against the deliverable list so it cannot swallow
   `示例数据/NMEA语句示例.log` (§11.3), and `.gitattributes` pins the launcher line endings and declares
   images binary (§9.5).
-- **The gate that counts the gates reports four numbers, not one.** An earlier version of "the count in
+- **The gate that counts the gates reports twelve numbers, not one.** An earlier version of "the count in
   the documents equals the count actually run" printed `declared 67 == ran 67`, where both sides came from
   the same variable — pass and fail were the same string, which is the §11.23 defect in a new costume. It
-  now reads the four places that state the total (§1's file table, §8's run table, §8.6's heading,
-  README's command comment), prints what each of them says, and fails if any of them disagrees with the
-  run.
-- **The manual is treated as an artefact, not trusted as one.** Six items read the documents:
+  now reads the twelve places that state the total — §0's verification block, §1's file table, §8's run
+  table, the four-command list, this section's heading and its two mentions, §8.7's comparison table and
+  its summary line, §9.5's five-layer re-run, and both README mentions — prints what each of them says,
+  and fails if any of them disagrees with the run.
+- **The manual is treated as an artefact, not trusted as one.** The items that read the documents:
   README.md and MANUAL.md must be English **outside** quoted on-screen literals — a code span,
   `<code>` or bold counts as a quotation, and a quotation may not cross a blank line, because one
   missing backtick would otherwise hide an entire Chinese paragraph from the check; exactly two `.md`
   files may sit at the repository root, so the retired Chinese manual cannot come back and start
   disagreeing with this one; every `§x.y` reference in either file must name a heading that exists
   (renumbering §8 halfway through an edit is precisely how a plausible-looking dead reference is born
-  — the run prints how many references it matched against how many headings); and two items compare
+  — the run prints how many references it matched against how many headings); and three items compare
   numbers the documents state against numbers this run produces. The first compares the package-gate
-  count stated in four places (this section's heading, §8's table, §1's file table, README's command
-  comment) with the
+  count stated in twelve places (§0's verification block, §1's file table, §8's run table, the
+  four-command list, this section's heading and two of its sentences, §8.7's comparison table and its
+  summary line, §9.5's five-layer re-run, and both README mentions) with the
   count actually executed, **including itself**, so adding a gate without updating the manual turns
   the manual's own number red instead of quietly leaving it wrong (§11.21); its failure line prints
-  what each of the four places says, because it used to print the same variable twice (§11.24). The second rebuilds all
-  seven archives in a temporary directory and compares them with §1.1's table — file counts and
-  uncompressed bytes to the byte, the ZIP column only to 0.01 MB, because of the self-reference
-  explained there. A manifest edit that changes what a phone has to download therefore cannot land
-  without the table changing with it. That rebuild writes into the system temporary directory, and the
-  Windows runner keeps the checkout on `D:` while `%TEMP%` sits on `C:` — `os.path.relpath` across drive
-  letters raises `ValueError` instead of returning a path, so the packing helper's *display* string took
-  the whole gate down (§11.25). The 69th item exists so it cannot come back: it calls the helper with a
-  same-drive and a different-drive path and requires plain strings out of both.
+  what each of the twelve places says, because it used to print the same variable twice (§11.24). The
+  second rebuilds all seven archives in a temporary directory and compares them with §1.1's table —
+  file counts and uncompressed bytes to the byte, the ZIP column only to 0.01 MB, because of the
+  self-reference explained there. The same rebuild then reads the two documents back **out of the
+  archives** and requires that no relative `](images/…)` link survived rewriting in a pack that carries
+  no `images/`, and that every Pages URL substituted for one names a PNG that exists in the
+  repository: a dead figure inside a download is invisible on GitHub, where the page is rendered from
+  the tree instead (§1.1, §11.29). A manifest edit that changes what a phone has to download therefore
+  cannot land without the table changing with it — and `--write-table` makes that change, instead of
+  leaving it to whoever happens to remember. That rebuild writes into the system temporary directory,
+  and the Windows runner keeps the checkout on `D:` while `%TEMP%` sits on `C:` — `os.path.relpath`
+  across drive letters raises `ValueError` instead of returning a path, so the packing helper's
+  *display* string took the whole gate down (§11.25). The cross-drive item exists so it cannot come
+  back: it calls the helper with a same-drive and a different-drive path and requires plain strings out
+  of both. The third reads the numbers this manual quotes from the **tree** rather than from a build —
+  §9.5's clone file count against the packager's own `full` manifest, §8.5's served `index.html` byte
+  count and §9.5's SHA-256 prefix against the file on disk — because all three of those drifted once
+  each while every gate stayed green (§11.29).
 - **⑪ cannot announce its verdict before the async gates have landed.** The UI layer is normally out of
   this file's reach — it needs a browser, and CI has none — but §11.26's defect has a shape a text scan
   can hold: in `app/ui-app.js`, the branch that prints `自检通过：…` must sit **behind** the guard on
   `pendingAsync`, that guard must be fed by an assignment that precedes its decrement, and the `结论` row
-  must consult the same counter. The 70th item slices `finalStatus()` out of the file between two anchors,
+  must consult the same counter. The ⑪-order item slices `finalStatus()` out of the file between two anchors,
   compares those offsets, and prints each one so a vanished anchor reads as `-1` instead of as a pass.
   What it deliberately cannot do is prove behaviour: that is §9.3's sampled timeline, and it is why the
   item asserts an **order** rather than the presence of a word — a gate that only greps for `pendingAsync`
   would still be green after someone moved the verdict back above the guard, which is the bug itself.
-- **The entry page declares its own icon, and the extension scan had to be widened to notice.** The 71st
+- **The entry page declares its own icon, and the extension scan had to be widened to notice.** The icon
   item requires a `<link rel="icon">` whose target is a local file that exists on disk. Two things came out
   of adding it. The visible one: with no declaration a browser does not give up, it asks the **site root**
   for `/favicon.ico`, which on GitHub Pages is a 404 nobody requested (§11.27). The quieter one: the gate
@@ -1814,7 +1827,7 @@ deliberately **not** a gate: only a real browser can prove it works, so its evid
 | `server.py --selftest` | **111 items / 0 failed** (the symlink gate executes there) | **111 items / 0 failed** |
 | `bridge-powershell.ps1 -SelfTest` | skipped, with one explanatory line from the workflow (this bridge needs PowerShell 5.1 + `http.sys`) | **202 items / 0 failed** |
 | `bridge-parity.py` | exit code **3**, which the workflow turns into a `::notice::` skip — **not a fake pass** | 41 cases / 0 failed |
-| `check-package.py` | 71 items / 0 failed | 71 items / 0 failed |
+| `check-package.py` | 72 items / 0 failed | 72 items / 0 failed |
 
 The counts in that table are what **this** tree produces locally, and CI is what promotes them from
 "my machine" to "verified" — and the promotion has teeth. The first run of this build (`00895aa`, run
@@ -1840,7 +1853,7 @@ executed there — is the part that stays in this section.
 
 The two runs that close this build (`f78603e`, the icon fix, and `0248849`, the measurements above) came
 back green on both runners with exactly the table's numbers: `623 门 / 0 失败` and `自检通过 111 项` and
-`合计 71 项 / 0 失败` on each, plus `桥接（PowerShell）自检：202 项 / 0 失败` and `用例 41 / 失败 0` on the
+`合计 72 项 / 0 失败` on each, plus `桥接（PowerShell）自检：202 项 / 0 失败` and `用例 41 / 失败 0` on the
 Windows job and its documented skip on the Ubuntu one. Those lines are read out of the job logs, not
 inferred from the check mark.
 
@@ -1934,9 +1947,9 @@ instead of being fixed by weakening the bridge: a red row here is the privacy bo
 
 | How you get it | Result |
 | --- | --- |
-| `git clone --depth 1` | **68 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 71, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
+| `git clone --depth 1` | **69 files, every one byte-identical (SHA-256) to the working tree — 0 differences**; §8's five command-line layers then re-run *inside that clone* came back with exactly the working tree's numbers — 623 kernel / Python 110 (+1 skipped) / PowerShell 202 / cross-bridge parity 41 / package 72, every one with 0 failures. Nothing in the green state depends on my working directory: CI runs the same commands inside its own fresh checkout on every push (§8.8), so you are reproducing a check that already runs on two other machines. In the clone, `启动-macOS.command`, `启动-macOS-Linux.sh`, `启动-Linux.sh`, `启动-Android.sh` and `启动-iSH.sh` all have **0 CRLF bytes** and a `#!/bin/sh` first line; `启动-Windows.bat` is pure ASCII (0 non-ASCII bytes) with CRLF; `bridge-powershell.ps1` is BOM + CRLF — pinned by `.gitattributes`, not left to each person's `core.autocrlf` |
 | **double-click `index.html`** (`file://`, no bridge) | `isSecureContext=true`, all 11 tabs present, the map canvas has real pixels, ⑪ **623 gates / 0 failures** (1.53 s), 1 374 polygons, missing ids 0, leaked markup 0, console silent, and ⑩'s capability row reads `WebCrypto ✓ · 安全上下文 ✓（file:）· 可写存储 ✓` — measured 2026-11-03 on this machine, after §11.26's guard landed; sampled every 200 ms this page shows the same three states the loopback origin does (§9.3): two progress lines, then one verdict. The previous build measured 515 gates / 0.80 s here. If a PowerShell bridge is running, the page gets `ok=true`, `python=null` in 8 ms — full function without Python. The same page is also where the migration from the older build was verified end to end (§3 ⑩) |
-| bridge started from the clone (`--port 8799` / `-Port 8799`) | `/api/health` `ok=true` with `bind.loopback_only=true`; the bytes served at `/index.html` have the **same SHA-256** (`1df29aaa…`) as the file on disk |
+| bridge started from the clone (`--port 8799` / `-Port 8799`) | `/api/health` `ok=true` with `bind.loopback_only=true`; the bytes served at `/index.html` have the **same SHA-256** (`c4f2c05c…`) as the file on disk |
 | GitHub "Download ZIP" | byte-identical to the repository; inside the zip `.bat`/`.ps1` carry CRLF and `.command`/`.sh`/`.js` carry LF |
 | per-platform pack (§1.1) | `geo-windows.zip`, `geo-macos.zip`, … each opens the same way as the full repository, with only that platform's launcher and the files it needs |
 
@@ -2228,8 +2241,8 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     block, or as a link to a file that exists stayed green. The same run exposed a second, quieter defect —
     the gate that compares the documented gate count with the executed one printed
     `文档声明 67 项 == 实跑 67 项`, both numbers from the same variable, so its failure line was
-    character-for-character its success line. It now reads four places (§1's file table had never been
-    covered, which is how "67 packaging gates" survived there) and prints what each says — and printing
+    character-for-character its success line. It then read four places (§1's file table had never been
+    covered, which is how "67 packaging gates" survived there) and printed what each says — and printing
     each is what found the third defect: the unanchored `\*\*(\d+) items / 0 failures\*\*` it used at first
     matched the **PowerShell bridge's** row two lines above and reported 202. The pattern is now pinned to
     its own table row, because a document reader that reads the wrong line is §11.14's "silently matched
@@ -2295,7 +2308,7 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     watching, so a missing root file looks like a local detail rather than a defect. The fix is one line
     in the head — `<link rel="icon" type="image/svg+xml" href="favicon.svg">` — plus the icon itself, drawn
     from the dark skin's own palette (§6.9) so the tab, the launcher faces and the figures are one family.
-    Writing the item that pins the declaration (§8.6's 71st) is what exposed a second, quieter thing: the
+    Writing the item that pins the declaration (§8.6's icon gate) is what exposed a second, quieter thing: the
     neighbouring scan that promises "every local extension the entry page uses is in the bridge's
     `Content-Type` table" gathered its references from five directory prefixes, so a root-level file was
     outside its field of view — the promise was true only for the paths it looked at. Both bridges turned
@@ -2320,6 +2333,32 @@ several gaps.** Each item was really encountered, and each now has a gate or a c
     a selector can be silently blind, and blindness reads exactly like absence. And when a probe contradicts
     the product, reproduce it on a second origin before believing it: agreement across origins is evidence
     about the probe, not about the map.
+29. **Three numbers in the manual described a tree that had already changed, and every gate stayed green.**
+    The re-audit of this build found §9.5 still saying a shallow clone holds **68 files** (it holds 69),
+    §8.5 still quoting the served `index.html` as **36 605 bytes** (it is 36 768), and §9.5 still naming
+    that file's SHA-256 as `1df29aaa…` (it is `c4f2c05c…`). None of the four measurement layers could see
+    any of it: 623 kernel gates never read a document, both bridge self-tests assert their own *contract*,
+    and the one item that compares prose with a build — §1.1's pack table — compares the sizes the
+    packager produces, not a byte count on disk. `68 files` had been true two releases ago (the tree
+    carried 68 blobs before the group-chat removal reshuffled it) and was never re-taken; the
+    `36 605` figure matches no commit in the 35-commit history fetched for this check, so it cannot be
+    traced to a tree at all — it was typed once from a transient reading. The same sweep found four
+    *positional* claims ("the 69th item", "the 70th item", "the 71st item", "§8.6's 71st") that had
+    drifted by two as soon as items were inserted earlier in the run, and those were fixed by naming the
+    item instead of numbering it: an ordinal is a claim about the order of a list, and a list you keep
+    editing has no stable ordinals. Three remedies, each aimed at one of the shapes this defect came in.
+    (a) The file-derived numbers — §9.5's clone file count against the packager's own `full` manifest,
+    §8.5's served byte count and §9.5's digest prefix against the bytes of `index.html` — are an item of
+    their own now. (b) The package-gate total, which was already asserted, went from four documented
+    places to twelve, so a mention left behind in §8's command list or §9.5's re-run turns red instead of
+    reading as a second opinion. (c) §1.1's table stopped being checked and started being **written**:
+    `python 工具/pack-platform.py --write-table` rebuilds the seven archives in a temporary directory,
+    replaces the three columns, and repeats until the table describes the very `MANUAL.md` that contains
+    it — restoring the file if that fixed point is not reached, because half a correct table is worse
+    than an old one. General form: **a number a document quotes from reality needs a reader that goes to
+    reality for it, and a number a document quotes from a tool should be written by that tool**. Copying
+    either by hand turns a manual into a log that falsifies itself one digit at a time, silently, in the
+    one place no test looks.
 
 ---
 
