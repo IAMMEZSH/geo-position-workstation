@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 601 836 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 890 919 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 760 445 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 763 740 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 746 831 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 756 942 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 69 | 7 973 303 B | 4.61 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 602 240 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 891 323 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 760 849 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 764 144 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 747 235 B | 1.67 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 757 346 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 973 707 B | 4.61 MB |
 
 Written by `python 工具/pack-platform.py --write-table`, which builds all seven archives in a temporary
 directory and rewrites the three columns until the table describes the very `MANUAL.md` it sits inside of
@@ -1865,7 +1865,11 @@ Everything below was run, not reasoned about. Unless a row says otherwise, the r
 author's Windows machine with the PowerShell bridge and Chrome, and the 2026-11-02 / 11-03 logs are the
 source of the numbers. Panel counts: **623 browser gates, 623 Node gates, 1 374 land polygons** recur in
 almost every row because they are the same code path. Rows that still carry 515 / 541 are the previous
-build's measurements, kept because they were actually observed; the 2026-11-03 rows are the current build.
+build's measurements, kept because they were actually observed; the 2026-11-03 rows belong to the build
+still being shipped, whose application code is byte-for-byte the code of the current one (what has moved
+since is documentation, the packager and the gates). The five command-line layers plus the browser panel
+were re-run on 2026-11-18 on this machine and came back with the same counts as §0 — 623 / 623 / 110 (+1)
+/ 202 / 41 / 72 — so no number in the rows below has been invalidated by the re-pack.
 
 ### 9.1 One table for every platform
 
