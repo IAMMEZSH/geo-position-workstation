@@ -127,13 +127,13 @@ or if a deliverable file belongs to no pack.
 
 | Platform | Archive | Files | Uncompressed | ZIP |
 |---|---|---|---|---|
-| Any browser, no bridge | `geo-browser.zip` | 36 | 4 602 240 B | 1.62 MB |
-| Windows 10/11 | `geo-windows.zip` | 39 | 4 891 323 B | 1.72 MB |
-| macOS 12+ | `geo-macos.zip` | 39 | 4 760 849 B | 1.68 MB |
-| Linux (any distro) | `geo-linux.zip` | 39 | 4 764 144 B | 1.68 MB |
-| Android · Termux | `geo-android.zip` | 38 | 4 747 235 B | 1.67 MB |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 757 346 B | 1.68 MB |
-| Everything (developers) | `geo-full.zip` | 69 | 7 973 707 B | 4.61 MB |
+| Any browser, no bridge | `geo-browser.zip` | 36 | 4 604 362 B | 1.62 MB |
+| Windows 10/11 | `geo-windows.zip` | 39 | 4 894 867 B | 1.72 MB |
+| macOS 12+ | `geo-macos.zip` | 39 | 4 764 855 B | 1.68 MB |
+| Linux (any distro) | `geo-linux.zip` | 39 | 4 768 150 B | 1.68 MB |
+| Android · Termux | `geo-android.zip` | 38 | 4 749 357 B | 1.68 MB |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | 38 | 4 761 048 B | 1.68 MB |
+| Everything (developers) | `geo-full.zip` | 69 | 7 979 275 B | 4.62 MB |
 
 Written by `python 工具/pack-platform.py --write-table`, which builds all seven archives in a temporary
 directory and rewrites the three columns until the table describes the very `MANUAL.md` it sits inside of
@@ -196,10 +196,11 @@ page in a browser**. The Windows launcher is a three-level fallback, which is wh
 stopped being a missing feature:
 
 ```
-python / py exists and really runs   ->  python server.py --port 8765
+pick a port P                        ->  reuse our own bridge, else the first free loopback port from 8765
+python / py exists and really runs   ->  python server.py --port P
         ↓ absent (or just the Microsoft Store stub)
-PowerShell 5.1, built into Windows   ->  powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -Port 8765
-        ↓ neither bridge answers /api/health within 20 s
+PowerShell 5.1, built into Windows   ->  powershell -NoProfile -ExecutionPolicy Bypass -File bridge-powershell.ps1 -Port P
+        ↓ neither bridge answers /api/health with server=geonet-bridge within 20 s
 start "" "index.html"                ->  the page opens anyway; panel ⑧ reports 桥接不在线 (*bridge offline*)
 ```
 
@@ -209,6 +210,10 @@ Every implementation detail below was forced by a real failure (§11):
   placeholder passes `where` and then opens the Store instead of executing anything.
 - **Reachability is probed with PowerShell `Invoke-WebRequest`, not Python.** The same test therefore
   validates both bridges, and it works on machines with no Python at all.
+- **Reachability means identity, not HTTP 200.** The probe parses `/api/health` and requires
+  `server = "geonet-bridge"`. Another local service can hold 8765 and answer `200 {"ok":true}`;
+  opening that page is a false success. The launchers now verify the identity and move to another
+  port instead of trusting the status code.
 - **Delays use `ping -n`, never `timeout`.** Toolchains such as Git Bash put coreutils' `timeout`
   ahead of Windows' in PATH, so inside a batch file `timeout` is not necessarily the command you think.
 - **The `.bat` is pure ASCII.** A GBK console on a Chinese Windows reads a UTF-8 batch file as garbage
@@ -225,7 +230,7 @@ state is signalled — is a separate layer with its own rules: §2.10.
 | Windows | Double-click `启动-Windows.bat` | The bridge runs in a second, minimised window; close it to stop. **Full functionality without Python** (falls through to the PowerShell bridge) |
 | macOS | Terminal: `cd` to the folder, `sh 启动-macOS-Linux.sh` — or double-click `启动-macOS.command` | Terminal is the primary path (§2.7). Double-click needs the executable bit and survives Gatekeeper only once |
 | Linux (any distro) | Its own terminal: `cd` to the folder, `sh 启动-Linux.sh` — or double-click `启动-Linux.sh`, which finds the terminal emulator you already have and re-enters it | The same Terminal-first policy as macOS (§2.7). The bridge here is `server.py`, so ⑧'s per-hop tracing needs a `python3` from your distro's own package manager; the other ten panels run without it |
-| Android | Termux: `pkg install python` → `sh 启动-Android.sh` | Open the printed `http://127.0.0.1:8765/` in the phone's browser (the bridge runs on the phone, loopback only, so no other device can reach it) |
+| Android | Termux: `pkg install python` → `sh 启动-Android.sh` | Open the printed loopback URL in the phone's browser (the bridge runs on the phone, loopback only, so no other device can reach it) |
 | iPhone / iPad | **Shortest path: Safari on the hosted URL** — all eleven panels render, ⑪ runs as normal | For per-hop route tracing install iSH and run `sh 启动-iSH.sh` (§2.8). Without it, ⑧ still does IP lookup and DoH but gets no hops |
 | Nothing installed | Double-click `index.html` (`file://`) | Seven kernels + map + offline data + ⑪ all run; only the bridge side of ⑧ is missing |
 
@@ -275,7 +280,10 @@ Consistency is held by three gates, not by "they look the same":
 
 ### 2.4 Ports, double starts, changing the port
 
-- Default port 8765. If it is taken: `python server.py --port 9000` /
+- Default port 8765. **Launchers no longer assume it is free**: they first check whether the port
+  answers as this workstation's bridge (`server = "geonet-bridge"`), reuse it if so, otherwise take
+  the first free loopback port in 8765–8784 and pass it to the bridge. A run by hand still takes an
+  explicit override: `python server.py --port 9000` /
   `powershell -File bridge-powershell.ps1 -Port 9000` (still loopback only).
 - Opening the page as `http://127.0.0.1:9000/` makes panel ⑧ follow that port automatically; you only
   have to type a bridge address by hand when the page was opened as `file://`.
@@ -284,8 +292,9 @@ Consistency is held by three gates, not by "they look the same":
   connections out at random: you edit `server.py`, restart, and the page still behaves like the old
   process — which reads as "my change had no effect". So `create_server()` and the PowerShell start-up
   block send a loopback connect to the target port first and exit immediately if someone is already
-  listening, printing the command that changes the port. Launchers are unaffected: they wait for
-  `/api/health`, so a healthy older service simply gets used.
+  listening, printing the command that changes the port. Launchers now verify the `/api/health`
+  identity before opening anything, so a foreign service on the same port is skipped, not mistaken
+  for the bridge.
 - Self-tests (`python server.py --selftest`, `... bridge-powershell.ps1 -SelfTest`) **listen on no
   port, start no child process, make no external request** — the only socket they touch is that one
   loopback connect probe.
@@ -345,9 +354,10 @@ sh 启动-macOS-Linux.sh                        # sh, not ./ — no executable b
 ```
 
 `sh 启动-macOS-Linux.sh` prints that exact copy-paste line with the real directory in it, so you never
-retype a path. What it then does: locate `python3` (falling back to `python`) → start
-`server.py --port 8765` bound to loopback, logging to `桥接服务.log` → poll `/api/health` for up to
-10 seconds → `open http://127.0.0.1:8765/index.html`. If no Python is found it still opens
+retype a path. What it then does: locate `python3` (falling back to `python`) → pick a port (reuse a
+bridge that already answers as `server=geonet-bridge`, otherwise the first free loopback port from
+8765) → start `server.py --port P` bound to loopback, logging to `桥接服务.log` → poll `/api/health`
+for up to 10 seconds → `open http://127.0.0.1:P/index.html`. If no Python is found it still opens
 `index.html` offline and prints the three ways to obtain an interpreter:
 
 1. `xcode-select --install` — installs the Command Line Tools, after which `/usr/bin/python3` exists.
@@ -366,9 +376,11 @@ Gatekeeper quarantine (`xattr -dr com.apple.quarantine .`, or right-click → `�
 time). `git clone` does not set the quarantine flag; a ZIP download does. That asymmetry — plus the
 fact that Terminal needs no `chmod` at all — is why the manual leads with Terminal.
 
-**Ports.** `PORT=9000 sh 启动-macOS-Linux.sh` overrides the default; open the page on that port and ⑧
-follows it without typing. If the bridge does not come up within 10 seconds the launcher says so,
-suggests `PORT=9000 …`, kills the half-started process and falls back to the offline page.
+**Ports.** `PORT=9000 sh 启动-macOS-Linux.sh` sets the starting port; when that one is taken by a
+foreign service the launcher moves to the first free loopback port above it and prints the port it
+chose. Open the page on that port and ⑧ follows it without typing. If the bridge does not come up
+within 10 seconds the launcher says so, suggests `PORT=9000 …`, kills the half-started process and
+falls back to the offline page.
 
 **Linux, any distro, the same rule.** `启动-Linux.sh` is Linux's counterpart of
 `启动-macOS.command`: it contains no bridge logic at all and hands over to the one shared engine,
@@ -401,9 +413,10 @@ honest, because "spawn a terminal from a script" is exactly where a silent failu
   which terminal it tried and runs the engine in place. Silence is the one outcome that is never
   allowed, because it is indistinguishable from a broken download.
 
-From there it is the macOS path byte for byte: `python3` → `server.py` bound to 127.0.0.1 → poll
-`/api/health` for 10 s → `xdg-open http://127.0.0.1:8765/index.html` (`open` on macOS, `termux-open`
-on Android, and if none of the three exist it prints the URL). Without a Python it still opens
+From there it is the macOS path byte for byte: `python3` → pick a free loopback port from 8765
+upward (reusing our bridge when one is already up) → `server.py` bound to 127.0.0.1 → poll
+`/api/health` with the identity check for 10 s → `xdg-open http://127.0.0.1:P/index.html` (`open` on
+macOS, `termux-open` on Android, and if none of the three exist it prints the URL). Without a Python it still opens
 `index.html` offline and prints the install line for your family of distros — `sudo apt install
 python3`, `sudo dnf install python3`, `sudo pacman -S python`, `sudo zypper install python3`,
 `sudo apk add python3` — none of which needs pip, a compiler or a third-party repository.
@@ -884,7 +897,7 @@ lunar occultations or age-of-moon work.
   "besides me, who can borrow this machine" instead of leaving it to be inferred. Leaving that box empty
   is automatic — same-origin pages
   follow their own port, `file://` and the hosted page use `127.0.0.1:8765`. Measured: PowerShell bridge
-  online in `7 ms`, runtime line `geonet-bridge 1.3.0（PowerShell 5.1.28000.2113，win32）`.
+  online in `7 ms`, runtime line `geonet-bridge 1.3.1（PowerShell 5.1.28000.2113，win32）`.
 - **`升级判定` (*escalation check*)** compares this session's offline solutions against the networked
   ones with a χ² test and tells you plainly whether the networked evidence is enough to overturn the
   offline conclusion (α, and the HDOP/RMS/satellite-count thresholds, all visible).
@@ -1904,7 +1917,7 @@ were re-run on 2026-11-18 on this machine and came back with the same counts as 
 | --- | --- |
 | `http://127.0.0.1:8765/index.html` with a bridge behind it | all seven namespaces loaded, Leaflet ready, 1 374 land polygons attached, ⑪ **623 gates / 0 failures** in 1.54 s (71 of them asynchronous), missing ids 0, leaked markup 0, protocol row `http:`, and the storage row reads `加密落盘可用（localStorage · 写前 AES-256-GCM）` — the loopback `http:` origin counts as a secure context (§6.8), so this is the path where ⑩ is fully functional. The same run sampled every 200 ms is what §11.26 was written from: `552 门，还剩 2 组` at 0.67 s, `581 门（其中异步 29），还剩 1 组` at 0.88 s, and only at 1.70 s does the panel dare to say `自检通过：623 门 0 失败`. Measured 2026-11-03 with `server.py`; the same page against the PowerShell bridge on the previous build measured 515 gates in 0.69 s |
 | `file://…/index.html` (double-click, no bridge started) | `isSecureContext = true`, seven namespaces, map ready, 1 374 polygons; the bridge health check from `Origin: null` returns "online" in 11 ms when the PowerShell bridge happens to be running |
-| ⑧ bridge health | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, `geonet-bridge 1.3.0 (PowerShell 5.1.28000.2113, win32)`, 7 ms |
+| ⑧ bridge health | channel `bridge`, `bridge_base=http://127.0.0.1:8765`, `geonet-bridge 1.3.1 (PowerShell 5.1.28000.2113, win32)`, 7 ms |
 | ⑧ trace `github.com` | 5 hops (2 honestly marked "no response (`*`)"), did not arrive within 20 hops, 8 017 ms, target scope `public`, "fabricated hops: no" |
 | ⑧ trace `192.168.2.1` (this machine's gateway) | 1 hop, target reached, 39 ms, target scope "private/LAN (192.168/16)" |
 | ⑧ IP lookup, six sources in parallel | 2 sources usable → fused `30.015638, 121.229409`, reported accuracy `50.0 km`, χ²=0.148 / dof=2 / p=9.29e-1; timed-out, 403, 307 and key-missing sources are dropped and each reason is listed |

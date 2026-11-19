@@ -1797,8 +1797,18 @@
       var got = await httpGetJson(built.url, Object.assign({}, o, { fetch_timeout_ms: num(o.fetch_timeout_ms) || 3000 }));
       if (!got.ok) return sanitize({ ok: false, url: built.url, error: got.detail || ERROR_KINDS[got.error_kind], error_kind: got.error_kind, hops_available: false });
       var j = got.json || {};
+      var server = pickStr(j, ['server', 'name'], 64);
+      // HTTP 200 只证明「有人在答」，不证明「答的是本工作站的桥」。同一台机器上
+      // 别的本地服务也可能占着 8765 并返回 {ok:true}，把它当桥接就是假成功。
+      if (server !== 'geonet-bridge') {
+        return sanitize({
+          ok: false, url: built.url, server: server || null,
+          error: '应答 /api/health 的不是本工作站的桥接（server=' + (server || '未声明') + '），不把它当作桥接使用',
+          error_kind: 'wrong_service', hops_available: false
+        });
+      }
       return sanitize({
-        ok: j.ok === true || j.status === 'ok', url: built.url, server: pickStr(j, ['server', 'name'], 64),
+        ok: j.ok === true || j.status === 'ok', url: built.url, server: server,
         version: pickStr(j, ['version'], 32), python: pickStr(j, ['python'], 32), platform: pickStr(j, ['platform'], 32),
         // runtime 只有 PowerShell 那份桥会填（它 python=null，界面靠这个字段说清自己跑在什么上）。
         // 少带这一个字段，health 里明明写了「PowerShell 5.1」，界面却显示「运行环境未上报」。
@@ -2663,7 +2673,7 @@
     /* ---- D. 路由追踪：桥接可用 / 不可用 ---- */
     var bridgeRoutes = [
       { match: '/api/traceroute', body: { ok: true, host: 'example.com', elapsed_ms: 900, reached: true, hops: [{ hop: 1, ip: '10.0.0.1', hostname: 'gw', rtts_ms: [2, 2, 3] }, { hop: 2, ip: '93.184.216.34', hostname: 'example.com', rtts_ms: [15] }] } },
-      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.3.0', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'], cors_policy: { wildcard: false, built_in: ['null', 'https://iammezsh.github.io'], extra: [], loopback_origins_allowed: true, no_origin_clients_allowed: true, note: '名单外的浏览器来源一律 403 origin_not_allowed' } } },
+      { match: '/api/health', body: { ok: true, server: 'geonet-bridge', version: '1.3.1', python: '3.13', platform: 'Windows', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip'], cors_policy: { wildcard: false, built_in: ['null', 'https://iammezsh.github.io'], extra: [], loopback_origins_allowed: true, no_origin_clients_allowed: true, note: '名单外的浏览器来源一律 403 origin_not_allowed' } } },
       { match: 'dns.google/resolve', body: { Status: 0, Answer: [{ type: 1, name: 'example.com.', data: '93.184.216.34', TTL: 300 }] } }
     ];
     var t1 = await tracerouteViaBridge('example.com', { fetchImpl: makeMockFetch(bridgeRoutes, { calls: [] }) });
@@ -2707,7 +2717,13 @@
       return tBad.ok === false && tBad.error_kind === 'bad_input' && tBad.hops === null && callsBefore === 0;
     })(), String(tBad.error));
     var bs = await bridgeStatus({ fetchImpl: makeMockFetch([bridgeRoutes[1]], { calls: [] }) });
-    push('bridgeStatus 解析能力清单', bs.ok === true && bs.capabilities.length === 5 && bs.server === 'geonet-bridge', bs.capabilities.join(','));
+    var bsForeign = await bridgeStatus({
+      fetchImpl: makeMockFetch([{ match: '/api/health', body: { ok: true, service: 'codeforge-java-server', version: '1.0.7' } }], { calls: [] })
+    });
+    push('bridgeStatus 解析能力清单（拒绝非本工作站的 /api/health）',
+      bs.ok === true && bs.capabilities.length === 5 && bs.server === 'geonet-bridge'
+      && bsForeign.ok === false && bsForeign.error_kind === 'wrong_service',
+      bs.capabilities.join(',') + '；异种服务 -> ' + bsForeign.error_kind);
     // ⑧ 面板要回答「除了我还有谁能在浏览器里读这台桥」，靠的就是这个字段。
     // 上一版 bridgeStatus 把它当未知字段丢掉了，于是真浏览器里新桥被报成「桥版本过旧」——
     // 内核自检当时全绿，因为它自己没测这条透传。这两门就是补那一课。
@@ -2739,7 +2755,7 @@
     var bsPs = await bridgeStatus({
       fetchImpl: makeMockFetch([{
         match: '/api/health',
-        body: { ok: true, server: 'geonet-bridge', version: '1.3.0', python: null, runtime: 'PowerShell 5.1.28000.2113', platform: 'win32', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip', 'static'] }
+        body: { ok: true, server: 'geonet-bridge', version: '1.3.1', python: null, runtime: 'PowerShell 5.1.28000.2113', platform: 'win32', capabilities: ['traceroute', 'ping', 'dns', 'iface', 'geoip', 'static'] }
       }], { calls: [] })
     });
     push('bridgeStatus 透出 PowerShell 桥的 runtime（python 为 null 时不冒充 Python）', (function () {
@@ -2812,7 +2828,7 @@
 
   /* ================================================================ 17. 导出面 */
   var API = {
-    VERSION: '1.3.0',
+    VERSION: '1.3.1',
     // 常数与表
     WGS84: WGS84, C_MS: C_MS, IP_SOURCES: IP_SOURCES, PATH_LOSS_N: PATH_LOSS_N,
     ERROR_KINDS: ERROR_KINDS, DEFAULTS: DEFAULTS,

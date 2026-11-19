@@ -28,7 +28,7 @@
   'use strict';
 
   /* ============================================================== 0. 常量 */
-  var VERSION = '1.3.0';
+  var VERSION = '1.3.1';
   var ENVELOPE_KEY = 'llgz.vault.v1';     // 记录只住这一个键；另有 BUILD_KEY 只存构建号
   var BUILD_KEY = 'llgz.build.v1';        // 只存一个构建号：界面向「这一版提示过没有」，不含任何记录
   var SCHEMA = 1;                          // 信封格式版本；改格式要能识别旧信封

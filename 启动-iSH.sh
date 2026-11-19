@@ -110,7 +110,6 @@ i_bad() {
 
 i_head
 i_kv 'DIR' "$DIR"
-i_kv 'URL' "$URL"
 i_kv 'LOG' "$SELFTEST_LOG  /  $BRIDGE_LOG"
 i_rule -
 
@@ -130,6 +129,43 @@ if [ ! -f server.py ]; then
   exit 1
 fi
 
+# 端口选择：先认领已经在线的那份桥，否则找第一个能绑的回环端口。
+# 判据是 /api/health 里的 server 字段——只认 HTTP 200 会把别的服务当自己的桥。
+PICK=$(python3 - "$PORT" <<'PY'
+import json, socket, sys, urllib.request
+base = int(sys.argv[1])
+for p in range(base, base + 20):
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:%d/api/health' % p, timeout=1) as r:
+            if json.load(r).get('server') == 'geonet-bridge':
+                print('reuse %d' % p)
+                sys.exit(0)
+    except Exception:
+        pass
+    s = socket.socket()
+    try:
+        s.bind(('127.0.0.1', p))
+        print('free %d' % p)
+        sys.exit(0)
+    except OSError:
+        pass
+    finally:
+        s.close()
+print('none')
+PY
+)
+PICK_WHAT=${PICK%% *}
+PICK_PORT=${PICK##* }
+REUSED=0
+MOVED=0
+case $PICK_WHAT in
+  reuse) PORT=$PICK_PORT; REUSED=1; MOVED=1 ;;
+  free) [ "$PICK_PORT" != "$PORT" ] && MOVED=1; PORT=$PICK_PORT ;;
+esac
+URL="http://127.0.0.1:$PORT"
+i_kv 'URL' "$URL"
+[ "$MOVED" = 1 ] && i_note '默认 8765 被占用：已自动改用上面的端口（判据是 /api/health 的 server 字段）。'
+
 i_step 1 '离线自测：python3 server.py --selftest（不联网、不监听端口，只算不调）'
 # 直接把自测自己的结论抄下来，不在这里数它的行数——数字由 server.py 说了算，改动不会走样。
 # PYTHONIOENCODING 是给非 UTF-8 终端的：GBK 一类的控制台会把那句中文结论写坏；
@@ -144,32 +180,48 @@ else
   exit 1
 fi
 
-i_step 2 "起桥接：$URL（只绑回环，不监听局域网，永不接收坐标类参数）"
-PYTHONIOENCODING=utf-8 python3 server.py --port "$PORT" >"$BRIDGE_LOG" 2>&1 &
-SRV=$!
+health_ok() {
+  python3 - "$URL" <<'PY'
+import json, sys, urllib.request
+try:
+    with urllib.request.urlopen(sys.argv[1] + '/api/health', timeout=2) as r:
+        sys.exit(0 if json.load(r).get('server') == 'geonet-bridge' else 1)
+except Exception:
+    sys.exit(1)
+PY
+}
 
-i=1
-while [ "$i" -le 15 ]; do
-  if python3 -c "import urllib.request as u;u.urlopen('$URL/api/health',timeout=2)" >/dev/null 2>&1; then
-    break
-  fi
-  if ! kill -0 "$SRV" 2>/dev/null; then
-    i_bad '桥接进程自己退出了，日志尾几行：'
+if [ "$REUSED" = 1 ]; then
+  i_step 2 "复用已在线的桥接：$URL（不再重复启动）"
+  i_ok '端口上已经有本工作站的桥接，直接用；退出本脚本不会停它。'
+else
+  i_step 2 "起桥接：$URL（只绑回环，不监听局域网，永不接收坐标类参数）"
+  PYTHONIOENCODING=utf-8 python3 server.py --port "$PORT" >"$BRIDGE_LOG" 2>&1 &
+  SRV=$!
+
+  i=1
+  while [ "$i" -le 15 ]; do
+    if health_ok; then
+      break
+    fi
+    if ! kill -0 "$SRV" 2>/dev/null; then
+      i_bad '桥接进程自己退出了，日志尾几行：'
+      tail -12 "$BRIDGE_LOG" 2>/dev/null
+      i_dim '最常见两种：端口已被占用，或 python3 缺标准库模块。'
+      exit 1
+    fi
+    i=$((i + 1))
+    sleep 1
+  done
+
+  if ! health_ok; then
+    i_bad '15 秒内 iSH 自己都连不上这个端口。换端口再试：  sh 启动-iSH.sh 9000'
     tail -12 "$BRIDGE_LOG" 2>/dev/null
-    i_dim '最常见两种：端口已被占用（换  sh 启动-iSH.sh 9000），或 python3 缺标准库模块。'
+    kill "$SRV" 2>/dev/null
     exit 1
   fi
-  i=$((i + 1))
-  sleep 1
-done
-
-if ! python3 -c "import urllib.request as u;u.urlopen('$URL/api/health',timeout=2)" >/dev/null 2>&1; then
-  i_bad '15 秒内 iSH 自己都连不上这个端口。多半是被占用了：换端口再试，如  sh 启动-iSH.sh 9000'
-  tail -12 "$BRIDGE_LOG" 2>/dev/null
-  kill "$SRV" 2>/dev/null
-  exit 1
+  i_ok "/api/health 应答正常（第 ${i} 秒，server=geonet-bridge）。"
 fi
-i_ok "/api/health 应答正常（第 ${i} 秒）。"
 
 i_step 3 '拿一次真实数据，数字当场打给你看（不是「自检全绿」就算完）'
 PYTHONIOENCODING=utf-8 python3 - "$URL" <<'PYEOF'
@@ -242,5 +294,9 @@ i_dim  '     会标明这一层目标是内网还是公网。）'
 i_dim  '完整说明见同目录 MANUAL.md（英文，含各平台的最小文件清单——不必整包下载）。'
 i_rule =
 
+if [ "$REUSED" = 1 ]; then
+  i_note '桥接保持在线（由已有进程提供）；本脚本结束。'
+  exit 0
+fi
 trap 'kill "$SRV" 2>/dev/null' INT TERM
 wait "$SRV"

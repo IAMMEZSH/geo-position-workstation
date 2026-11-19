@@ -10,7 +10,7 @@
   var G = global;
   var DOC = (typeof document !== 'undefined') ? document : null;
   // 构建号: 印在更新提示条上, 让人不用翻文件就知道手里这份副本是哪一版。发新版本时改这里。
-  var BUILD = '1.3.0';
+  var BUILD = '1.3.1';
   var UPDATE_API = 'https://api.github.com/repos/IAMMEZSH/geo-position-workstation/releases/latest';
   var GITHUB_RELEASES = 'https://github.com/IAMMEZSH/geo-position-workstation/releases';
   var GITCODE_RELEASES = 'https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases';

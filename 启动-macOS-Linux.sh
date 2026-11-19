@@ -33,6 +33,8 @@
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
 cd "$DIR" || exit 1
 PORT=${PORT:-8765}
+# 8765 只是起点：被别的本地服务占着时，自动改用后面第一个空闲回环端口。
+# 是不是「自己的桥」看 /api/health 的 server 字段，不看 HTTP 200。
 LOG="$DIR/桥接服务.log"
 OS=$(uname -s 2>/dev/null || echo unknown)
 GEO_FACE=${GEO_FACE:-linux}
@@ -206,6 +208,53 @@ for c in python3 python; do
   fi
 done
 
+# 端口选择：先认领已经在线的那份桥，否则找第一个能绑的回环端口。
+# 判据是 /api/health 里的 server 字段——同机别的服务也可能在 8765 上答 200。
+pick_port() { # 输出 reuse N | free N | none
+  "$PY" - "$PORT" <<'PY'
+import json, socket, sys, urllib.request
+base = int(sys.argv[1])
+for p in range(base, base + 20):
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:%d/api/health' % p, timeout=1) as r:
+            if json.load(r).get('server') == 'geonet-bridge':
+                print('reuse %d' % p)
+                sys.exit(0)
+    except Exception:
+        pass
+    s = socket.socket()
+    try:
+        s.bind(('127.0.0.1', p))
+        print('free %d' % p)
+        sys.exit(0)
+    except OSError:
+        pass
+    finally:
+        s.close()
+print('none')
+PY
+}
+
+REUSED=0
+PORT_MOVED=0
+BRIDGE_PID=
+if [ -n "$PY" ]; then
+  PORT_PICK=$(pick_port)
+  PICK_WHAT=${PORT_PICK%% *}
+  PICK_PORT=${PORT_PICK##* }
+  case $PICK_WHAT in
+    reuse)
+      PORT=$PICK_PORT
+      REUSED=1
+      PORT_MOVED=1
+      ;;
+    free)
+      [ "$PICK_PORT" != "$PORT" ] && PORT_MOVED=1
+      PORT=$PICK_PORT
+      ;;
+  esac
+fi
+
 open_page() {
   if command -v open >/dev/null 2>&1; then open "$1" >/dev/null 2>&1
   elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$1" >/dev/null 2>&1
@@ -217,7 +266,15 @@ open_page() {
 wait_ready() {
   i=0
   while [ $i -lt 10 ]; do
-    if "$PY" -c "import urllib.request as u;u.urlopen('http://127.0.0.1:$PORT/api/health',timeout=1)" >/dev/null 2>&1; then
+    if "$PY" - "$PORT" <<'PY'
+import json, sys, urllib.request
+try:
+    with urllib.request.urlopen('http://127.0.0.1:%s/api/health' % sys.argv[1], timeout=1) as r:
+        sys.exit(0 if json.load(r).get('server') == 'geonet-bridge' else 1)
+except Exception:
+    sys.exit(1)
+PY
+    then
       return 0
     fi
     i=$((i + 1))
@@ -239,7 +296,9 @@ case $GEO_FACE in
   *) hud_dim "$G_P Linux · 发行版自带终端${GEO_TERM_LABEL:+ · $GEO_TERM_LABEL}" ;;
 esac
 hud_sep
-hud_kv '[SYS]' "平台 ${OS%%-*} · 端口 $PORT"
+PORT_LINE="平台 ${OS%%-*} · 端口 $PORT"
+[ "$PORT_MOVED" = 1 ] && PORT_LINE="$PORT_LINE（默认 8765 被占用，已自动避让）"
+hud_kv '[SYS]' "$PORT_LINE"
 hud_kv '[BRG]' "有 Python 用 server.py，否则离线页"
 hud_kv '[BND]' "只绑 127.0.0.1，非回环直接拒绝"
 hud_kv '[PRV]' "不收经纬度参数；日志只在本机"
@@ -317,15 +376,23 @@ if [ -z "$PY" ]; then
   exit 0
 fi
 
-hud_state boot "用 $PY 拉起桥接（只绑回环）"
-hud_dim "日志：$LOG"
-nohup "$PY" server.py --port "$PORT" >"$LOG" 2>&1 &
-BRIDGE_PID=$!
+if [ "$REUSED" = 1 ]; then
+  hud_state boot "端口 $PORT 上已有本工作站的桥接，直接复用"
+else
+  hud_state boot "用 $PY 拉起桥接（只绑回环）"
+  hud_dim "日志：$LOG"
+  nohup "$PY" server.py --port "$PORT" >"$LOG" 2>&1 &
+  BRIDGE_PID=$!
+fi
 
 if wait_ready; then
   win_title READY
   hud_state ok "桥接在线 http://127.0.0.1:$PORT/"
-  hud_dim "PID $BRIDGE_PID · 关掉本窗口即停止"
+  if [ "$REUSED" = 1 ]; then
+    hud_dim "复用已有桥接：关掉本窗口不会停它"
+  else
+    hud_dim "PID $BRIDGE_PID · 关掉本窗口即停止"
+  fi
   hud_dim "⑧ 已解锁：DNS / ping / 逐跳追踪 / 网卡"
   hud_dim "网卡只报数量，MAC 与内网地址不返回。"
   open_page "http://127.0.0.1:$PORT/index.html"
@@ -334,7 +401,7 @@ else
   hud_state bad "10 秒内没就绪（端口被占？）退回离线页"
   hud_cmd "PORT=9000 sh $ENTRY"
   hud_dim "⑧ 会显示「桥接不可用」，其余面板不受影响"
-  kill $BRIDGE_PID >/dev/null 2>&1
+  [ -n "$BRIDGE_PID" ] && kill $BRIDGE_PID >/dev/null 2>&1
   open_page "index.html"
 fi
 

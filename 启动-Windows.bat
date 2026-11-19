@@ -33,6 +33,7 @@ rem tail of the "[ready]" message during testing.
 set "PORT=8765"
 set "PY="
 set "READY="
+set "REUSED="
 
 title Geo Position Workstation
 color 0E >nul 2>nul
@@ -46,6 +47,11 @@ echo     [SYS] bind    : 127.0.0.1 only. non-loopback is refused at start-up
 echo     [SYS] upload  : none. a coordinate parameter is rejected, not ignored
 echo     [LEG] amber = probing   green = bridge online   red = no bridge
 echo  -------------------------------------------------------------------------
+rem 8765 is only a starting point: :pickport reuses our own bridge if one is
+rem already up, otherwise it picks the first free port from 8765 upward.
+call :pickport
+if defined REUSED goto :ready
+
 echo     [ENV] probing python ...
 
 where python >nul 2>nul && call :try python
@@ -82,6 +88,7 @@ goto :done
 :ready
 color 0A >nul 2>nul
 echo     [OK ] bridge online     : http://127.0.0.1:%PORT%/  -  same origin
+if defined REUSED echo     [OK ] reused bridge       : port %PORT% was already up
 echo     [OK ] panel 8 unlocked  : dns, ping, traceroute, interfaces, all local
 echo  -------------------------------------------------------------------------
 start "" "http://127.0.0.1:%PORT%/index.html"
@@ -102,7 +109,7 @@ goto :eof
 
 :probe
 if defined READY goto :eof
-powershell -NoProfile -Command "try{Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:%PORT%/api/health' -TimeoutSec 1|Out-Null;exit 0}catch{exit 1}" >nul 2>nul
+powershell -NoProfile -Command "try{$r=Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:%PORT%/api/health' -TimeoutSec 1;$j=$r.Content|ConvertFrom-Json;if($j.server -eq 'geonet-bridge'){exit 0};exit 1}catch{exit 1}" >nul 2>nul
 if not errorlevel 1 goto :bridge_up
 echo     [POLL] /api/health attempt %1 of 10 ...
 ping -n 2 127.0.0.1 >nul
@@ -110,6 +117,19 @@ goto :eof
 
 :bridge_up
 set "READY=1"
+goto :eof
+:pickport
+rem A foreign service on 8765 (anything that answers 200 but is not our
+rem /api/health server=geonet-bridge) must not be opened as this page.
+rem PowerShell probes ports 8765..8784: reuse our bridge, else first free.
+set "PORTFILE=%TEMP%\geo-port-%RANDOM%%RANDOM%.txt"
+powershell -NoProfile -Command "$b=8765;$n='none';for($p=$b;$p -lt ($b+20);$p++){$h=$null;try{$r=Invoke-WebRequest -UseBasicParsing -Uri ('http://127.0.0.1:'+$p+'/api/health') -TimeoutSec 1;$h=$r.Content|ConvertFrom-Json}catch{};if($h -and $h.server -eq 'geonet-bridge'){$n='reuse '+$p;break};$l=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,$p);try{$l.Start();$l.Stop();$n='free '+$p;break}catch{};try{$l.Stop()}catch{}};Set-Content -Path '%PORTFILE%' -Encoding ASCII -Value $n" >nul 2>nul
+set "PICK="
+set "PORT="
+if exist "%PORTFILE%" for /f "usebackq tokens=1,2" %%a in ("%PORTFILE%") do (set "PICK=%%a" & set "PORT=%%b")
+del "%PORTFILE%" >nul 2>nul
+if not defined PORT set "PORT=8765"
+if /i "%PICK%"=="reuse" set "REUSED=1"
 goto :eof
 
 :done

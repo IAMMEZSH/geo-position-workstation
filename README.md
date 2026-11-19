@@ -19,18 +19,18 @@
 
 ## Download
 
-**Windows 10/11 (x64), one click:** [`geo-windows.zip`](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-windows.zip) — unzip it, then double-click `启动-Windows.bat`.
+**Windows 10/11 (x64), one click:** [`geo-windows.zip`](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-windows.zip) — unzip it, then double-click `启动-Windows.bat`.
 
 | Platform | Release artifact | GitHub | GitCode |
 |---|---|---|---|
-| Windows 10/11 (x64) | `geo-windows.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-windows.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-windows.zip) |
-| macOS 12+ | `geo-macos.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-macos.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-macos.zip) |
-| Linux | `geo-linux.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-linux.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-linux.zip) |
-| Android · Termux | `geo-android.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-android.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-android.zip) |
-| iPhone / iPad · iSH | `geo-ios-ish.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-ios-ish.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-ios-ish.zip) |
-| Any browser, no bridge | `geo-browser.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-browser.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-browser.zip) |
-| Everything (developers) | `geo-full.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/geo-full.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/geo-full.zip) |
-| Checksums | `SHA256SUMS.txt` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.0/SHA256SUMS.txt) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.0/SHA256SUMS.txt) |
+| Windows 10/11 (x64) | `geo-windows.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-windows.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-windows.zip) |
+| macOS 12+ | `geo-macos.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-macos.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-macos.zip) |
+| Linux | `geo-linux.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-linux.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-linux.zip) |
+| Android · Termux | `geo-android.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-android.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-android.zip) |
+| iPhone / iPad · iSH | `geo-ios-ish.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-ios-ish.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-ios-ish.zip) |
+| Any browser, no bridge | `geo-browser.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-browser.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-browser.zip) |
+| Everything (developers) | `geo-full.zip` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/geo-full.zip) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/geo-full.zip) |
+| Checksums | `SHA256SUMS.txt` | [Download](https://github.com/IAMMEZSH/geo-position-workstation/releases/download/v1.3.1/SHA256SUMS.txt) | [Download](https://gitcode.com/gcw_So3EkhfR/geo-position-workstation/releases/download/v1.3.1/SHA256SUMS.txt) |
 
 Both mirrors carry the same eight release assets with identical names and SHA-256 hashes. The hosted URL below is byte-for-byte the same program.
 

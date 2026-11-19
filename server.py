@@ -58,7 +58,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # ================================================================ 0. 常量
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 SERVER_NAME = "geonet-bridge"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
